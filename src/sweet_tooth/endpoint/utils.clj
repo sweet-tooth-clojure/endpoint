@@ -100,6 +100,7 @@
   (into {} (map (juxt k identity) xs)))
 
 (defn format
+  "Expects `e`, be it map or seq, to have ent-type defined in metadata"
   [e id-key]
   (let [{:keys [ent-type]} (meta e)]
     {ent-type (key-by id-key (if (map? e) [e] e))}))
