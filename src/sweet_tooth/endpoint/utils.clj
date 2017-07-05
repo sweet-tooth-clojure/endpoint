@@ -1,10 +1,7 @@
 (ns sweet-tooth.endpoint.utils
   (:require [com.flyingmachine.liberator-unbound :as lu]
-            [com.flyingmachine.datomic-junk :as dj]
-            [datomic.api :as d]
             [flyingmachine.webutils.validation :refer [if-valid]]
             [buddy.auth :as buddy]
-            [medley.core :as medley]
             ;; this loads support for transit into liberator
             [io.clojure.liberator-transit]
             [ring.util.response :as resp]
@@ -15,113 +12,79 @@
   [record]
   (into {} (remove (comp nil? second) record)))
 
+;; -------------------------
 ;; Working with liberator context
-(defn record-in-ctx
-  [ctx]
-  (:record ctx))
+;; -------------------------
+(defn get-ctx
+  [path]
+  (let [path (if (vector? path) path [path])]
+    (fn [ctx]
+      (get-in ctx path))))
 
-(defn errors-in-ctx
-  ([]
-   (errors-in-ctx {}))
-  ([opts]
-   (fn [ctx]
-     (merge {:errors (:errors ctx)} opts))))
-
-(defn params
-  [ctx]
-  (get-in ctx [:request :params]))
-
-(defn merge-params
-  [ctx p]
-  (update-in ctx [:request :params] merge p))
-
-(defn errors-map
-  [errors]
-  {:errors errors
-   :representation {:media-type "application/transit+json"}})
-
-(defn error-response
-  [status errors]
-  (lr/ring-response
-    {:body {:errors errors}
-     :status status
-     :headers {"media-type" "application/transit+json"}}))
-
-(def authorization-error (errors-map {:authorization "Not authorized."}))
-(def authentication-error (errors-map {:authorization "You must be logged in to do that."}))
-
-(defn auth
-  [ctx]
-  (get-in ctx [:request :identity]))
-
-(defn auth-id
-  [ctx]
-  (:db/id (auth ctx)))
-
-(defn authenticated?
-  [ctx]
-  (if (buddy/authenticated? (:request ctx))
-    [true {:auth (:identity (:request ctx))}]
-    [false authentication-error]))
-
-
-(defn add-record
-  "Return a map that gets added to the ctx"
-  [r]
-  (if r {:record r}))
-
-(defn add-result
-  [r]
-  (if r {:result r}))
+;; Expect consumers to store records when e.g. fetching a single ent
+;; by id in record
+(def record (get-ctx :record))
+(def errors (get-ctx :errors))
+(def params (get-ctx [:request :params]))
 
 (defn ctx-id
+  "Get id from the params, try to convert to number
+  TODO this is better solved with routing type hint"
   [ctx & [id-key]]
   (let [id-key (or id-key :id)]
     (if-let [id (id-key (params ctx))]
       (Long/parseLong id)
       (:db/id (params ctx)))))
 
-(defn created-id
-  [ctx]
-  (-> ctx
-      (get-in [:result :tempids])
-      first
-      second))
+(defn errors-map
+  "Add errors to context, setting media-type in case liberator doesn't
+  get to that decision"
+  [errors]
+  {:errors errors
+   :representation {:media-type "application/transit+json"}})
 
-(defn assoc-tempid
-  [x]
-  (assoc x :db/id (d/tempid :db.part/user)))
+(defn error-response
+  "For cases where the error happens before the request gets to liberator"
+  [status errors]
+  (lr/ring-response
+    {:body {:errors errors}
+     :status status
+     :headers {"media-type" "application/transit+json"}}))
 
-(defn ctx->create-map
-  [ctx]
-  (-> ctx
-      params
-      remove-nils-from-map
-      assoc-tempid))
+(defn ->ctx
+  "Make it easy to thread data into liberator context"
+  [x k]
+  {k x})
 
-(defn conn
-  [ctx]
-  (get-in ctx [:db :conn]))
+(def authorization-error
+  (errors-map {:authorization "Not authorized."}))
+(def authentication-error
+  (errors-map {:authentication "You must be logged in to do that."}))
 
-(defn create
-  [ctx]
-  (d/transact (conn ctx) [(ctx->create-map ctx)]))
+;; Assumes buddy
+(def auth (get-ctx [:request :identity]))
 
-(defn ctx->update-map
+(defn authenticated?
+  "To use with liberator's :authorized? decision"
   [ctx]
-  (-> ctx
-      params
-      remove-nils-from-map
-      (assoc :db/id (ctx-id ctx))
-      (dissoc :id)))
+  (if (buddy/authenticated? (:request ctx))
+    [true {:auth (:identity (:request ctx))}]
+    [false authentication-error]))
 
-(defn update
-  [ctx]
-  (d/transact (conn ctx) [(ctx->update-map ctx)]))
+(defn auth-with
+  "If any auth function authenticates the context, return true. Used
+  to e.g. auth by ownership or adminship"
+  [& fns]
+  (fn [ctx]
+    (if (some #(% ctx) fns)
+      true
+      [false authorization-error])))
 
-(defn delete
+(defn auth-id
+  "Retrieve the ID of authenticated user. Assumes `:auth-id-key` is in
+  the ctx"
   [ctx]
-  (d/transact (conn ctx) [[:db.fn/retractEntity (ctx-id ctx)]]))
+  ((:auth-id-key ctx) (auth ctx)))
 
 (defn assoc-user
   [ctx user-key]
@@ -129,19 +92,38 @@
             [:request :params user-key]
             (auth-id ctx)))
 
-(defn db-after
-  [ctx]
-  (get-in ctx [:result :db-after]))
+;; -------------------------
+;; Organize response records for easy frontend consumption
+;; -------------------------
+(defn key-by
+  [k xs]
+  (into {} (map (juxt k identity) xs)))
 
-(defn db-before
-  [ctx]
-  (get-in ctx [:result :db-before]))
+(defn format
+  [e id-key]
+  (let [{:keys [ent-type]} (meta e)]
+    {ent-type (key-by id-key (if (map? e) [e] e))}))
+
+(defmacro validator
+  "Used in invalid? which is why truth values are reversed"
+  ([validation]
+   `(validator ~(gensym) ~validation))
+  ([ctx-sym validation]
+   `(fn [~ctx-sym]
+      (if-valid
+       (params ~ctx-sym) ~validation errors#
+       false
+       [true (errors-map errors#)]))))
+
 
 ;; Generating liberator resources without defresource
+;; TODO check if there's something better than handle-malformed
 (def decision-defaults
-  ^{:doc "A 'base' set of liberator resource decisions for list,
-    create, show, update, and delete"}
-  (let [errors-in-ctx (errors-in-ctx {:representation {:media-type "application/transit+json"}})
+  "A 'base' set of liberator resource decisions for list, create,
+  show, update, and delete"
+  (let [errors-in-ctx (fn [ctx]
+                        (merge (errors ctx)
+                               {:representation {:media-type "application/transit+json"}}))
         base {:available-media-types ["application/transit+json"
                                       "application/transit+msgpack"
                                       "application/json"]
@@ -154,30 +136,21 @@
     {:list base
      :create (merge base {:allowed-methods [:post]
                           :new? true
-                          :handle-created record-in-ctx})
+                          :handle-created record})
      :show base
      :update (merge base {:allowed-methods [:put]})
      :delete (merge base {:allowed-methods [:delete]
                           :respond-with-entity? false})}))
 
 (def resource-route
-  ^{:doc "A function that takes a path and decision spec 
-    and produces compojure endpoint"}
+  "A function that takes a path and decision spec and produces
+  compojure endpoint"
   (lu/bundle {:collection [:list :create]
               :entry [:show :update :delete]}
              decision-defaults))
 
-(defn html-resource [path]
+(defn html-resource
+  "Serve resource at `path` as html"
+  [path]
   (-> (resp/resource-response path)
       (resp/content-type "text/html")))
-
-(defmacro validator
-  "Used in invalid? which is why truth values are reversed"
-  ([validation]
-   `(validator ~(gensym) ~validation))
-  ([ctx-sym validation]
-   `(fn [~ctx-sym]
-      (if-valid
-       (params ~ctx-sym) ~validation errors#
-       false
-       [true (errors-map errors#)]))))
