@@ -20,6 +20,10 @@
 
   java.lang.Object
   (asc [x] compare)
+  (desc [x] #(compare %2 %1))
+
+  nil
+  (asc [x] compare)
   (desc [x] #(compare %2 %1)))
 
 (defn sort-fn
@@ -50,3 +54,17 @@
 (defn organize-page-data
   [ent-type page]
   (update-in page [:data ent-type] #(u/key-by :db/id %)))
+
+;; TODO spec this
+(defn page-params
+  "Get pagination-related params. Includes base set of allowable
+  params, plus whatever user specifies in `allowed-keys`.
+
+  Converts `:page` and `:per-page` to integer.
+  TODO have route coerce params correctly."
+  [ctx & allowed-keys]
+  (-> (u/params ctx)
+      (select-keys (into [:page :per-page :sort-order :sort-by :query-id :type]
+                         allowed-keys))
+      (u/update-vals {[:page :per-page] #(Integer. %)
+                      [:sort-by :sort-order :query-id :type] #(keyword (subs % 1))})))
