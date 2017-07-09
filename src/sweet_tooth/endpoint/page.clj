@@ -37,7 +37,7 @@
         data (cond->> ents
                (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
                true (slice page per-page))]
-    {:data {type (u/key-by :db/id data)}
+    {:entity {type (u/key-by :db/id data)}
      :page {:query {(:query-id p) p}
             :result {p {:total-pages (Math/round (Math/ceil (/ ent-count per-page)))
                         :ent-count ent-count
@@ -46,14 +46,14 @@
 (defn page-to-new
   [new-ent-id page ents]
   (let [ent-page (paginate page ents)]
-    (if (get-in ent-page [:data (:type page) new-ent-id])
+    (if (get-in ent-page [:entity (:type page) new-ent-id])
       ent-page
       (let [[[query-id page-query]] (vec (-> ent-page :page :query))]
         (paginate (assoc page-query :page (get-in ent-page [:page :result page-query :total-pages])) ents)))))
 
 (defn organize-page-data
   [ent-type page]
-  (update-in page [:data ent-type] #(u/key-by :db/id %)))
+  (update-in page [:entity ent-type] #(u/key-by :db/id %)))
 
 ;; TODO spec this
 (defn page-params
