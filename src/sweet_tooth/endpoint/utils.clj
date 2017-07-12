@@ -114,11 +114,16 @@
   [k xs]
   (into {} (map (juxt k identity) xs)))
 
-(defn format
+(defn format-ent
   "Expects `e`, be it map or seq, to have ent-type defined in metadata"
   [e id-key]
-  (let [{:keys [ent-type]} (meta e)]
-    {ent-type (key-by id-key (if (map? e) [e] e))}))
+  {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))})
+
+(defn ent-type
+  [x y]
+  (if (keyword? x)
+    (with-meta y {:ent-type x})
+    (with-meta x {:ent-type y})))
 
 (defmacro validator
   "Used in invalid? which is why truth values are reversed"
