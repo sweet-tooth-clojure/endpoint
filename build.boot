@@ -7,6 +7,7 @@
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
                     [adzerk/boot-cljs           "1.7.228-1" :scope "provided"]
                     [adzerk/boot-reload         "0.4.13"]
+                    [duct/core                  "0.5.0"]
 
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
@@ -20,7 +21,7 @@
  '[adzerk.bootlaces :refer :all]
  '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.2.0")
+(def +version+ "0.2.1-SNAPSHOT")
 (bootlaces! +version+)
 
 (task-options!
