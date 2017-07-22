@@ -8,6 +8,7 @@
                     [adzerk/boot-cljs           "1.7.228-1" :scope "provided"]
                     [adzerk/boot-reload         "0.4.13"]
                     [duct/core                  "0.5.0"]
+                    [medley                     "0.7.1"]
 
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
@@ -15,6 +16,7 @@
                     [com.flyingmachine/datomic-junk "0.2.3"]
                     [com.flyingmachine/webutils "0.1.6"]
                     [com.datomic/datomic-free "0.9.5344" :scope "provided"]
+                    [ring-middleware-format "0.7.0"]
                     [buddy "1.0.0"]])
 
 (require

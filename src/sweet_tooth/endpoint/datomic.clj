@@ -4,7 +4,8 @@
   Transaction results are put in `:result` in the context."
   (:require [sweet-tooth.endpoint.utils :as u]
             [medley.core :as medley]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [integrant.core :as ig]))
 
 (defn created-id
   [ctx]
@@ -28,6 +29,10 @@
 (defn conn
   [ctx]
   (get-in ctx [:db :conn]))
+
+(defn db
+  [ctx]
+  (d/db (conn ctx)))
 
 (defn create
   [ctx]
@@ -57,3 +62,6 @@
   [ctx db user-key]
   (let [ent (d/entity db (u/ctx-id ctx))]
     (= (:db/id (user-key ent)) (u/auth-id ctx))))
+
+(defmethod ig/init-key :sweet-tooth.endpoint/datomic [_ config]
+  (assoc config :conn (d/connect (:uri config))))

@@ -5,7 +5,9 @@
             ;; this loads support for transit into liberator
             [io.clojure.liberator-transit]
             [ring.util.response :as resp]
-            [liberator.representation :as lr]))
+            [liberator.representation :as lr]
+            [medley.core :as medley]
+            [compojure.core :refer [routes]]))
 
 ;; util
 (defn update-vals
@@ -175,3 +177,22 @@
   [path]
   (-> (resp/resource-response path)
       (resp/content-type "text/html")))
+
+
+(defn initialize-decisions
+  [decisions context-initializer]
+  (medley/map-vals
+    (fn [decision]
+      (assoc decision :initialize-context context-initializer))
+    decisions))
+
+(defn endpoint
+  "Makes it easier to apply an initialize-context to every decision"
+  [route decisions context-initializer]
+  (fn [opts]
+    (routes (resource-route route
+                            (fn [opts]
+                              (initialize-decisions (decisions opts)
+                                                    (fn [ctx]
+                                                      (context-initializer ctx opts))))
+                            opts))))
