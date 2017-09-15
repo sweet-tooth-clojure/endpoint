@@ -5,8 +5,6 @@
                     [boot/core                  "2.5.5"     :scope "provided"]
                     [adzerk/bootlaces           "0.1.13"    :scope "test"]
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
-                    [adzerk/boot-cljs           "1.7.228-1" :scope "provided"]
-                    [adzerk/boot-reload         "0.4.13"]
                     [duct/core                  "0.5.0"]
                     [medley                     "0.7.1"]
 
@@ -23,7 +21,7 @@
  '[adzerk.bootlaces :refer :all]
  '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.2.1")
+(def +version+ "0.2.2")
 (bootlaces! +version+)
 
 (task-options!
