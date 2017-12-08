@@ -145,7 +145,7 @@
   "A 'base' set of liberator resource decisions for list, create,
   show, update, and delete"
   (let [errors-in-ctx (fn [ctx]
-                        (merge (errors ctx)
+                        (merge (select-keys ctx [:errors])
                                {:representation {:media-type "application/transit+json"}}))
         base {:available-media-types ["application/transit+json"
                                       "application/transit+msgpack"
