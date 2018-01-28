@@ -1,5 +1,6 @@
 (ns sweet-tooth.endpoint.page
-  (:require [sweet-tooth.endpoint.utils :as u]))
+  (:require [sweet-tooth.endpoint.utils :as u]
+            [sweet-tooth.endpoint.liberator :as el]))
 
 (defn slice
   "Get a single page of ents out of a collection"
@@ -63,7 +64,7 @@
   Converts `:page` and `:per-page` to integer.
   TODO have route coerce params correctly."
   [ctx & allowed-keys]
-  (-> (u/params ctx)
+  (-> (el/params ctx)
       (select-keys (into [:page :per-page :sort-order :sort-by :query-id :type]
                          allowed-keys))
       (u/update-vals {[:page :per-page] #(Integer. %)

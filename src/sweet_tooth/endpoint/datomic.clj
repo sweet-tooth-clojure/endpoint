@@ -3,6 +3,7 @@
 
   Transaction results are put in `:result` in the context."
   (:require [sweet-tooth.endpoint.utils :as u]
+            [sweet-tooth.endpoint.liberator :as el]
             [medley.core :as medley]
             [datomic.api :as d]
             [integrant.core :as ig]))
@@ -22,7 +23,7 @@
   ""
   [ctx]
   (-> ctx
-      u/params
+      el/params
       u/remove-nils-from-map
       assoc-tempid))
 
@@ -41,9 +42,9 @@
 (defn ctx->update-map
   [ctx]
   (-> ctx
-      u/params
+      el/params
       u/remove-nils-from-map
-      (assoc :db/id (u/ctx-id ctx))
+      (assoc :db/id (el/ctx-id ctx))
       (dissoc :id)))
 
 (defn update
@@ -52,16 +53,16 @@
 
 (defn delete
   [ctx]
-  (d/transact (conn ctx) [[:db.fn/retractEntity (u/ctx-id ctx)]]))
+  (d/transact (conn ctx) [[:db.fn/retractEntity (el/ctx-id ctx)]]))
 
-(def db-after (u/get-ctx [:result :db-after]))
-(def db-before (u/get-ctx [:result :db-before]))
+(def db-after (el/get-ctx [:result :db-after]))
+(def db-before (el/get-ctx [:result :db-before]))
 
 (defn auth-owns?
   "Check if the user entity is the same as the authenticated user"
   [ctx db user-key]
-  (let [ent (d/entity db (u/ctx-id ctx))]
-    (= (:db/id (user-key ent)) (u/auth-id ctx))))
+  (let [ent (d/entity db (el/ctx-id ctx))]
+    (= (:db/id (user-key ent)) (el/auth-id ctx))))
 
 (defmethod ig/init-key :sweet-tooth.endpoint/datomic [_ config]
   (assoc config :conn (d/connect (:uri config))))
