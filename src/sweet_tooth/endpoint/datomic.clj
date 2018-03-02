@@ -90,18 +90,20 @@
         {})
       {}))
   (write-session [_ key data]
-    (let [uuid-key (str->uuid key)
-          sess-data (str data)
-          eid (when uuid-key (:db/id (dj/one (d/db (:conn db)) [key-attr uuid-key])))
+    (let [uuid-key    (str->uuid key)
+          sess-data   (str data)
+          eid         (when uuid-key (:db/id (dj/one (d/db (:conn db)) [key-attr uuid-key])))
           key-change? (or (not eid) auto-key-change?)
-          uuid-key (when key-change? (java.util.UUID/randomUUID) uuid-key)
-          txdata {:db/id (or eid (d/tempid partition))
-                  key-attr uuid-key
-                  data-attr sess-data}]
+          uuid-key    (when key-change? (java.util.UUID/randomUUID) uuid-key)
+          txdata      {:db/id    (or eid (d/tempid partition))
+                       key-attr  uuid-key
+                       data-attr sess-data}]
       @(d/transact (:conn db) [txdata])
       (str uuid-key)))
   (delete-session [_ key]
-    (dj/t [:db.fn/retractEntity (ffirst (d/q (d/db (:conn db)) [:find '?c :where ['?c key-attr key]]))])
+    (when-let [session-id (ffirst (d/q [:find '?c :where ['?c key-attr (str->uuid key)]]
+                                       (d/db (:conn db))))]
+      @(d/transact (:conn db) [[:db.fn/retractEntity session-id]]))
     nil))
 
 (defn datomic-session-store
