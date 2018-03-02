@@ -15,7 +15,7 @@
                     [com.flyingmachine/webutils "0.1.6"]
                     [com.datomic/datomic-free "0.9.5344" :scope "provided"]
                     [ring-middleware-format "0.7.0"]
-                    [buddy "1.0.0"]])
+                    [buddy/buddy-auth "2.1.0"]])
 
 (require
  '[adzerk.bootlaces :refer :all]

@@ -6,7 +6,8 @@
             [ring.util.response :as resp]
             [buddy.auth :as buddy]
             [medley.core :as medley]
-            [compojure.core :refer [routes]]))
+            [compojure.core :refer [routes]]
+            [flyingmachine.webutils.validation :refer [if-valid]]))
 
 ;; -------------------------
 ;; Working with liberator context
@@ -32,6 +33,14 @@
       (Long/parseLong id)
       (:db/id (params ctx)))))
 
+(defn transit-response
+  [payload & [opts]]
+  (lr/ring-response
+    payload
+    (merge {:status (get opts :status 200)
+            :headers {"media-type" "application/transit+json"}}
+           opts)))
+
 (defn errors-map
   "Add errors to context, setting media-type in case liberator doesn't
   get to that decision"
@@ -42,10 +51,7 @@
 (defn error-response
   "For cases where the error happens before the request gets to liberator"
   [status errors]
-  (lr/ring-response
-    {:body {:errors errors}
-     :status status
-     :headers {"media-type" "application/transit+json"}}))
+  (transit-response {:errors errors} {:status status}))
 
 (defn ->ctx
   "Make it easy to thread data into liberator context"
@@ -96,6 +102,16 @@
             [:request :params user-key]
             (auth-id ctx)))
 
+(defmacro validator
+  "Used in invalid? which is why truth values are reversed"
+  ([validation]
+   `(validator ~(gensym) ~validation))
+  ([ctx-sym validation]
+   `(fn [~ctx-sym]
+      (if-valid
+       (params ~ctx-sym) ~validation errors#
+       false
+       [true (errors-map errors#)]))))
 
 ;; Generating liberator resources without defresource
 ;; TODO check if there's something better than handle-malformed
@@ -130,6 +146,7 @@
               :entry [:show :update :delete]}
              decision-defaults))
 
+;; TODO move this somwhere else, it's not really liberator
 (defn html-resource
   "Serve resource at `path` as html"
   [path]

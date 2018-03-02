@@ -1,12 +1,14 @@
 (ns sweet-tooth.endpoint.datomic
   "Helper functions for working with datomic entities.
 
-  Transaction results are put in `:result` in the context."
+  Transaction results are put in `:result` in the liberator context."
   (:require [sweet-tooth.endpoint.utils :as u]
             [sweet-tooth.endpoint.liberator :as el]
             [medley.core :as medley]
             [datomic.api :as d]
-            [integrant.core :as ig]))
+            [integrant.core :as ig]
+            [com.flyingmachine.datomic-junk :as dj])
+  (:use [ring.middleware.session.store]))
 
 (defn created-id
   [ctx]
@@ -39,6 +41,11 @@
   [ctx]
   (d/transact (conn ctx) [(ctx->create-map ctx)]))
 
+(defn created-entity
+  "Use when you've created a single entity and stored the tx result under :result"
+  [{:keys [result]}]
+  (d/entity (:db-after result) (first (vals (:tempids result)))))
+
 (defn ctx->update-map
   [ctx]
   (-> ctx
@@ -64,5 +71,46 @@
   (let [ent (d/entity db (el/ctx-id ctx))]
     (= (:db/id (user-key ent)) (el/auth-id ctx))))
 
+;; Provide datomic connection as a component to other components
 (defmethod ig/init-key :sweet-tooth.endpoint/datomic [_ config]
   (assoc config :conn (d/connect (:uri config))))
+
+;; add a datomic session store for ring's session middleware
+(defn str->uuid [s]
+  (when s
+    (try (java.util.UUID/fromString s)
+         (catch java.lang.IllegalArgumentException e nil))))
+
+(deftype DatomicSessionStore [key-attr data-attr partition auto-key-change? db]
+  SessionStore
+  (read-session [_ key]
+    (if key
+      (if-let [data (data-attr (dj/one (d/db (:conn db)) [key-attr (str->uuid key)]))]
+        (read-string data)
+        {})
+      {}))
+  (write-session [_ key data]
+    (let [uuid-key (str->uuid key)
+          sess-data (str data)
+          eid (when uuid-key (:db/id (dj/one (d/db (:conn db)) [key-attr uuid-key])))
+          key-change? (or (not eid) auto-key-change?)
+          uuid-key (when key-change? (java.util.UUID/randomUUID) uuid-key)
+          txdata {:db/id (or eid (d/tempid partition))
+                  key-attr uuid-key
+                  data-attr sess-data}]
+      @(d/transact (:conn db) [txdata])
+      (str uuid-key)))
+  (delete-session [_ key]
+    (dj/t [:db.fn/retractEntity (ffirst (d/q (d/db (:conn db)) [:find '?c :where ['?c key-attr key]]))])
+    nil))
+
+(defn datomic-session-store
+  [{:keys [key-attr data-attr partition auto-key-change? db]
+    :or   {key-attr         :user-session/key
+           data-attr        :user-session/data
+           partition        :db.part/user
+           auto-key-change? true}}]
+  (DatomicSessionStore. key-attr data-attr partition auto-key-change? db))
+
+(defmethod ig/init-key :sweet-tooth.endpoint/datomic-session-store [_ config]
+  (datomic-session-store config))

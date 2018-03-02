@@ -1,5 +1,4 @@
-(ns sweet-tooth.endpoint.utils
-  (:require [flyingmachine.webutils.validation :refer [if-valid]]))
+(ns sweet-tooth.endpoint.utils)
 
 ;; util
 (defn update-vals
@@ -37,14 +36,3 @@
   (if (keyword? x)
     (with-meta y {:ent-type x})
     (with-meta x {:ent-type y})))
-
-(defmacro validator
-  "Used in invalid? which is why truth values are reversed"
-  ([validation]
-   `(validator ~(gensym) ~validation))
-  ([ctx-sym validation]
-   `(fn [~ctx-sym]
-      (if-valid
-       (params ~ctx-sym) ~validation errors#
-       false
-       [true (errors-map errors#)]))))
