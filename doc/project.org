@@ -2,3 +2,4 @@
 * still no easy way to get started with a datomic app
 * better error handling for missing files
 * better error handling for missing transform (datomic booties)
+* pagination sort text case-insensitive

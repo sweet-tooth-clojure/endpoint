@@ -59,6 +59,8 @@
   {k x})
 
 (defn exists-fn
+  "Given a function to retrieve a record, store it under `:record` in the
+  context if it exists"
   [ent-fn]
   (fn [ctx]
     (if-let [ent (ent-fn ctx)]

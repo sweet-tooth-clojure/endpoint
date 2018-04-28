@@ -1,6 +1,7 @@
 (ns sweet-tooth.endpoint.page
   (:require [sweet-tooth.endpoint.utils :as u]
-            [sweet-tooth.endpoint.liberator :as el]))
+            [sweet-tooth.endpoint.liberator :as el]
+            [clojure.string :as str]))
 
 (defn slice
   "Get a single page of ents out of a collection"
@@ -68,4 +69,4 @@
       (select-keys (into [:page :per-page :sort-order :sort-by :query-id :type]
                          allowed-keys))
       (u/update-vals {[:page :per-page] #(Integer. %)
-                      [:sort-by :sort-order :query-id :type] #(keyword (subs % 1))})))
+                      [:sort-by :sort-order :query-id :type] #(keyword (str/replace % #"^:" ""))})))

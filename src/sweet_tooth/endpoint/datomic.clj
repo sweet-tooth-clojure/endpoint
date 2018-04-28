@@ -94,7 +94,7 @@
           sess-data   (str data)
           eid         (when uuid-key (:db/id (dj/one (d/db (:conn db)) [key-attr uuid-key])))
           key-change? (or (not eid) auto-key-change?)
-          uuid-key    (when key-change? (java.util.UUID/randomUUID) uuid-key)
+          uuid-key    (if key-change? (java.util.UUID/randomUUID) uuid-key)
           txdata      {:db/id    (or eid (d/tempid partition))
                        key-attr  uuid-key
                        data-attr sess-data}]
