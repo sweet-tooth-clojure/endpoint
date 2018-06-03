@@ -84,11 +84,10 @@
 (deftype DatomicSessionStore [key-attr data-attr partition auto-key-change? db]
   SessionStore
   (read-session [_ key]
-    (if key
-      (if-let [data (data-attr (dj/one (d/db (:conn db)) [key-attr (str->uuid key)]))]
+    (let [key (and key (str->uuid key))]
+      (if-let [data (and key (data-attr (dj/one (d/db (:conn db)) [key-attr key])))]
         (read-string data)
-        {})
-      {}))
+        {})))
   (write-session [_ key data]
     (let [uuid-key    (str->uuid key)
           sess-data   (str data)

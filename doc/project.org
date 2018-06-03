@@ -1,5 +1,26 @@
-* datomic integrant endpoint doesn't belong here
-* still no easy way to get started with a datomic app
-* better error handling for missing files
-* better error handling for missing transform (datomic booties)
-* pagination sort text case-insensitive
+* ideas
+** return values
+*** always return the same data type so frontend only needs one function
+*** a vector of items to process
+** generic handling of metadata
+*** how to handle pagination more gracefully?
+** handle frontend retractions
+** handle "replace this set"
+*** example: navigate to todo list, find all todo items by list id
+but another user has deleted one of the todo items. how do you delete
+that todo item locally?
+**** could always send pagination data
+**** change pagination to view
+* todo
+** TODO convert map nils to retractions
+** TODO return nils
+** TODO namespace pagination keys to sweet-tooth.pagination
+** TODO optionally return attrs with entity to update attrs
+** TODO auto recursive deconstruct
+*** take post out of topic and into its own type key
+** TODO add testing harness
+** datomic integrant endpoint doesn't belong here
+** still no easy way to get started with a datomic app
+** better error handling for missing files
+** better error handling for missing transform (datomic booties)
+** pagination sort text case-insensitive
