@@ -5,7 +5,7 @@
                     [boot/core                  "2.5.5"     :scope "provided"]
                     [adzerk/bootlaces           "0.1.13"    :scope "test"]
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
-                    [duct/core                  "0.5.0"]
+                    [duct/core                  "0.6.2"]
                     [medley                     "0.7.1"]
 
                     ;; server

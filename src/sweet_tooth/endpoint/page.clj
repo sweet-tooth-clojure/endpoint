@@ -11,7 +11,7 @@
        (take per-page)))
 
 (defprotocol PageSortFn
-  "Which comparison function to use function to use for some value"
+  "Which comparison function to use"
   (asc [x] "Ascending fn")
   (desc [x] "Descending fn"))
 
@@ -36,14 +36,14 @@
   [p ents]
   (let [{:keys [page per-page sort-order type]} p
         ent-count (count ents)
-        data (cond->> ents
-               (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
-               true (slice page per-page))]
+        data      (cond->> ents
+                    (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
+                    true         (slice page per-page))]
     {:entity {type (u/key-by :db/id data)}
-     :page {:query {(:query-id p) p}
-            :result {p {:total-pages (Math/round (Math/ceil (/ ent-count per-page)))
-                        :ent-count ent-count
-                        :ordered-ids (map :db/id data)}}}}))
+     :page   {(:query-id p) {:query      p
+                             :result     {p {:ent-count   ent-count
+                                             :ordered-ids (map :db/id data)}}
+                             :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}}))
 
 (defn page-to-new
   [new-ent-id page ents]

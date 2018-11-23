@@ -170,6 +170,5 @@
     (routes (resource-route route
                             (fn [opts]
                               (initialize-decisions (decisions opts)
-                                                    (fn [ctx]
-                                                      (context-initializer ctx opts))))
+                                                    (fn [ctx] (context-initializer ctx opts))))
                             opts))))
