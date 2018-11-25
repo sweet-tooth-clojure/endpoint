@@ -46,12 +46,13 @@
                              :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}}))
 
 (defn page-to-new
+  "Updates current page if new entity exists in current page, otherwise
+  returns last page"
   [new-ent-id page ents]
   (let [ent-page (paginate page ents)]
     (if (get-in ent-page [:entity (:type page) new-ent-id])
       ent-page
-      (let [[[query-id page-query]] (vec (-> ent-page :page :query))]
-        (paginate (assoc page-query :page (get-in ent-page [:page :result page-query :total-pages])) ents)))))
+      (paginate (assoc page :page (get-in ent-page [:page (:query-id page) :page-count])) ents))))
 
 (defn organize-page-data
   [ent-type page]
@@ -68,5 +69,8 @@
   (-> (el/params ctx)
       (select-keys (into [:page :per-page :sort-order :sort-by :query-id :type]
                          allowed-keys))
-      (u/update-vals {[:page :per-page] #(Integer. %)
-                      [:sort-by :sort-order :query-id :type] #(keyword (str/replace % #"^:" ""))})))
+      (u/update-vals {[:page :per-page]
+                      (fn [n] (if (string? n) (Integer. n) n))
+                      
+                      [:sort-by :sort-order :query-id :type]
+                      #(keyword (str/replace % #"^:" ""))})))
