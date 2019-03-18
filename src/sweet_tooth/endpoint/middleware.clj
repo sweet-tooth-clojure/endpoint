@@ -31,13 +31,12 @@
 (derive :sweet-tooth.endpoint/middleware :duct/module)
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ _]
-  {:req #{:duct.core/handler}
-   :fn (fn [config]
-         (duct/merge-configs
-           config
-           {:duct.core/handler {:middleware ^:prepend [(ig/ref :sweet-tooth.endpoint.middleware/restful-format)
-                                                       (ig/ref :sweet-tooth.endpoint.middleware/body-params)
-                                                       (ig/ref :sweet-tooth.endpoint.middleware/flush)]}
-            :sweet-tooth.endpoint.middleware/restful-format {:formats [:transit-json]}
-            :sweet-tooth.endpoint.middleware/body-params    {}
-            :sweet-tooth.endpoint.middleware/flush          {}}))})
+  (fn [config]
+    (duct/merge-configs
+      config
+      {:duct.handler/root {:middleware ^:prepend [(ig/ref :sweet-tooth.endpoint.middleware/restful-format)
+                                                  (ig/ref :sweet-tooth.endpoint.middleware/body-params)
+                                                  (ig/ref :sweet-tooth.endpoint.middleware/flush)]}
+       :sweet-tooth.endpoint.middleware/restful-format {:formats [:transit-json]}
+       :sweet-tooth.endpoint.middleware/body-params    {}
+       :sweet-tooth.endpoint.middleware/flush          {}})))

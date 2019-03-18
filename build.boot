@@ -1,11 +1,11 @@
 (set-env!
   :source-paths   #{"src"}
   :target-path    "target/build"
-  :dependencies   '[[org.clojure/clojure        "1.7.0"     :scope "provided"]
+  :dependencies   '[[org.clojure/clojure        "1.10.0"     :scope "provided"]
                     [boot/core                  "2.5.5"     :scope "provided"]
                     [adzerk/bootlaces           "0.1.13"    :scope "test"]
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
-                    [duct/core                  "0.6.2"]
+                    [duct/core                  "0.7.0"]
                     [medley                     "0.7.1"]
 
                     ;; server
@@ -18,10 +18,10 @@
                     [buddy/buddy-auth "2.1.0"]])
 
 (require
- '[adzerk.bootlaces :refer :all]
- '[adzerk.boot-test :refer :all])
+  '[adzerk.bootlaces :refer :all]
+  '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.2.3")
+(def +version+ "0.3.0-SNAPSHOT")
 (bootlaces! +version+)
 
 (task-options!
