@@ -30,13 +30,20 @@
 
 (derive :sweet-tooth.endpoint/middleware :duct/module)
 
-(defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ _]
+(def middleware-config
+  {::restful-format {:formats [:transit-json]}
+   ::body-params    {}
+   ::flush          {}})
+
+(defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
-    (duct/merge-configs
-      config
-      {:duct.handler/root {:middleware ^:prepend [(ig/ref :sweet-tooth.endpoint.middleware/restful-format)
-                                                  (ig/ref :sweet-tooth.endpoint.middleware/body-params)
-                                                  (ig/ref :sweet-tooth.endpoint.middleware/flush)]}
-       :sweet-tooth.endpoint.middleware/restful-format {:formats [:transit-json]}
-       :sweet-tooth.endpoint.middleware/body-params    {}
-       :sweet-tooth.endpoint.middleware/flush          {}})))
+    (let [middlewares (if (empty? middlewares)
+                        [::restful-format ::body-params ::flush]
+                        middlewares)]
+      (duct/merge-configs
+        config
+        (reduce (fn [c k]
+                  (-> (assoc c k (get middleware-config k))
+                      (update-in [:duct.handler/root :middleware] conj (ig/ref k))))
+                {:duct.handler/root {:middleware ^:prepend []}}
+                middlewares)))))

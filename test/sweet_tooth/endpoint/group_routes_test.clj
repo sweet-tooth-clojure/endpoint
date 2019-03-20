@@ -13,6 +13,5 @@
           :a/c (ig/ref :foo/bar)
           :a/d (ig/ref :foo/bar)}
          (duct/prep-config {:duct.profile/base {:foo/bar {}}
-                            :sweet-tooth.endpoint/group {[:a/b :a/c :a/d]
-                                                         (ig/ref :foo/bar)}}))))
-
+                            :sweet-tooth.endpoint/group-routes {[:a/b :a/c :a/d]
+                                                                (ig/ref :foo/bar)}}))))

@@ -24,15 +24,6 @@
 (def errors (get-ctx :errors))
 (def params (get-ctx [:request :params]))
 
-(defn ctx-id
-  "Get id from the params, try to convert to number
-  TODO this is better solved with routing type hint"
-  [ctx & [id-key]]
-  (let [id-key (or id-key :id)]
-    (if-let [id (id-key (params ctx))]
-      (Long/parseLong id)
-      (:db/id (params ctx)))))
-
 (defn transit-response
   [payload & [opts]]
   (lr/ring-response

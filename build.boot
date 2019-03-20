@@ -11,6 +11,7 @@
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
                     [com.flyingmachine/liberator-unbound "0.1.1"]
+                    [com.flyingmachine/datomic-booties "0.1.7"]
                     [com.flyingmachine/datomic-junk "0.2.3"]
                     [com.flyingmachine/webutils "0.1.6"]
                     [com.datomic/datomic-free "0.9.5344" :scope "provided"]
@@ -21,7 +22,7 @@
   '[adzerk.bootlaces :refer :all]
   '[adzerk.boot-test :refer :all])
 
-  (def +version+ "0.3.1-SNAPSHOT")
+(def +version+ "0.4.0-SNAPSHOT")
 (bootlaces! +version+)
 
 (task-options!
