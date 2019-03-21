@@ -11,7 +11,14 @@
   "Bind dynamic system vars to a test system."
   [config-name & body]
   `(binding [*system* (es/system ~config-name)]
-     ~@body))
+     ~@body
+     (ig/halt! *system*)))
+
+(defn system-fixture
+  [config-name]
+  (fn [f]
+    (with-system config-name
+      (f))))
 
 (defn handler
   []
