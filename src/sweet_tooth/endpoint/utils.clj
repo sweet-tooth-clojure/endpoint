@@ -1,4 +1,5 @@
 (ns sweet-tooth.endpoint.utils)
+;; TODO move this to sweet-tooth.core
 
 ;; util
 (defn update-vals
