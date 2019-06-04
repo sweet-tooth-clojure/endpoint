@@ -10,10 +10,11 @@
 
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
-                    [com.flyingmachine/liberator-unbound "0.1.1"]
+                    [com.flyingmachine/liberator-unbound "0.2.0"]
                     [com.flyingmachine/datomic-booties "0.1.7"]
                     [com.flyingmachine/datomic-junk "0.2.3"]
                     [com.flyingmachine/webutils "0.1.6"]
+                    [liberator "0.15.3"]
                     [com.datomic/datomic-free "0.9.5344" :scope "provided"]
                     [ring-middleware-format "0.7.0"]
                     [buddy/buddy-auth "2.1.0"]])
@@ -22,7 +23,7 @@
   '[adzerk.bootlaces :refer :all]
   '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.4.1")
+(def +version+ "0.5.0-SNAPSHOT")
 (bootlaces! +version+)
 
 (task-options!

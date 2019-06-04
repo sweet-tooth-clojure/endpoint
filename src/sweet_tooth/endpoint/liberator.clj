@@ -155,11 +155,10 @@
     decisions))
 
 (defn endpoint
-  "Makes it easier to apply an initialize-context to every decision"
-  [route decisions context-initializer]
-  (fn [opts]
-    (routes (resource-route route
-                            (fn [opts]
-                              (initialize-decisions (decisions opts)
-                                                    (fn [ctx] (context-initializer ctx opts))))
-                            opts))))
+  [route decisions & [initial-context]]
+  {:pre [(or (map? initial-context) (fn? initial-context) (nil? initial-context))]}
+  (routes (resource-route route (cond-> decisions
+                                  initial-context (initialize-decisions
+                                                    (if (fn? initial-context)
+                                                      initial-context
+                                                      (constantly initial-context)))))))
