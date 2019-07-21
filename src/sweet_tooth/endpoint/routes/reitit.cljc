@@ -76,12 +76,13 @@
 
 (defmethod ig/init-key ::ns-route-handler [k endpoint-opts]
   #?(:clj
-     (let [decisions (-> (ns-resolve (::ns endpoint-opts) "decisions")
+     (let [decisions (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
+                         deref
                          (el/initialize-decisions (dissoc endpoint-opts ::type)))
            resources (->> decisions
                           (lu/merge-decisions el/decision-defaults)
                           (lu/resources lu/resource-groups))]
-       (if (= ::type :coll)
+       (if (= ::type ::coll)
          (:collection resources)
          (:entry resources)))))
 
@@ -98,20 +99,33 @@
                                               ns-route-handler-key
                                               ig/ref))))
 
+(defmethod ig/init-key ::x [_ opts]
+  (fn [config]
+    (duct/merge-configs config {:x :y})))
+
 (derive ::ns-routes :duct/module)
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
   #?(:clj
-     (fn [config]
-       (doseq [k (map #(get-in % [1 ::ns]) ns-routes)]
-         (derive (ns-route-handler-key k) ::ns-route-handler))
-       (duct/merge-configs
-         config
-         {:duct.router/cascading [(ig/ref ::ns-router)]
-          ::ns-router            (mapv add-handler-ref ns-routes)}
-         (reduce (fn [ns-route-config [_ ns-route-opts]]
-                   (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
-                 {}
-                 ns-routes)))))
+     (let [ns-routes (cond (vector? ns-routes) ns-routes
+                           (or (keyword? ns-routes)
+                               (symbol? ns-routes))
+                           (do (require (symbol (namespace ns-routes)))
+                               @(ns-resolve (symbol (namespace ns-routes))
+                                            (symbol (name ns-routes)))))]
+       (fn [config]
+         (doseq [k (map #(get-in % [1 ::ns]) ns-routes)]
+           (derive (ns-route-handler-key k) ::ns-route-handler))
+         (duct/merge-configs
+           config
+           {:duct.router/cascading [(ig/ref ::ns-router)]
+            ::ns-router            (mapv add-handler-ref ns-routes)}
+           (reduce (fn [ns-route-config [_ ns-route-opts]]
+                     (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
+                   {}
+                   ns-routes))))))
+
+(defmethod ig/init-key ::ns-router [_ routes]
+  (rr/router routes))
 
 (comment
   {::endpoint-routes 'the-routes/routes} ; =>

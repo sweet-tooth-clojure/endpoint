@@ -1,7 +1,8 @@
 (ns sweet-tooth.endpoint.routes.reitit-test
   (:require [sweet-tooth.endpoint.routes.reitit :as sut]
             #?@(:clj [[sweet-tooth.endpoint.test.harness :as sth]
-                      [duct.core :as duct]])
+                      [duct.core :as duct]
+                      [integrant.core :as ig]])
             #?(:clj [clojure.test :refer :all]
                :cljs [cljs.test :refer :all :include-macros true])))
 
@@ -66,7 +67,7 @@
 
 (def duct-config
   {:duct.profile/base {}
-   ::sut/ns-routes {:ns-routes ns-routes}})
+   ::sut/ns-routes    {:ns-routes ::ns-routes}})
 
 (deftest builds-duct-config
   #?(:clj
