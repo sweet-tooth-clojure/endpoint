@@ -30,7 +30,9 @@
 (defn format-ent
   "Expects `e`, be it map or seq, to have ent-type defined in metadata"
   [e id-key]
-  {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))})
+  (if e
+    {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))}
+    {}))
 
 (defn ent-type
   [x y]

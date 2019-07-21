@@ -32,6 +32,7 @@
   [val sort-order]
   ((if (= sort-order :desc) desc asc) val))
 
+;: TODO db/id is datomic-specific
 (defn paginate
   [p ents]
   (let [{:keys [page per-page sort-order type]} p

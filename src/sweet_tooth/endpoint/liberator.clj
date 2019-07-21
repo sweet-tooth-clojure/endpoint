@@ -146,7 +146,6 @@
   (-> (resp/resource-response path)
       (resp/content-type "text/html")))
 
-
 (defn initialize-decisions
   [decisions context-initializer]
   (medley/map-vals

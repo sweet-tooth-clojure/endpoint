@@ -7,6 +7,7 @@
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
                     [duct/core                  "0.7.0"]
                     [medley                     "0.7.1"]
+                    [metosin/reitit-core         "0.3.7"]
 
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
@@ -23,7 +24,7 @@
   '[adzerk.bootlaces :refer :all]
   '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.5.0")
+(def +version+ "0.5.1-SNAPSHOT")
 (bootlaces! +version+)
 
 (task-options!
