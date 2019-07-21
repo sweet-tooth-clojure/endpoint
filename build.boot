@@ -7,7 +7,8 @@
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
                     [duct/core                  "0.7.0"]
                     [medley                     "0.7.1"]
-                    [metosin/reitit-core         "0.3.7"]
+                    [metosin/reitit-core        "0.3.9"]
+                    [metosin/reitit-ring        "0.3.9"]
 
                     ;; server
                     [io.clojure/liberator-transit "0.3.0"]
