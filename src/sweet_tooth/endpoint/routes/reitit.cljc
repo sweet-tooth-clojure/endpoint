@@ -87,23 +87,23 @@
 
 (defn ns-route-handler-key
   [ns]
-  (keyword ns :route-handler))
+  (keyword (name ns) "route-handler"))
 
 (defn add-handler-ref
   "Adds an integrant ref to an ns-route for `:handler` so that the
   handler can be initialized by the backend"
   [ns-route]
   (update-in ns-route [1 :handler] #(or % (-> ns-route
-                                              ::ns
+                                              (get-in [1 ::ns])
                                               ns-route-handler-key
                                               ig/ref))))
 
 (derive ::ns-routes :duct/module)
-(defmethod ig/init-key ::ns-routes [_ ns-routes]
+(defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
   #?(:clj
      (fn [config]
-       (doseq [k (ns-route-handler-key)]
-         (derive k ::ns-route-handler))
+       (doseq [k (map #(get-in % [1 ::ns]) ns-routes)]
+         (derive (ns-route-handler-key k) ::ns-route-handler))
        (duct/merge-configs
          config
          {:duct.router/cascading [(ig/ref ::ns-router)]
