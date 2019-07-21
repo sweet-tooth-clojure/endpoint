@@ -2,7 +2,9 @@
   (:require [clojure.string :as str]
             [integrant.core :as ig]
             [duct.core :as duct]
-            [reitit.ring :as rr]))
+            [reitit.ring :as rr]
+            [sweet-tooth.endpoint.liberator :as el]
+            #?(:clj [com.flyingmachine.liberator-unbound :as lu])))
 
 (defn- include-route?
   [opts k]
@@ -68,41 +70,48 @@
                              remaining
                              (into routes (ns-pair->ns-route (update pair 1 merge-common common)))))))
 
-;; common endpoint route setup
-;; TODO
-;; - look up decisions
-;; - add initial context to decisions
-;; - turn decisions into a single handler
-(defmethod ig/init-key ::ns-route [k endpoint-opts]
-  ;; TODO create the liberator handler from decisions
-  ())
+;;-----------
+;; duct
+;;-----------
 
-(defn ns-route-key
+(defmethod ig/init-key ::ns-route-handler [k endpoint-opts]
+  #?(:clj
+     (let [decisions (-> (ns-resolve (::ns endpoint-opts) "decisions")
+                         (el/initialize-decisions (dissoc endpoint-opts ::type)))
+           resources (->> decisions
+                          (lu/merge-decisions el/decision-defaults)
+                          (lu/resources lu/resource-groups))]
+       (if (= ::type :coll)
+         (:collection resources)
+         (:entry resources)))))
+
+(defn ns-route-handler-key
   [ns]
-  (keyword ns :handler))
+  (keyword ns :route-handler))
 
-;; hide the config in a delay so that ig/refs aren't resolved at
-;; module fold time
+(defn add-handler-ref
+  "Adds an integrant ref to an ns-route for `:handler` so that the
+  handler can be initialized by the backend"
+  [ns-route]
+  (update-in ns-route [1 :handler] #(or % (-> ns-route
+                                              ::ns
+                                              ns-route-handler-key
+                                              ig/ref))))
+
 (derive ::ns-routes :duct/module)
-
-;; ns-pairs is a value returned by `ns-routes`
 (defmethod ig/init-key ::ns-routes [_ ns-routes]
-  (fn [config]
-    (doseq [k (ns-route-key)]
-      (derive k ::ns-route))
-    (duct/merge-configs
-      config
-      {:duct.router/cascading [(ig/ref ::ns-router)]
-       ::ns-router            (mapv (fn [route] (update-in route [1 :handler] #(or % (-> route
-                                                                                         ::ns
-                                                                                         ns-route-key
-                                                                                         ig/ref))))
-                                    ns-routes)}
-      (reduce (fn [ns-route-config [_ ns-route-opts]]
-                (assoc ns-route-config (ns-route-key (::ns ns-route-opts)) ns-route-opts))
-              {}
-              ns-routes))))
-
+  #?(:clj
+     (fn [config]
+       (doseq [k (ns-route-handler-key)]
+         (derive k ::ns-route-handler))
+       (duct/merge-configs
+         config
+         {:duct.router/cascading [(ig/ref ::ns-router)]
+          ::ns-router            (mapv add-handler-ref ns-routes)}
+         (reduce (fn [ns-route-config [_ ns-route-opts]]
+                   (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
+                 {}
+                 ns-routes)))))
 
 (comment
   {::endpoint-routes 'the-routes/routes} ; =>

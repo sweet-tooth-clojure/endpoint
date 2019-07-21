@@ -150,14 +150,13 @@
   [decisions context-initializer]
   (medley/map-vals
     (fn [decision]
-      (assoc decision :initialize-context context-initializer))
+      (assoc decision :initialize-context (if (fn? context-initializer)
+                                            context-initializer
+                                            (constantly context-initializer))))
     decisions))
 
 (defn endpoint
   [route decisions & [initial-context]]
   {:pre [(or (map? initial-context) (fn? initial-context) (nil? initial-context))]}
   (routes (resource-route route (cond-> decisions
-                                  initial-context (initialize-decisions
-                                                    (if (fn? initial-context)
-                                                      initial-context
-                                                      (constantly initial-context)))))))
+                                  initial-context (initialize-decisions initial-context)))))
