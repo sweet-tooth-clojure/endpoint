@@ -40,7 +40,7 @@
             opts
             unary-opts)]))
 
-(defn ns-route
+(defn ns-pair->ns-route
   [[ns opts]]
   (let [endpoint-name (str/replace (name ns) #".*?endpoint\." "")
         path          (str "/" endpoint-name)]
@@ -56,7 +56,7 @@
               common-opts
               route-opts))
 
-(defn ns-routes
+(defn ns-pairs->ns-routes
   "Returns vector of reitit-compatible routes from compact route syntax"
   [pairs]
   (loop [common             {}
@@ -66,50 +66,51 @@
           (not pair)  routes
           :else       (recur common
                              remaining
-                             (into routes (ns-route (update pair 1 merge-common common)))))))
+                             (into routes (ns-pair->ns-route (update pair 1 merge-common common)))))))
 
 ;; common endpoint route setup
 ;; TODO
 ;; - look up decisions
 ;; - add initial context to decisions
 ;; - turn decisions into a single handler
-(defmethod ig/init-key ::endpoint-handler [k configs]
+(defmethod ig/init-key ::ns-route [k endpoint-opts]
   ;; TODO create the liberator handler from decisions
   ())
 
-(defn endpoint-handler-key
+(defn ns-route-key
   [ns]
   (keyword ns :handler))
 
 ;; hide the config in a delay so that ig/refs aren't resolved at
 ;; module fold time
-(derive ::endpoint-routes :duct/module)
+(derive ::ns-routes :duct/module)
 
-(defmethod ig/init-key ::endpoint-routes [_ endpoint-routes]
+;; ns-pairs is a value returned by `ns-routes`
+(defmethod ig/init-key ::ns-routes [_ ns-routes]
   (fn [config]
-    (doseq [k (endpoint-handler-key)]
-      (derive k ::endpoint-handler))
+    (doseq [k (ns-route-key)]
+      (derive k ::ns-route))
     (duct/merge-configs
       config
-      {:duct.router/cascading [(ig/ref ::endpoint-router)]
-       ::endpoint-router      (->> (ns-routes endpoint-routes)
-                                   (mapv (fn [route] (update-in route [1 :handler] #(or % (-> route
-                                                                                              ::ns
-                                                                                              endpoint-handler-key
-                                                                                              ig/ref))))))}
-      (reduce (fn [endpoint-route-config [_ endpoint-route-opts]]
-                (assoc endpoint-route-config (endpoint-handler-key (::ns endpoint-route-opts)) endpoint-route-opts))
+      {:duct.router/cascading [(ig/ref ::ns-router)]
+       ::ns-router            (mapv (fn [route] (update-in route [1 :handler] #(or % (-> route
+                                                                                         ::ns
+                                                                                         ns-route-key
+                                                                                         ig/ref))))
+                                    ns-routes)}
+      (reduce (fn [ns-route-config [_ ns-route-opts]]
+                (assoc ns-route-config (ns-route-key (::ns ns-route-opts)) ns-route-opts))
               {}
-              endpoint-routes))))
+              ns-routes))))
 
 
 (comment
   {::endpoint-routes 'the-routes/routes} ; =>
 
-  {:duct.router/cascading [(ig/ref ::endpoint-router)]
+  {:duct.router/cascading [(ig/ref ::ns-router)]
    
-   ::endpoint-router ["/x" {::ns     :x.endpoint.topic
-                            :handler (ig/ref :x.endpoint.topic/handler)}]
+   ::ns-router ["/x" {::ns     :x.endpoint.topic
+                      :handler (ig/ref :x.endpoint.topic/handler)}]
 
    :x.endpoint.topic/handler {::ns     :x.endpoint.topic
                               :handler (ig/ref :x.endpoint.topic/handler)}})

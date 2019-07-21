@@ -10,7 +10,7 @@
           ["/user/{id}" {:name      :user
                          ::sut/ns   :ex.endpoint.user
                          ::sut/type ::sut/unary}]]
-         (sut/ns-route [:ex.endpoint.user]))))
+         (sut/ns-pair->ns-route [:ex.endpoint.user]))))
 
 (deftest nested-route
   (is (= [["/admin/user"      {:name      :admin.users
@@ -19,23 +19,23 @@
           ["/admin/user/{id}" {:name      :admin.user
                                ::sut/ns   :ex.endpoint.admin.user
                                ::sut/type ::sut/unary}]]
-         (sut/ns-route [:ex.endpoint.admin.user]))))
+         (sut/ns-pair->ns-route [:ex.endpoint.admin.user]))))
 
 (deftest exclude-route
   (is (= [["/user" {:name      :users
                     ::sut/ns   :ex.endpoint.user
                     ::sut/type ::sut/coll}]]
-         (sut/ns-route [:ex.endpoint.user {::sut/unary false}])))
+         (sut/ns-pair->ns-route [:ex.endpoint.user {::sut/unary false}])))
 
   (is (= [["/user/{id}" {:name      :user
                          ::sut/ns   :ex.endpoint.user
                          ::sut/type ::sut/unary}]]
-         (sut/ns-route [:ex.endpoint.user {::sut/coll false}]))))
+         (sut/ns-pair->ns-route [:ex.endpoint.user {::sut/coll false}]))))
 
 (deftest common-opts
-  (is (= (sut/ns-routes [{:id-key :db/id}
-                         [:ex.endpoint.user]
-                         [:ex.endpoint.topic]])
+  (is (= (sut/ns-pairs->ns-routes [{:id-key :db/id}
+                                   [:ex.endpoint.user]
+                                   [:ex.endpoint.topic]])
          
          [["/user" {:name      :users
                     ::sut/ns   :ex.endpoint.user
