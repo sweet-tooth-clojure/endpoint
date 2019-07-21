@@ -68,53 +68,50 @@
                              remaining
                              (into routes (ns-route (update pair 1 merge-common common)))))))
 
+;; common endpoint route setup
+;; TODO
+;; - look up decisions
+;; - add initial context to decisions
+;; - turn decisions into a single handler
+(defmethod ig/init-key ::endpoint-handler [k configs]
+  ;; TODO create the liberator handler from decisions
+  ())
+
+(defn endpoint-handler-key
+  [ns]
+  (keyword ns :handler))
+
+;; hide the config in a delay so that ig/refs aren't resolved at
+;; module fold time
+(derive ::endpoint-routes :duct/module)
+
+(defmethod ig/init-key ::endpoint-routes [_ endpoint-routes]
+  (fn [config]
+    (doseq [k (endpoint-handler-key)]
+      (derive k ::endpoint-handler))
+    (duct/merge-configs
+      config
+      {:duct.router/cascading [(ig/ref ::endpoint-router)]
+       ::endpoint-router      (->> (ns-routes endpoint-routes)
+                                   (mapv (fn [route] (update-in route [1 :handler] #(or % (-> route
+                                                                                              ::ns
+                                                                                              endpoint-handler-key
+                                                                                              ig/ref))))))}
+      (reduce (fn [endpoint-route-config [_ endpoint-route-opts]]
+                (assoc endpoint-route-config (endpoint-handler-key (::ns endpoint-route-opts)) endpoint-route-opts))
+              {}
+              endpoint-routes))))
+
+
 (comment
-  ;; common endpoint route setup
-  ;; TODO
-  ;; - look up decisions
-  ;; - add initial context to decisions
-  ;; - turn decisions into a single handler
-  (defmethod ig/init-key ::endpoint-handler [k configs]
-    ;; TODO create the liberator handler from decisions
-    ())
-
-  (defn endpoint-handler-key
-    [ns]
-    (keyword ns :handler))
-
-  ;; hide the config in a delay so that ig/refs aren't resolved at
-  ;; module fold time
-  (derive ::endpoint-routes :duct/module)
-
-  (defmethod ig/prep-key ::endpoint-routes [_ groups]
-    (delay groups))
-
-  (defmethod ig/init-key ::endpoint-routes [_ endpoint-routes]
-    (fn [config]
-      (doseq [k (endpoint-handler-key)]
-        (derive k ::endpoint-handler))
-      (duct/merge-configs
-        config
-        {:duct.router/cascading [(ig/ref ::endpoint-router)]
-         ::endpoint-router      (->> (ns-routes endpoint-routes))}
-        (reduce-kv (fn [c endpoints common-opts]
-                     (reduce (fn [c e] (assoc c e common-opts))
-                             c
-                             endpoints))
-                   {:duct.router/cascading [(ig/ref ::endpoint-router)]
-                    ;; (->> @groups keys (mapcat #(map ig/ref %)) vec)
-                    ::endpoint-router      []}
-                   @groups))))
-
-
   {::endpoint-routes 'the-routes/routes} ; =>
 
   {:duct.router/cascading [(ig/ref ::endpoint-router)]
    
-   ::endpoint-router ["/x" {::ns :x.endpoint.topic
+   ::endpoint-router ["/x" {::ns     :x.endpoint.topic
                             :handler (ig/ref :x.endpoint.topic/handler)}]
 
-   :x.endpoint.topic/handler {::ns :x.endpoint.topic
-                              :handler (ig/ref :x.endpoint.topic/handler)}}
+   :x.endpoint.topic/handler {::ns     :x.endpoint.topic
+                              :handler (ig/ref :x.endpoint.topic/handler)}})
 
-  )
+
