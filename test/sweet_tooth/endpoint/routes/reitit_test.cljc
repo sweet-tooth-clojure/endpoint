@@ -1,6 +1,7 @@
 (ns sweet-tooth.endpoint.routes.reitit-test
   (:require [sweet-tooth.endpoint.routes.reitit :as sut]
-            #?@(:clj [[sweet-tooth.endpoint.test.harness :as sth]
+            #?@(:clj [[sweet-tooth.endpoint.test.harness :as eth]
+                      [sweet-tooth.endpoint.system :as es]
                       [duct.core :as duct]
                       [integrant.core :as ig]])
             #?(:clj [clojure.test :refer :all]
@@ -66,8 +67,13 @@
   (sut/ns-pairs->ns-routes [[:sweet-tooth.endpoint.routes.reitit-test]]))
 
 (def duct-config
-  {:duct.profile/base {}
-   ::sut/ns-routes    {:ns-routes ::ns-routes}})
+  {:duct.profile/base    {:duct.core/project-ns  'sweet-tooth
+                          :duct.core/environment :production}
+   ::sut/ns-routes       {:ns-routes ::ns-routes}
+   
+   :duct.module/logging  {}
+   :duct.module.web/api  {}
+   :duct.module.web/site {}})
 
 (deftest builds-duct-config
   #?(:clj
@@ -76,15 +82,23 @@
                {:name      :routes.reitit-tests
                 ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
                 ::sut/type ::sut/coll
-                :handler   {:key ::route-handler}}]
+                :handler   (ig/ref ::route-handler)}]
               ["/routes/reitit-test/{id}"
                {:name      :routes.reitit-test
                 ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
                 ::sut/type ::sut/unary
-                :handler   {:key ::route-handler}}]]
+                :handler   (ig/ref ::route-handler)}]]
              
              ::route-handler
              {:name      :routes.reitit-test
               ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
               ::sut/type ::sut/unary}}
             (duct/prep-config duct-config)))))
+
+(defmethod es/config ::test [_]
+  (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))
+
+(deftest handler-works
+  #?(:clj
+     (eth/with-system ::test
+       ((eth/handler) (eth/req :get "/routes/reitit-test")))))
