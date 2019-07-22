@@ -73,32 +73,36 @@
 ;;-----------
 ;; duct
 ;;-----------
+(defn liberator-resources
+  [endpoint-opts]
+  (let [decisions (try (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
+                           deref
+                           (el/initialize-decisions (dissoc endpoint-opts ::type)))
+                       (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::ns endpoint-opts)}))))]
+    (->> decisions
+         (lu/merge-decisions el/decision-defaults)
+         (lu/resources lu/resource-groups))))
 
-;; General method for initializing ns-route-handlers for endpoints
-(defmethod ig/init-key ::ns-route-handler [k endpoint-opts]
-  #?(:clj
-     (let [decisions (try (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
-                              deref
-                              (el/initialize-decisions (dissoc endpoint-opts ::type)))
-                          (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::ns endpoint-opts)}))))
-           resources (->> decisions
-                          (lu/merge-decisions el/decision-defaults)
-                          (lu/resources lu/resource-groups))]
-       (if (= ::type ::coll)
-         (:collection resources)
-         (:entry resources)))))
+(defmethod ig/init-key ::unary-handler [_ endpoint-opts]
+  (:entry (liberator-resources endpoint-opts)))
+(defmethod ig/init-key ::coll-handler [_ endpoint-opts]
+  (:collection (liberator-resources endpoint-opts)))
 
-(defn ns-route-handler-key
-  [ns]
-  (keyword (name ns) "route-handler"))
+(defn endpoint-handler-key
+  [endpoint-opts]
+  (let [ns   (::ns endpoint-opts)
+        type (::type endpoint-opts)]
+    (keyword (name ns) (case type
+                         ::unary "unary-handler"
+                         ::coll  "coll-handler"))))
 
 (defn add-handler-ref
   "Adds an integrant ref to an ns-route for `:handler` so that the
   handler can be initialized by the backend"
   [ns-route]
   (update-in ns-route [1 :handler] #(or % (-> ns-route
-                                              (get-in [1 ::ns])
-                                              ns-route-handler-key
+                                              (get 1)
+                                              endpoint-handler-key
                                               ig/ref))))
 
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
@@ -110,13 +114,16 @@
                                @(ns-resolve (symbol (namespace ns-routes))
                                             (symbol (name ns-routes)))))]
        (fn [config]
-         (doseq [k (map #(get-in % [1 ::ns]) ns-routes)]
-           (derive (ns-route-handler-key k) ::ns-route-handler))
+         (doseq [endpoint-opts (map #(get % 1) ns-routes)]
+           (derive (endpoint-handler-key endpoint-opts)
+                   (case (::type endpoint-opts)
+                     ::unary ::unary-handler
+                     ::coll  ::coll-handler)))
          (-> config
              (duct/merge-configs
                {::router (mapv add-handler-ref ns-routes)}
                (reduce (fn [ns-route-config [_ ns-route-opts]]
-                         (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
+                         (assoc ns-route-config (endpoint-handler-key ns-route-opts) ns-route-opts))
                        {}
                        ns-routes))
              (dissoc :duct.router/cascading))))))

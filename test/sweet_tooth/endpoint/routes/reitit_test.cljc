@@ -61,7 +61,7 @@
                              :id-key    :db/id}]])))
 
 (def decisions
-  {:list {:handle-ok ["yay"]}})
+  {:list {:handle-ok ["YAY"]}})
 
 (def ns-routes
   (sut/ns-pairs->ns-routes [[:sweet-tooth.endpoint.routes.reitit-test]]))
@@ -77,23 +77,29 @@
 
 (deftest builds-duct-config
   #?(:clj
-     (is (= {:sweet-tooth.endpoint.routes.reitit/router
+     (is (= {::sut/router
              [["/routes/reitit-test"
                {:name      :routes.reitit-tests
                 ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
                 ::sut/type ::sut/coll
-                :handler   (ig/ref ::route-handler)}]
+                :handler   (ig/ref ::coll-handler)}]
               ["/routes/reitit-test/{id}"
                {:name      :routes.reitit-test
                 ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
                 ::sut/type ::sut/unary
-                :handler   (ig/ref ::route-handler)}]]
+                :handler   (ig/ref ::unary-handler)}]]
+
+             ::coll-handler
+             {:name      :routes.reitit-tests
+              ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
+              ::sut/type ::sut/coll}
              
-             ::route-handler
+             ::unary-handler
              {:name      :routes.reitit-test
               ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
               ::sut/type ::sut/unary}}
-            (duct/prep-config duct-config)))))
+            (select-keys (duct/prep-config duct-config)
+                         [::sut/router ::coll-handler ::unary-handler])))))
 
 (defmethod es/config ::test [_]
   (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))
@@ -101,4 +107,5 @@
 (deftest handler-works
   #?(:clj
      (eth/with-system ::test
-       ((eth/handler) (eth/req :get "/routes/reitit-test")))))
+       (is (= ["YAY"]
+              (eth/resp-read-transit (eth/req :get "/routes/reitit-test")))))))
