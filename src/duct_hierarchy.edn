@@ -1,0 +1,2 @@
+{:sweet-tooth.endpoint.routes.reitit/ns-routes [:duct/module]
+ :sweet-tooth.endpoint.routes.reitit/router    [:duct/router]}

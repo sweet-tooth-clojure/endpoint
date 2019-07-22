@@ -71,23 +71,20 @@
 
 (deftest builds-duct-config
   #?(:clj
-     (is (= {:duct.router/cascading          
-             [{:key :sweet-tooth.endpoint.routes.reitit/ns-router}]
-
-             :sweet-tooth.endpoint.routes.reitit/ns-router
+     (is (= {:sweet-tooth.endpoint.routes.reitit/router
              [["/routes/reitit-test"
-               {:name                                    :routes.reitit-tests
-                :sweet-tooth.endpoint.routes.reitit/ns   :sweet-tooth.endpoint.routes.reitit-test
-                :sweet-tooth.endpoint.routes.reitit/type :sweet-tooth.endpoint.routes.reitit/coll
-                :handler                                 {:key :sweet-tooth.endpoint.routes.reitit-test/route-handler}}]
+               {:name      :routes.reitit-tests
+                ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
+                ::sut/type ::sut/coll
+                :handler   {:key ::route-handler}}]
               ["/routes/reitit-test/{id}"
-               {:name                                    :routes.reitit-test
-                :sweet-tooth.endpoint.routes.reitit/ns   :sweet-tooth.endpoint.routes.reitit-test
-                :sweet-tooth.endpoint.routes.reitit/type :sweet-tooth.endpoint.routes.reitit/unary
-                :handler                                 {:key :sweet-tooth.endpoint.routes.reitit-test/route-handler}}]]
+               {:name      :routes.reitit-test
+                ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
+                ::sut/type ::sut/unary
+                :handler   {:key ::route-handler}}]]
              
-             :sweet-tooth.endpoint.routes.reitit-test/route-handler
-             {:name                                    :routes.reitit-test
-              :sweet-tooth.endpoint.routes.reitit/ns   :sweet-tooth.endpoint.routes.reitit-test
-              :sweet-tooth.endpoint.routes.reitit/type :sweet-tooth.endpoint.routes.reitit/unary}}
+             ::route-handler
+             {:name      :routes.reitit-test
+              ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
+              ::sut/type ::sut/unary}}
             (duct/prep-config duct-config)))))

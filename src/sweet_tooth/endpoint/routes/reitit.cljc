@@ -74,11 +74,13 @@
 ;; duct
 ;;-----------
 
+;; General method for initializing ns-route-handlers for endpoints
 (defmethod ig/init-key ::ns-route-handler [k endpoint-opts]
   #?(:clj
-     (let [decisions (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
-                         deref
-                         (el/initialize-decisions (dissoc endpoint-opts ::type)))
+     (let [decisions (try (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
+                              deref
+                              (el/initialize-decisions (dissoc endpoint-opts ::type)))
+                          (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::ns endpoint-opts)}))))
            resources (->> decisions
                           (lu/merge-decisions el/decision-defaults)
                           (lu/resources lu/resource-groups))]
@@ -99,11 +101,6 @@
                                               ns-route-handler-key
                                               ig/ref))))
 
-(defmethod ig/init-key ::x [_ opts]
-  (fn [config]
-    (duct/merge-configs config {:x :y})))
-
-(derive ::ns-routes :duct/module)
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
   #?(:clj
      (let [ns-routes (cond (vector? ns-routes) ns-routes
@@ -115,25 +112,25 @@
        (fn [config]
          (doseq [k (map #(get-in % [1 ::ns]) ns-routes)]
            (derive (ns-route-handler-key k) ::ns-route-handler))
-         (duct/merge-configs
-           config
-           {:duct.router/cascading [(ig/ref ::ns-router)]
-            ::ns-router            (mapv add-handler-ref ns-routes)}
-           (reduce (fn [ns-route-config [_ ns-route-opts]]
-                     (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
-                   {}
-                   ns-routes))))))
+         (-> config
+             (duct/merge-configs
+               {::router (mapv add-handler-ref ns-routes)}
+               (reduce (fn [ns-route-config [_ ns-route-opts]]
+                         (assoc ns-route-config (ns-route-handler-key (::ns ns-route-opts)) ns-route-opts))
+                       {}
+                       ns-routes))
+             (dissoc :duct.router/cascading))))))
 
-(defmethod ig/init-key ::ns-router [_ routes]
-  (rr/router routes))
+(defmethod ig/init-key ::router [_ routes]
+  (rr/ring-handler (rr/router routes)))
 
 (comment
   {::endpoint-routes 'the-routes/routes} ; =>
 
-  {:duct.router/cascading [(ig/ref ::ns-router)]
+  {:duct.router/cascading [(ig/ref ::router)]
    
-   ::ns-router ["/x" {::ns     :x.endpoint.topic
-                      :handler (ig/ref :x.endpoint.topic/handler)}]
+   ::router ["/x" {::ns     :x.endpoint.topic
+                   :handler (ig/ref :x.endpoint.topic/handler)}]
 
    :x.endpoint.topic/handler {::ns     :x.endpoint.topic
                               :handler (ig/ref :x.endpoint.topic/handler)}})
