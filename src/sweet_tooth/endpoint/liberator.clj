@@ -1,13 +1,35 @@
 (ns sweet-tooth.endpoint.liberator
   (:require [liberator.representation :as lr]
             ;; this loads support for transit into liberator
-            [io.clojure.liberator-transit]
+            ;; [io.clojure.liberator-transit]
             [com.flyingmachine.liberator-unbound :as lu]
             [ring.util.response :as resp]
             [buddy.auth :as buddy]
             [medley.core :as medley]
             [compojure.core :refer [routes]]
             [flyingmachine.webutils.validation :refer [if-valid]]))
+
+(defrecord TransitResponse [data]
+  liberator.representation.Representation
+  (as-response [_ context]
+    {:body    data
+     :headers {"Content-Type" (get-in context [:representation :media-type])}}))
+
+(defmethod lr/render-map-generic "application/transit+json"
+  [data context]
+  (->TransitResponse data))
+
+(defmethod lr/render-map-generic "application/transit+msgpack"
+  [data context]
+  (->TransitResponse data))
+
+(defmethod lr/render-seq-generic "application/transit+json"
+  [data context]
+  (->TransitResponse data))
+
+(defmethod lr/render-seq-generic "application/transit+msgpack"
+  [data context]
+  (->TransitResponse data))
 
 ;; -------------------------
 ;; Working with liberator context

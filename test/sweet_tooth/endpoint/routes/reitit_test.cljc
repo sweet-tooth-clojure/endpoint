@@ -64,7 +64,8 @@
   {:list {:handle-ok ["YAY"]}})
 
 (def ns-routes
-  (sut/ns-pairs->ns-routes [[:sweet-tooth.endpoint.routes.reitit-test]]))
+  (sut/ns-pairs->ns-routes [[:sweet-tooth.endpoint.routes.reitit-test]
+                            ["/" {:woo :yeah :handler "x"}]]))
 
 (def duct-config
   {:duct.profile/base    {:duct.core/project-ns  'sweet-tooth
@@ -87,7 +88,8 @@
                {:name      :routes.reitit-test
                 ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
                 ::sut/type ::sut/unary
-                :handler   (ig/ref ::unary-handler)}]]
+                :handler   (ig/ref ::unary-handler)}]
+              ["/" {:woo :yeah :handler "x"}]]
 
              ::coll-handler
              {:name      :routes.reitit-tests
