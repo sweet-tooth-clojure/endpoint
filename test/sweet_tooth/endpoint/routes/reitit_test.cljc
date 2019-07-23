@@ -1,13 +1,8 @@
 (ns sweet-tooth.endpoint.routes.reitit-test
   (:require [sweet-tooth.endpoint.routes.reitit :as sut]
-            #?@(:clj [[sweet-tooth.endpoint.test.harness :as eth]
-                      [sweet-tooth.endpoint.system :as es]
-                      [duct.core :as duct]
-                      [integrant.core :as ig]])
+
             #?(:clj [clojure.test :refer :all]
                :cljs [cljs.test :refer :all :include-macros true])))
-
-(duct/load-hierarchy)
 
 (deftest makes-routes
   (is (= [["/user"      {:name      :users
@@ -59,55 +54,3 @@
                              ::sut/ns   :ex.endpoint.topic
                              ::sut/type ::sut/unary
                              :id-key    :db/id}]])))
-
-(def decisions
-  {:list {:handle-ok ["YAY"]}})
-
-(def ns-routes
-  (sut/ns-pairs->ns-routes [[:sweet-tooth.endpoint.routes.reitit-test]
-                            ["/" {:woo :yeah :handler "x"}]]))
-
-(def duct-config
-  {:duct.profile/base    {:duct.core/project-ns  'sweet-tooth
-                          :duct.core/environment :production}
-   ::sut/ns-routes       {:ns-routes ::ns-routes}
-   
-   :duct.module/logging  {}
-   :duct.module.web/api  {}
-   :duct.module.web/site {}})
-
-(deftest builds-duct-config
-  #?(:clj
-     (is (= {::sut/router
-             [["/routes/reitit-test"
-               {:name      :routes.reitit-tests
-                ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
-                ::sut/type ::sut/coll
-                :handler   (ig/ref ::coll-handler)}]
-              ["/routes/reitit-test/{id}"
-               {:name      :routes.reitit-test
-                ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
-                ::sut/type ::sut/unary
-                :handler   (ig/ref ::unary-handler)}]
-              ["/" {:woo :yeah :handler "x"}]]
-
-             ::coll-handler
-             {:name      :routes.reitit-tests
-              ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
-              ::sut/type ::sut/coll}
-             
-             ::unary-handler
-             {:name      :routes.reitit-test
-              ::sut/ns   :sweet-tooth.endpoint.routes.reitit-test
-              ::sut/type ::sut/unary}}
-            (select-keys (duct/prep-config duct-config)
-                         [::sut/router ::coll-handler ::unary-handler])))))
-
-(defmethod es/config ::test [_]
-  (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))
-
-(deftest handler-works
-  #?(:clj
-     (eth/with-system ::test
-       (is (= ["YAY"]
-              (eth/resp-read-transit (eth/req :get "/routes/reitit-test")))))))
