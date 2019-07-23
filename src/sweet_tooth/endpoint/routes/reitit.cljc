@@ -147,16 +147,3 @@
 
 (defmethod ig/init-key ::router [_ routes]
   (rr/ring-handler (rr/router routes)))
-
-(comment
-  {::endpoint-routes 'the-routes/routes} ; =>
-
-  {:duct.router/cascading [(ig/ref ::router)]
-   
-   ::router ["/x" {::ns     :x.endpoint.topic
-                   :handler (ig/ref :x.endpoint.topic/handler)}]
-
-   :x.endpoint.topic/handler {::ns     :x.endpoint.topic
-                              :handler (ig/ref :x.endpoint.topic/handler)}})
-
-
