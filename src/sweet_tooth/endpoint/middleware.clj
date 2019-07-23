@@ -11,13 +11,12 @@
       (flush)
       res)))
 
-(defn wrap-body-params
+(defn wrap-merge-params
   "Some middleware puts params in :body-params. Move it to :params"
   [f]
   (fn [req]
-    (f (if-let [bp (:body-params req)]
-         (assoc req :params bp)
-         req))))
+    (let [{:keys [body-params path-params query-params path-params]} req]
+      (f (update req :params merge body-params path-params query-params path-params)))))
 
 (defmethod ig/init-key ::restful-format [_ options]
   #(f/wrap-restful-format % options))
@@ -25,20 +24,20 @@
 (defmethod ig/init-key ::flush [_ _]
   #(wrap-flush %))
 
-(defmethod ig/init-key ::body-params [_ _]
-  #(wrap-body-params %))
+(defmethod ig/init-key ::merge-params [_ _]
+  #(wrap-merge-params %))
 
 (derive :sweet-tooth.endpoint/middleware :duct/module)
 
 (def middleware-config
   {::restful-format {:formats [:transit-json]}
-   ::body-params    {}
+   ::merge-params   {}
    ::flush          {}})
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
     (let [middlewares (if (empty? middlewares)
-                        [::restful-format ::body-params ::flush]
+                        [::restful-format ::merge-params ::flush]
                         middlewares)]
       (duct/merge-configs
         config
