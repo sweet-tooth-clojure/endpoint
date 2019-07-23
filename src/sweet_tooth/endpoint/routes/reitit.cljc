@@ -144,7 +144,7 @@
                      ::coll  ::coll-handler)))
          (-> config
              (duct/merge-configs
-               {::router (mapv add-handler-ref ns-routes)}
+               {::router (mapv (comp add-middleware add-handler-ref) ns-routes)}
                (->> ns-routes
                     (filter ns-route?)
                     (reduce add-ns-route-config {})))

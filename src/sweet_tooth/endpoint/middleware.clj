@@ -15,7 +15,7 @@
   "Some middleware puts params in :body-params. Move it to :params"
   [f]
   (fn [req]
-    (let [{:keys [body-params path-params query-params path-params]} req]
+    (let [{:keys [body-params query-params path-params]} req]
       (f (update req :params merge body-params path-params query-params path-params)))))
 
 (defmethod ig/init-key ::restful-format [_ options]
