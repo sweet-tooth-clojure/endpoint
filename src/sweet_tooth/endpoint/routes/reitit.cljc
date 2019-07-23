@@ -81,7 +81,7 @@
   [endpoint-opts]
   (let [decisions (try (-> (ns-resolve (symbol (::ns endpoint-opts)) 'decisions)
                            deref
-                           (el/initialize-decisions (dissoc endpoint-opts ::type)))
+                           (el/initialize-decisions (:ctx endpoint-opts)))
                        (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::ns endpoint-opts)}))))]
     (->> decisions
          (lu/merge-decisions el/decision-defaults)
