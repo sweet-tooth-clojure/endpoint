@@ -13,7 +13,7 @@
   "Get id from the params, try to convert to number
   TODO this is better solved with routing type hint"
   [ctx & [id-key]]
-  (let [id-key (or id-key :id)]
+  (let [id-key (or id-key (:id-key ctx) :id)]
     (if-let [id (id-key (el/params ctx))]
       (Long/parseLong id)
       (:db/id (el/params ctx)))))

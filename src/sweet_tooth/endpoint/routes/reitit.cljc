@@ -1,7 +1,9 @@
 (ns sweet-tooth.endpoint.routes.reitit
   "Allow specifying routes using keywords corresponding to namespaces"
   (:require [clojure.string :as str]
-            [integrant.core :as ig]))
+            [integrant.core :as ig]
+            #?@(:cljs [[goog.string :as gstr]
+                       [goog.string.format]])))
 
 (defn- include-route?
   [opts k]
@@ -18,7 +20,7 @@
         {:keys [path-prefix]
          :or   {path-prefix ""}
          :as   opts} (dissoc opts ::coll ::unary)]
-    [(format "%s/%s" path-prefix (slash endpoint-name))
+    [(#?(:clj format :cljs gstr/format) "%s/%s" path-prefix (slash endpoint-name))
      (merge {:name  (keyword (str endpoint-name "s"))
              ::ns   ns
              ::type ::coll}
@@ -32,7 +34,7 @@
          :or   {path-prefix ""}
          :as   opts} (dissoc opts ::coll ::unary)
         id-key       (or (:id-key unary-opts) (:id-key opts) :id)]
-    [(format "%s/%s/{%s}" path-prefix (slash endpoint-name) (subs (str id-key) 1))
+    [(#?(:clj format :cljs gstr/format) "%s/%s/{%s}" path-prefix (slash endpoint-name) (subs (str id-key) 1))
      (merge {:name  (keyword endpoint-name)
              ::ns   ns
              ::type ::unary}
