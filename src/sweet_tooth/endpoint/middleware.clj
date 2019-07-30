@@ -47,7 +47,7 @@
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
     (let [middlewares (if (empty? middlewares)
-                        [::restful-format ::format-ctx-body ::merge-params ::flush]
+                        [::format-ctx-body ::restful-format ::merge-params ::flush]
                         middlewares)]
       (duct/merge-configs
         config

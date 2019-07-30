@@ -30,19 +30,29 @@
 (deftest builds-duct-config
   (is (= {::sut/router
           [["/liberator/reitit-routes-test"
-            {:name      :liberator.reitit-routes-tests
-             ::err/ns   :sweet-tooth.endpoint.liberator.reitit-routes-test
-             ::err/type ::err/coll
-             :middleware [em/wrap-merge-params]
-             :handler   (ig/ref ::coll-handler)}]
+            {:name        :liberator.reitit-routes-tests
+             :id-key      :id
+             :auth-id-key :id
+             :ent-type    :reitit-routes-test
+             :middleware  [em/wrap-merge-params]
+             :handler     (ig/ref ::coll-handler)
+             :ctx         {:id-key      :id,
+                           :auth-id-key :id}
+             ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+             ::err/type   ::err/coll}]
            ["/liberator/reitit-routes-test/{id}"
-            {:name      :liberator.reitit-routes-test
-             ::err/ns   :sweet-tooth.endpoint.liberator.reitit-routes-test
-             ::err/type ::err/unary
-             :middleware [em/wrap-merge-params]
-             :handler   (ig/ref ::unary-handler)}]
-           ["/" {:woo :yeah
-                 :handler "x"
+            {:name        :liberator.reitit-routes-test
+             :id-key      :id
+             :auth-id-key :id
+             :ent-type    :reitit-routes-test
+             :middleware  [em/wrap-merge-params]
+             :handler     (ig/ref ::unary-handler)
+             :ctx         {:id-key      :id,
+                           :auth-id-key :id}
+             ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+             ::err/type   ::err/unary}]
+           ["/" {:woo        :yeah
+                 :handler    "x"
                  :middleware [em/wrap-merge-params]}]]
 
           ::coll-handler

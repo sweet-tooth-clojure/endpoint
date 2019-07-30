@@ -57,6 +57,8 @@
                                 (first (format-body x id-key endpoint-ns x-conformed)))
                               (second conformed))))
 
+(def deb (atom nil))
+
 (defn format-ctx-body
   "Assumes that the default response from endpoints is a map or vector
   of maps of a single ent-type. Formats that so that it conforms to
@@ -66,11 +68,9 @@
         conformed      (s/conform ::raw-response body)
         endpoint-ns    (:sweet-tooth.endpoint/namspace ctx)]
 
-    (when (= ::s/invalid conformed)
-      (println "INVALID!"))
-
-    (let [x (if (= ::s/invalid conformed)
-              ctx
-              (assoc-in ctx [:response :body] (format-body body id-key endpoint-ns conformed)))]
-      (println "FORMATTED" x)
-      x)))
+    (println "KEYS" (keys ctx))
+    (reset! deb body)
+    
+    (if (= ::s/invalid conformed)
+      ctx
+      (assoc-in ctx [:response :body] (format-body body id-key endpoint-ns conformed)))))
