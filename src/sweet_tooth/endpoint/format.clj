@@ -8,8 +8,8 @@
 (s/def ::item (s/tuple ::item-key ::item-val))
 (s/def ::formatted-response (s/coll-of ::item :kind vector?))
 
-(s/def ::entity (s/and map? (comp :ent-type meta)))
-(s/def ::entities (s/and (s/coll-of map?) (comp :ent-type meta)))
+(s/def ::entity (s/and (comp :ent-type meta) map?))
+(s/def ::entities (s/and (comp :ent-type meta) (s/coll-of map?)))
 
 (s/def ::possible-entity map?)
 (s/def ::possible-entities (s/coll-of ::possible-entity))
@@ -53,11 +53,10 @@
     :entities           [(format-entity body id-key)]
     :possible-entity    [(format-possible-entity body id-key ent-type)]
     :possible-entities  [(format-possible-entity body id-key ent-type)]
-    :unformatted-vector (mapv (fn [[_ x :as x-conformed]]
+    :unformatted-vector (mapv (fn [x x-conformed]
                                 (first (format-body x id-key ent-type x-conformed)))
+                              body
                               (second conformed))))
-
-(def deb (atom nil))
 
 (defn format-response
   "Assumes that the default response from endpoints is a map or vector
@@ -67,9 +66,6 @@
   
   (let [{:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
         conformed                 (s/conform ::raw-response body)]
-
-    (reset! deb body)
-    
     (if (= ::s/invalid conformed)
       response
       (assoc response :body (format-body body id-key ent-type conformed)))))
