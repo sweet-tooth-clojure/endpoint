@@ -19,10 +19,10 @@
     (let [{:keys [body-params query-params path-params]} req]
       (f (update req :params merge body-params path-params query-params path-params)))))
 
-(defn wrap-format-ctx-body
+(defn wrap-format-response
   [f]
   (fn [req]
-    (ef/format-ctx-body (f req))))
+    (ef/format-response (f req))))
 
 (defmethod ig/init-key ::restful-format [_ options]
   #(f/wrap-restful-format % options))
@@ -33,8 +33,8 @@
 (defmethod ig/init-key ::merge-params [_ _]
   #(wrap-merge-params %))
 
-(defmethod ig/init-key ::format-ctx-body [_ _]
-  #(wrap-format-ctx-body %))
+(defmethod ig/init-key ::format-response [_ _]
+  #(wrap-format-response %))
 
 (derive :sweet-tooth.endpoint/middleware :duct/module)
 
@@ -42,12 +42,12 @@
   {::restful-format  {:formats [:transit-json]}
    ::merge-params    {}
    ::flush           {}
-   ::format-ctx-body {}})
+   ::format-response {}})
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
     (let [middlewares (if (empty? middlewares)
-                        [::format-ctx-body ::restful-format ::merge-params ::flush]
+                        [::format-response ::restful-format ::merge-params ::flush]
                         middlewares)]
       (duct/merge-configs
         config

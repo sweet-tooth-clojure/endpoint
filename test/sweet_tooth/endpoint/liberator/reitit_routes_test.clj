@@ -64,8 +64,11 @@
           {:name      :liberator.reitit-routes-test
            ::err/ns   :sweet-tooth.endpoint.liberator.reitit-routes-test
            ::err/type ::err/unary}}
-         (select-keys (duct/prep-config duct-config)
-                      [::sut/router ::coll-handler ::unary-handler]))))
+         (-> (select-keys (duct/prep-config duct-config) [::sut/router ::coll-handler ::unary-handler])
+             ;; TODO figure out how to not have to do these shenanigans
+             (update ::sut/router #(mapv (fn [route]
+                                           (update-in route [1 :middleware] (fn [x] (drop 1 x))))
+                                         %))))))
 
 (defmethod es/config ::test [_]
   (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))

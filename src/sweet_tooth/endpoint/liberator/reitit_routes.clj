@@ -91,12 +91,18 @@
                             (update :ctx (fn [ctx] (merge id-keys ctx))))))
     ns-route))
 
+(defn format-middleware-fn
+  [[_ endpoint-opts]]
+  (fn format-middleware [f]
+    (fn [req]
+      (assoc (f req) :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :auth-id-key :ent-type])))))
+
 (defn add-middleware
   "Middleware is added to reitit in order to work on the request map
   that reitit produces before that request map is passed to the
   handler"
   [ns-route]
-  (update ns-route 1 assoc :middleware [em/wrap-merge-params]))
+  (update ns-route 1 assoc :middleware [(format-middleware-fn ns-route) em/wrap-merge-params]))
 
 (defn magic-the-f-out-of-this-route-data
   "I'M SORRY
