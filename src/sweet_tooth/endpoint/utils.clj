@@ -1,7 +1,6 @@
 (ns sweet-tooth.endpoint.utils)
 ;; TODO move this to sweet-tooth.core
 
-;; util
 (defn update-vals
   "Takes a map to be updated, x, and a map of
   {[k1 k2 k3] update-fn-1
@@ -20,6 +19,10 @@
   [record]
   (into {} (remove (comp nil? second) record)))
 
+(defn key-by
+  [k xs]
+  (into {} (map (juxt k identity) xs)))
+
 ;; -------------------------
 ;; Organize response records for easy frontend consumption
 ;; -------------------------
@@ -30,9 +33,12 @@
 (defn format-ent
   "Expects `e`, be it map or seq, to have ent-type defined in metadata"
   [e id-key]
-  (if e
-    {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))}
-    {}))
+  ;; TODO `:entity` needs to be configurable and shared between front
+  ;; and backend
+  {:entity
+   (if (empty? e)
+     {}
+     {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))})})
 
 (defn ent-type
   [x y]

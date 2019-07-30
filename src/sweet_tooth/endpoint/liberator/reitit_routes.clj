@@ -1,5 +1,7 @@
 (ns sweet-tooth.endpoint.liberator.reitit-routes
-  "Module for initializing routes created by sweet-tooth.endpoint.routes.reitit"
+  "Module for initializing routes created by
+  sweet-tooth.endpoint.routes.reitit and associng in the reitit router
+  as the app's :duct/router"
   (:require [duct.core :as duct]
             [integrant.core :as ig]
             [reitit.ring :as rr]
@@ -14,10 +16,12 @@
 ;;-----------
 (defn liberator-resources
   [endpoint-opts]
-  (let [decisions (try (-> (ns-resolve (symbol (::err/ns endpoint-opts)) 'decisions)
-                           deref
-                           (el/initialize-decisions (:ctx endpoint-opts)))
-                       (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::err/ns endpoint-opts)}))))]
+  (let [endpoint-ns (::err/ns endpoint-opts)
+        decisions   (try (-> (ns-resolve (symbol endpoint-ns) 'decisions)
+                             deref
+                             (el/initialize-decisions (assoc (:ctx endpoint-opts)
+                                                             :sweet-tooth.endpoint/namspace endpoint-ns)))
+                         (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::err/ns endpoint-opts)}))))]
     (->> decisions
          (lu/merge-decisions el/decision-defaults)
          (lu/resources lu/resource-groups))))
@@ -47,6 +51,9 @@
                                                         ig/ref)))))
 
 (defn add-middleware
+  "Middleware is added to reitit in order to work on the request map
+  that reitit produces before that request map is passed to the
+  handler"
   [ns-route]
   (update ns-route 1 assoc :middleware [em/wrap-merge-params]))
 
@@ -86,4 +93,3 @@
 
 (defmethod ig/init-key ::router [_ routes]
   (rr/ring-handler (rr/router routes)))
-
