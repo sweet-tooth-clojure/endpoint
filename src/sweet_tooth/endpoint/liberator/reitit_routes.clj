@@ -110,10 +110,16 @@
   TODO come up with a better name"
   [route-data]
   (-> route-data
-      add-handler-ref
       add-id-keys
       add-ent-type
+      add-handler-ref
       add-middleware))
+
+(defn magic-the-handler
+  [route-data]
+  (-> route-data
+      add-id-keys
+      add-ent-type))
 
 (defn add-ns-route-config
   [ns-route-config [_ ns-route-opts]]
@@ -139,11 +145,12 @@
                 (case (::err/type endpoint-opts)
                   ::err/unary ::unary-handler
                   ::err/coll  ::coll-handler)))
-      
+
       (-> config
           (duct/merge-configs
             {::router (mapv magic-the-f-out-of-this-route-data ns-routes)}
             (->> ns-routes
+                 (mapv magic-the-handler)
                  (filter ns-route?)
                  (reduce add-ns-route-config {})))
           (dissoc :duct.router/cascading)))))
