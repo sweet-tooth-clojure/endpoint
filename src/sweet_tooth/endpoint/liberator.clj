@@ -64,7 +64,7 @@
 (defn error-response
   "For cases where the error happens before the request gets to liberator"
   [status errors]
-  (transit-response {:errors errors} {:status status}))
+  (transit-response [:errors errors] {:status status}))
 
 (defn ->ctx
   "Make it easy to thread data into liberator context"
@@ -133,25 +133,23 @@
 (def decision-defaults
   "A 'base' set of liberator resource decisions for list, create,
   show, update, and delete"
-  (let [errors-in-ctx (fn [ctx]
-                        (merge (select-keys ctx [:errors])
-                               {:representation {:media-type "application/transit+json"}}))
-        base {:available-media-types ["application/transit+json"
-                                      "application/transit+msgpack"
-                                      "application/json"]
-              :allowed-methods [:get]
-              :authorized? true
-              :handle-unauthorized errors-in-ctx
-              :handle-malformed errors-in-ctx
-              :respond-with-entity? true
-              :new? false}]
-    {:list base
+  (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
+        base          {:available-media-types ["application/transit+json"
+                                               "application/transit+msgpack"
+                                               "application/json"]
+                       :allowed-methods       [:get]
+                       :authorized?           true
+                       :handle-unauthorized   errors-in-ctx
+                       :handle-malformed      errors-in-ctx
+                       :respond-with-entity?  true
+                       :new?                  false}]
+    {:list   base
      :create (merge base {:allowed-methods [:post]
-                          :new? true
-                          :handle-created record})
-     :show base
+                          :new?            true
+                          :handle-created  record})
+     :show   base
      :update (merge base {:allowed-methods [:put]})
-     :delete (merge base {:allowed-methods [:delete]
+     :delete (merge base {:allowed-methods      [:delete]
                           :respond-with-entity? false})}))
 
 (def resource-route
