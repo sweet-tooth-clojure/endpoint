@@ -65,7 +65,9 @@
   [{:keys [body] :as response}]
   
   (let [body                      (if (sequential? body)
-                                    (vec (filter not-empty body))
+                                    (vec (filter #(or (and % (not (coll? %)))
+                                                      (not-empty %))
+                                                 body))
                                     body)
         {:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
         conformed                 (s/conform ::raw-response body)]
