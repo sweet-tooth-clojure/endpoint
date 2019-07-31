@@ -49,10 +49,10 @@
   "Updates current page if new entity exists in current page, otherwise
   returns last page"
   [new-ent-id page id-key ents]
-  (let [ent-page (paginate page ents)]
-    (if (get-in ent-page [:entity (:type page) new-ent-id])
+  (let [ent-page (paginate page id-key ents)]
+    (if (get-in ent-page [0 1 (:type page) new-ent-id])
       ent-page
-      (paginate (assoc page :page (get-in ent-page [:page (:query-id page) :page-count])) ents))))
+      (paginate (assoc page :page (get-in ent-page [1 (:query-id page) :page-count])) id-key ents))))
 
 ;; TODO spec this
 (defn page-params
