@@ -32,32 +32,27 @@
   [val sort-order]
   ((if (= sort-order :desc) desc asc) val))
 
-;: TODO db/id is datomic-specific
 (defn paginate
-  [p ents]
+  [p id-key ents]
   (let [{:keys [page per-page sort-order type]} p
         ent-count (count ents)
         data      (cond->> ents
                     (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
                     true         (slice page per-page))]
-    {:entity {type (u/key-by :db/id data)}
-     :page   {(:query-id p) {:query      p
-                             :result     {p {:ent-count   ent-count
-                                             :ordered-ids (map :db/id data)}}
-                             :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}}))
+    [[:entity {type (u/key-by id-key data)}]
+     [:page   {(:query-id p) {:query      p
+                              :result     {p {:ent-count   ent-count
+                                              :ordered-ids (map id-key data)}}
+                              :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}]]))
 
 (defn page-to-new
   "Updates current page if new entity exists in current page, otherwise
   returns last page"
-  [new-ent-id page ents]
+  [new-ent-id page id-key ents]
   (let [ent-page (paginate page ents)]
     (if (get-in ent-page [:entity (:type page) new-ent-id])
       ent-page
       (paginate (assoc page :page (get-in ent-page [:page (:query-id page) :page-count])) ents))))
-
-(defn organize-page-data
-  [ent-type page]
-  (update-in page [:entity ent-type] #(u/key-by :db/id %)))
 
 ;; TODO spec this
 (defn page-params
