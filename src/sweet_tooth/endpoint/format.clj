@@ -43,7 +43,6 @@
       (with-meta {:ent-type ent-type})
       (format-entity id-key)))
 
-
 (defn format-body
   [body id-key ent-type conformed]
   (case (first conformed)
@@ -54,7 +53,8 @@
     :possible-entity    [(format-possible-entity body id-key ent-type)]
     :possible-entities  [(format-possible-entity body id-key ent-type)]
     :unformatted-vector (mapv (fn [x x-conformed]
-                                (first (format-body x id-key ent-type x-conformed)))
+                                (when (not-empty x)
+                                  (first (format-body x id-key ent-type x-conformed))))
                               body
                               (second conformed))))
 
@@ -64,7 +64,10 @@
   response."
   [{:keys [body] :as response}]
   
-  (let [{:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
+  (let [body                      (if (sequential? body)
+                                    (vec (filter not-empty body))
+                                    body)
+        {:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
         conformed                 (s/conform ::raw-response body)]
     (if (= ::s/invalid conformed)
       response
