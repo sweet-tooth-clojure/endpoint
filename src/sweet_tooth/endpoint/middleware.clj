@@ -2,7 +2,8 @@
   (:require [integrant.core :as ig]
             [duct.core :as duct]
             [ring.middleware.format :as f]
-            [sweet-tooth.endpoint.format :as ef]))
+            [sweet-tooth.endpoint.format :as ef]
+            [clojure.stacktrace :as cst]))
 
 (defn wrap-flush
   "Flush output after each request"
@@ -24,6 +25,18 @@
   (fn [req]
     (ef/format-response (f req))))
 
+(defn wrap-format-exception
+  [f {:keys [include-data]}]
+  (fn [req]
+    (try (f req)
+         (catch Throwable t
+           {:status 500
+            :body   [[:exception (if include-data
+                                   {:message (.getMessage t)
+                                    :ex-data (ex-data t)
+                                    :stack-trace (with-out-str (cst/print-stack-trace t))}
+                                   {})]]}))))
+
 (defmethod ig/init-key ::restful-format [_ options]
   #(f/wrap-restful-format % options))
 
@@ -36,18 +49,22 @@
 (defmethod ig/init-key ::format-response [_ _]
   #(wrap-format-response %))
 
+(defmethod ig/init-key ::format-exception [_ opts]
+  #(wrap-format-exception % opts))
+
 (derive :sweet-tooth.endpoint/middleware :duct/module)
 
 (def middleware-config
-  {::restful-format  {:formats [:transit-json]}
-   ::merge-params    {}
-   ::flush           {}
-   ::format-response {}})
+  {::restful-format   {:formats [:transit-json]}
+   ::merge-params     {}
+   ::flush            {}
+   ::format-response  {}
+   ::format-exception {}})
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
     (let [middlewares (if (empty? middlewares)
-                        [::format-response ::restful-format ::merge-params ::flush]
+                        [::format-response ::format-exception ::restful-format ::merge-params ::flush]
                         middlewares)]
       (duct/merge-configs
         config
