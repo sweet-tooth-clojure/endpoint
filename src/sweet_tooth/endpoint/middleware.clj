@@ -63,9 +63,13 @@
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
-    (let [middlewares (if (empty? middlewares)
-                        [::format-response ::format-exception ::restful-format ::merge-params ::flush]
-                        middlewares)]
+    (let [middlewares (filter identity (if (empty? middlewares)
+                                         [::format-response
+                                          (when (= (:duct.core/environment config) :development) ::format-exception)
+                                          ::restful-format
+                                          ::merge-params
+                                          ::flush]
+                                         middlewares))]
       (duct/merge-configs
         config
         (reduce (fn [c k]
