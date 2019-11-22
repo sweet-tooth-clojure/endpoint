@@ -48,3 +48,15 @@
       :body
       (transit/reader :json)
       transit/read))
+
+(defn contains-entity?
+  "Request's response data creates entity of type `ent-type` that has
+  key/value pairs identical to `test-ent-attrs`"
+  [resp-data ent-type test-ent-attrs]
+  (let [ent-keys (keys test-ent-attrs)]
+    ((->> resp-data
+          (filter #(= (first %) :entity))
+          (mapcat (comp vals ent-type second))
+          (map #(select-keys % ent-keys))
+          (set))
+     test-ent-attrs)))

@@ -9,13 +9,13 @@
   - route data is sprinkled with helpful sweet-tooth goodies
   - route data includes refs to handler keys
   - handler keys are added to the config
-  - handler keys are derived from ::unary-handler and ::coll-handler to 
+  - handler keys are derived from ::unary-handler and ::coll-handler to
     provide MAGICAL defaults"
   (:require [duct.core :as duct]
             [integrant.core :as ig]
             [reitit.ring :as rr]
             [com.flyingmachine.liberator-unbound :as lu]
-            
+
             [sweet-tooth.endpoint.liberator :as el]
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.routes.reitit :as err]
@@ -134,7 +134,7 @@
                         (do (require (symbol (namespace ns-routes)))
                             @(ns-resolve (symbol (namespace ns-routes))
                                          (symbol (name ns-routes)))))]
-    
+
     (fn [config]
       ;; Have each endpoint handler's integrant key drive from a
       ;; default key
