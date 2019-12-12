@@ -4,7 +4,7 @@
             [sweet-tooth.endpoint.test.harness :as eth]
             [sweet-tooth.endpoint.system :as es]
             [sweet-tooth.endpoint.routes.reitit :as err]
-            
+
             [duct.core :as duct]
             [integrant.core :as ig]
             [clojure.test :refer :all]))
@@ -22,7 +22,7 @@
   {:duct.profile/base    {:duct.core/project-ns  'sweet-tooth
                           :duct.core/environment :production}
    ::sut/ns-routes       {:ns-routes ::ns-routes}
-   
+
    :duct.module/logging  {}
    :duct.module.web/api  {}
    :duct.module.web/site {}})
@@ -56,16 +56,30 @@
                  :middleware [em/wrap-merge-params]}]]
 
           ::coll-handler
-          {:name      :liberator.reitit-routes-tests
-           ::err/ns   :sweet-tooth.endpoint.liberator.reitit-routes-test
-           ::err/type ::err/coll}
-          
+          {:name        :liberator.reitit-routes-tests
+           :id-key      :id
+           :auth-id-key :id
+           :ctx         {:id-key      :id
+                         :auth-id-key :id}
+           :ent-type    :reitit-routes-test
+           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+           ::err/type   ::err/coll}
+
           ::unary-handler
-          {:name      :liberator.reitit-routes-test
-           ::err/ns   :sweet-tooth.endpoint.liberator.reitit-routes-test
-           ::err/type ::err/unary}}
+          {:name        :liberator.reitit-routes-test
+           :id-key      :id
+           :auth-id-key :id
+           :ctx         {:id-key      :id
+                         :auth-id-key :id}
+           :ent-type    :reitit-routes-test
+           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+           ::err/type   ::err/unary}}
          (-> (select-keys (duct/prep-config duct-config) [::sut/router ::coll-handler ::unary-handler])
-             ;; TODO figure out how to not have to do these shenanigans
+             ;; TODO figure out how to not have to do these
+             ;; shenanigans
+
+             ;; dropping the first middleware because it's
+             ;; an anonymous function so I can't really test for that
              (update ::sut/router #(mapv (fn [route]
                                            (update-in route [1 :middleware] (fn [x] (drop 1 x))))
                                          %))))))

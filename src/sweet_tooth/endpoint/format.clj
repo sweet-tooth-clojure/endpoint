@@ -63,7 +63,7 @@
   of maps of a single ent-type. Formats that so that it conforms to
   response."
   [{:keys [body] :as response}]
-  
+
   (let [body                      (if (sequential? body)
                                     (vec (filter #(or (and % (not (coll? %)))
                                                       (not-empty %))

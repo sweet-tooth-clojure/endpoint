@@ -26,6 +26,7 @@
     (ef/format-response (f req))))
 
 (defn wrap-format-exception
+  "Catches exceptions and returns a formatted response."
   [f {:keys [include-data]}]
   (fn [req]
     (try (f req)
@@ -59,7 +60,7 @@
    ::merge-params     {}
    ::flush            {}
    ::format-response  {}
-   ::format-exception {}})
+   ::format-exception {:include-data true}})
 
 (defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
   (fn [config]
@@ -71,9 +72,9 @@
                                           ::flush]
                                          middlewares))]
       (duct/merge-configs
+        (select-keys middleware-config middlewares)
         config
         (reduce (fn [c k]
-                  (-> (assoc c k (get middleware-config k))
-                      (update-in [:duct.handler/root :middleware] conj (ig/ref k))))
+                  (update-in c [:duct.handler/root :middleware] conj (ig/ref k)))
                 {:duct.handler/root {:middleware ^:prepend []}}
                 middlewares)))))

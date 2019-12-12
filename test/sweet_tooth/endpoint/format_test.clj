@@ -38,13 +38,13 @@
   (is (= [[:entity {:topic {3 {:id 3}}}]]
          (sut/format-body {:id 3}
                           :id
-                          :blah.endpoint.admin.topic
+                          :topic
                           [:possible-entity]))))
 
 (deftest formats-unformatted-vector
   (let [body      [{:id 3} [:default {:current-user {}}]]
         conformed (s/conform ::sut/raw-response body)]
-    (is (= [:unformatted-vector          
+    (is (= [:unformatted-vector
             [[:possible-entity {:id 3}]
              [:item [:default {:current-user {}}]]]]
            conformed))
@@ -52,5 +52,5 @@
             [:default {:current-user {}}]]
            (sut/format-body body
                             :id
-                            :blah.endpoint.admin.topic
+                            :topic
                             conformed)))))

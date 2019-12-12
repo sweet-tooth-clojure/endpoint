@@ -15,6 +15,7 @@
             [integrant.core :as ig]
             [reitit.ring :as rr]
             [com.flyingmachine.liberator-unbound :as lu]
+            [meta-merge.core :as mm]
 
             [sweet-tooth.endpoint.liberator :as el]
             [sweet-tooth.endpoint.middleware :as em]
@@ -102,7 +103,7 @@
   that reitit produces before that request map is passed to the
   handler"
   [ns-route]
-  (update ns-route 1 assoc :middleware [(format-middleware-fn ns-route) em/wrap-merge-params]))
+  (update-in ns-route [1 :middleware] #(mm/meta-merge [(format-middleware-fn ns-route) em/wrap-merge-params] %)))
 
 (defn magic-the-f-out-of-this-route-data
   "I'M SORRY

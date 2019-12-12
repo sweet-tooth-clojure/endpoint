@@ -37,7 +37,7 @@
   (is (= (sut/ns-pairs->ns-routes [{:id-key :db/id}
                                    [:ex.endpoint.user]
                                    [:ex.endpoint.topic]])
-         
+
          [["/user" {:name      :users
                     ::sut/ns   :ex.endpoint.user
                     ::sut/type ::sut/coll

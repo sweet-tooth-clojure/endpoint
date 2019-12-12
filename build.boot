@@ -6,6 +6,7 @@
                     [adzerk/bootlaces           "0.1.13"    :scope "test"]
                     [adzerk/boot-test           "1.1.1"     :scope "test"]
                     [medley                     "0.7.1"]
+                    [meta-merge                 "1.0.0"]
                     [metosin/reitit-core        "0.3.9"]
                     [metosin/reitit-ring        "0.3.9"]
 
@@ -29,7 +30,7 @@
   '[adzerk.bootlaces :refer :all]
   '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.6.3")
+(def +version+ "0.6.4")
 (bootlaces! +version+)
 
 (task-options!

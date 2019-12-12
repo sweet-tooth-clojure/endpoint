@@ -67,6 +67,6 @@
                          allowed-keys))
       (u/update-vals {[:page :per-page]
                       (fn [n] (if (string? n) (Integer. n) n))
-                      
+
                       [:sort-by :sort-order :query-id :type]
                       #(keyword (str/replace % #"^:" ""))})))
