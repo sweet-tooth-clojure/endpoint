@@ -86,7 +86,7 @@
   [ctx]
   (d/entity (db-after ctx) (ctx-id ctx)))
 
-(defn created-pull
+(defn updated-pull
   "Differs from `created-entity` in that it returns a map, not a
   map-like Datomic Entity"
   [ctx]
