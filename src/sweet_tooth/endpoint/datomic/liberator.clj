@@ -9,6 +9,9 @@
             [integrant.core :as ig]
             [com.flyingmachine.datomic-junk :as dj]))
 
+(def db-after (el/get-ctx [:result :db-after]))
+(def db-before (el/get-ctx [:result :db-before]))
+
 (defn ctx-id
   "Get id from the params, try to convert to number
   TODO this is better solved with routing type hint"
@@ -49,10 +52,21 @@
   [ctx]
   (d/transact (conn ctx) [(ctx->create-map ctx)]))
 
-(defn created-entity
-  "Use when you've created a single entity and stored the tx result under :result"
+(defn created-id
   [{:keys [result]}]
-  (d/entity (:db-after result) (first (vals (:tempids result)))))
+  (first (vals (:tempids result))))
+
+(defn created-entity
+  "Use when you've created a single entity and stored the tx result
+  under :result"
+  [ctx]
+  (d/entity (db-after ctx) (created-id ctx)))
+
+(defn created-pull
+  "Differs from `created-entity` in that it returns a map, not a
+  map-like Datomic Entity"
+  [ctx]
+  (d/pull (db-after ctx) '[:*] (created-id ctx)))
 
 (defn ctx->update-map
   [ctx]
@@ -66,12 +80,30 @@
   [ctx]
   (d/transact (conn ctx) [(ctx->update-map ctx)]))
 
+(defn updated-entity
+  "Use when you've updated a single entity and stored the tx result
+  under :result"
+  [ctx]
+  (d/entity (db-after ctx) (ctx-id ctx)))
+
+(defn created-pull
+  "Differs from `created-entity` in that it returns a map, not a
+  map-like Datomic Entity"
+  [ctx]
+  (d/pull (db-after ctx) '[:*] (ctx-id ctx)))
+
 (defn delete
   [ctx]
   (d/transact (conn ctx) [[:db.fn/retractEntity (ctx-id ctx)]]))
 
-(def db-after (el/get-ctx [:result :db-after]))
-(def db-before (el/get-ctx [:result :db-before]))
+(defn deref->:result
+  "deref a transaction put the result in :result of ctx"
+  [tx]
+  ((comp #(el/->ctx % :result) deref) tx))
+
+(def update->:result (comp deref->:result update))
+(def delete->:result (comp deref->:result delete))
+(def create->:result (comp deref->:result create))
 
 (defn auth-owns?
   "Check if the user entity is the same as the authenticated user"
