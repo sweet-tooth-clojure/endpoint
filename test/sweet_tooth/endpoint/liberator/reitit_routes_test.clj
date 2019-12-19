@@ -5,6 +5,7 @@
             [sweet-tooth.endpoint.system :as es]
             [sweet-tooth.endpoint.routes.reitit :as err]
 
+            [ring.mock.request :as mock]
             [duct.core :as duct]
             [integrant.core :as ig]
             [clojure.test :refer :all]))
@@ -19,13 +20,15 @@
                             ["/" {:woo :yeah :handler "x"}]]))
 
 (def duct-config
-  {:duct.profile/base    {:duct.core/project-ns  'sweet-tooth
-                          :duct.core/environment :production}
-   ::sut/ns-routes       {:ns-routes ::ns-routes}
+  {:duct.profile/base {:duct.core/project-ns  'sweet-tooth
+                       :duct.core/environment :production}
+   ::sut/ns-routes    {:ns-routes ::ns-routes}
 
    :duct.module/logging  {}
    :duct.module.web/api  {}
-   :duct.module.web/site {}})
+   :duct.module.web/site {}
+
+   :sweet-tooth.endpoint/middleware {}})
 
 (deftest builds-duct-config
   (is (= {::sut/router
@@ -90,4 +93,15 @@
 (deftest handler-works
   (eth/with-system ::test
     (is (= ["YAY"]
-           (:body (eth/req :get "/liberator/reitit-routes-test"))))))
+           (eth/resp-read-transit (eth/req :get "/liberator/reitit-routes-test"))))
+    (is (= {"Content-Type"           "application/transit+json"
+            "Content-Encoding"       "gzip"
+            "Vary"                   "Accept, Accept-Encoding"
+            "X-XSS-Protection"       "1; mode=block"
+            "X-Frame-Options"        "SAMEORIGIN"
+            "X-Content-Type-Options" "nosniff"}
+           (-> (eth/base-request :get "/liberator/reitit-routes-test" {})
+               (mock/header "accept-encoding" "gzip")
+               ((eth/handler))
+               :headers
+               (dissoc "Set-Cookie"))))))

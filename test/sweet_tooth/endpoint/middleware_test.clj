@@ -7,16 +7,17 @@
 (duct/load-hierarchy)
 
 (deftest group-module
-  (is (= {:duct.handler/root {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/format-response)
-                                           (ig/ref :sweet-tooth.endpoint.middleware/restful-format)
-                                           (ig/ref :sweet-tooth.endpoint.middleware/merge-params)
-                                           (ig/ref :sweet-tooth.endpoint.middleware/flush)]
-                              :router     (ig/ref :duct/router)}
-
-          :sweet-tooth.endpoint.middleware/format-response {}
-          :sweet-tooth.endpoint.middleware/restful-format  {:formats [:transit-json]}
-          :sweet-tooth.endpoint.middleware/merge-params    {}
-          :sweet-tooth.endpoint.middleware/flush           {}}
+  (is (= {:duct.handler/root   {:middleware [(ig/ref ::em/format-response)
+                                             (ig/ref ::em/restful-format)
+                                             (ig/ref ::em/merge-params)
+                                             (ig/ref ::em/flush)
+                                             (ig/ref ::em/gzip)]
+                                :router     (ig/ref :duct/router)}
+          ::em/gzip            {}
+          ::em/restful-format  {:formats [:transit-json]}
+          ::em/merge-params    {}
+          ::em/format-response {}
+          ::em/flush           {}}
          (duct/prep-config {:sweet-tooth.endpoint/middleware {:middlewares []}}))))
 
 (deftest meta-merge-with-default-cofigs

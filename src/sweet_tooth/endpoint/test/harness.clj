@@ -11,7 +11,7 @@
   "Bind dynamic system vars to a test system."
   [config-name & body]
   `(binding [*system* (es/system ~config-name)]
-     (let [return# ~@body]
+     (let [return# (do ~@body)]
        (ig/halt! *system*)
        return#)))
 

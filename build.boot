@@ -23,7 +23,7 @@
                     [liberator "0.15.3"]
                     [com.datomic/datomic-free "0.9.5344" :scope "provided"]
                     [ring-middleware-format "0.7.0"]
-                    ;; [metosin/muuntaja "0.6.4"]
+                    [bk/ring-gzip "0.3.0"]
                     [buddy/buddy-auth "2.1.0"]])
 
 (require
