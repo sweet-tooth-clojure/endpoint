@@ -1,7 +1,5 @@
 (ns sweet-tooth.endpoint.liberator
   (:require [liberator.representation :as lr]
-            ;; this loads support for transit into liberator
-            ;; [io.clojure.liberator-transit]
             [com.flyingmachine.liberator-unbound :as lu]
             [ring.util.response :as resp]
             [buddy.auth :as buddy]

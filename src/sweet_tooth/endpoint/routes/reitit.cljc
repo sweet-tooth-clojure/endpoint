@@ -86,7 +86,7 @@
   ignore. By convention Sweet Tooth expects you to use names like
   `:my-app.backend.endpoint.user`, but you want to just use `user` -
   that's what the delimiter is for."
-  ([pair] (expand-pair pair #"endpoint\."))
+  ([pair] (expand-route pair #"endpoint\."))
   ([[ns opts :as pair] delimiter]
    (if (s/valid? ::name-route pair)
      (let [name (-> (str ns)

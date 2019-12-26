@@ -15,7 +15,6 @@
                     [duct/module.web     "0.7.0" :scope "test"]
 
                     ;; server
-                    [io.clojure/liberator-transit "0.3.0"]
                     [com.flyingmachine/liberator-unbound "0.2.0"]
                     [com.flyingmachine/datomic-booties "0.1.7"]
                     [com.flyingmachine/datomic-junk "0.2.3"]
@@ -30,16 +29,16 @@
   '[adzerk.bootlaces :refer :all]
   '[adzerk.boot-test :refer :all])
 
-(def +version+ "0.6.6")
+(def +version+ "0.7.0")
 (bootlaces! +version+)
 
 (task-options!
- pom  {:project     'sweet-tooth/sweet-tooth-endpoint
-       :version     +version+
-       :description "Utilities for working with liberator-based endpoints"
-       :url         "https://github.com/sweet-tooth-clojure/sweet-tooth-workflow"
-       :scm         {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-workflow"}
-       :license     {"MIT" "https://opensource.org/licenses/MIT"} })
+  pom  {:project     'sweet-tooth/sweet-tooth-endpoint
+        :version     +version+
+        :description "Utilities for working with liberator-based endpoints"
+        :url         "https://github.com/sweet-tooth-clojure/sweet-tooth-workflow"
+        :scm         {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-workflow"}
+        :license     {"MIT" "https://opensource.org/licenses/MIT"} })
 
 ;; local dev and test
 (deftask ldev
