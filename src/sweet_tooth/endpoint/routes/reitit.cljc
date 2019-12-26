@@ -1,73 +1,99 @@
 (ns sweet-tooth.endpoint.routes.reitit
-  "Allow specifying routes using keywords corresponding to namespaces"
-  (:require [clojure.string :as str]
+  "Lets you:
+
+  1. Specify a map of options that apply to a group of routes
+  2. Transform names (usually namespace names) into reitit
+  routes that include both:
+     2a. a collection routes, e.g. `/users`
+     2b. a unary route, e.g. `/user/{id}`"
+  (:require [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [integrant.core :as ig]
+            [meta-merge.core :as mm]
             #?@(:cljs [[goog.string :as gstr]
-                       [goog.string.format]])))
+                       [goog.string.format]]))
+  (:refer-clojure :exclude [name]))
+
+(s/def ::name keyword?)
+(s/def ::route-opts map?)
+(s/def ::name-route (s/cat :name ::name
+                           :route-opts  (s/? ::route-opts)))
+
+(def ^:private format-str  #?(:clj format :cljs gstr/format))
 
 (defn- include-route?
-  [opts k]
-  (or (not (contains? opts k))
-      (k opts)))
+  "all route types are included unless otherwise specified"
+  [pair-opts route-type]
+  (or (not (contains? pair-opts route-type))
+      (route-type pair-opts)))
 
 (defn- slash
-  [endpoint-name]
-  (str/replace endpoint-name #"\." "/"))
+  "replace dots with slashes in domain name to create a string that's
+  route-friendly"
+  [name]
+  (str/replace name #"\." "/"))
 
 (defn coll-route
-  [endpoint-name ns opts]
+  [name ns opts]
   (let [coll-opts    (::coll opts)
         {:keys [path-prefix]
          :or   {path-prefix ""}
          :as   opts} (dissoc opts ::coll ::unary)]
-    [(#?(:clj format :cljs gstr/format) "%s/%s" path-prefix (slash endpoint-name))
-     (merge {:name  (keyword (str endpoint-name "s"))
+    [(format-str "%s/%s" path-prefix (slash name))
+     (merge {:name  (keyword (str name "s"))
              ::ns   ns
              ::type ::coll}
             opts
             coll-opts)]))
 
 (defn unary-route
-  [endpoint-name ns opts]
+  [name ns opts]
   (let [unary-opts   (::unary opts)
         {:keys [path-prefix]
          :or   {path-prefix ""}
          :as   opts} (dissoc opts ::coll ::unary)
-        id-key       (or (:id-key unary-opts) (:id-key opts) :id)]
-    [(#?(:clj format :cljs gstr/format) "%s/%s/{%s}" path-prefix (slash endpoint-name) (subs (str id-key) 1))
-     (merge {:name  (keyword endpoint-name)
+        id-key       (or (:id-key unary-opts)
+                         (:id-key opts)
+                         :id)]
+    [(format-str "%s/%s/{%s}" path-prefix (slash name) (subs (str id-key) 1))
+     (merge {:name  (keyword name)
              ::ns   ns
              ::type ::unary}
             opts
             unary-opts)]))
 
-(defn ns-pair->ns-route
-  "In a pair of [n m], if n is a keyword then it's strated as a "
-  [[ns opts :as pair]]
-  (if (string? ns)
-    [pair]
-    (let [endpoint-name (str/replace (name ns) #".*?endpoint\." "")
-          path          (str "/" endpoint-name)]
-      (cond-> []
-        (include-route? opts ::coll)  (conj (coll-route endpoint-name ns opts))
-        (include-route? opts ::unary) (conj (unary-route endpoint-name ns opts))))))
+(defn expand-route
+  "In a pair of [n m], if n is a keyword then the pair is treated as a
+  name route and is expanded. Otherwise the pair returned as-is (it's
+  probably a regular reitit route).
 
-(defn merge-common
-  "Merge common route opts such that when the val is a map, it's merged
-  rather than replaced"
-  [route-opts common-opts]
-  (merge-with #(if (map? %2) (merge %1 %2) (or %2 %1))
-              common-opts
-              route-opts))
+  `delimiter` is a regex used to specify what part of the name to
+  ignore. By convention Sweet Tooth expects you to use names like
+  `:my-app.backend.endpoint.user`, but you want to just use `user` -
+  that's what the delimiter is for."
+  ([pair] (expand-pair pair #"endpoint\."))
+  ([[ns opts :as pair] delimiter]
+   (if (s/valid? ::name-route pair)
+     (let [name (-> (str ns)
+                    (str/split delimiter)
+                    (second))
+           path (str "/" name)]
+       (cond-> []
+         (include-route? opts ::coll)  (conj (coll-route name ns opts))
+         (include-route? opts ::unary) (conj (unary-route name ns opts))))
+     [pair])))
 
-(defn ns-pairs->ns-routes
+(defn expand-routes
   "Returns vector of reitit-compatible routes from compact route syntax"
-  [pairs]
-  (loop [common             {}
-         [pair & remaining] pairs
-         routes             []]
-    (cond (map? pair) (recur pair remaining routes)
-          (not pair)  routes
-          :else       (recur common
-                             remaining
-                             (into routes (ns-pair->ns-route (update pair 1 merge-common common)))))))
+  ([pairs]
+   (expand-routes pairs #"endpoint\."))
+  ([pairs delimiter]
+   (loop [common                {}
+          [current & remaining] pairs
+          routes                []]
+     (cond (not current)  routes
+           (map? current) (recur current remaining routes)
+           :else          (recur common
+                                 remaining
+                                 (into routes (expand-route (update current 1 #(mm/meta-merge common %))
+                                                            delimiter)))))))

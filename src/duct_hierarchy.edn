@@ -1,2 +1,3 @@
 {:sweet-tooth.endpoint.liberator.reitit-routes/ns-routes [:duct/module]
- :sweet-tooth.endpoint.liberator.reitit-routes/router    [:duct/router]}
+ :sweet-tooth.endpoint.liberator.reitit-routes/router    [:duct/router]
+ :sweet-tooth.endpoint.datomic/connection                [:duct/database]}

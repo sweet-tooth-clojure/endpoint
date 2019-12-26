@@ -11,7 +11,7 @@
           ["/user/{id}" {:name      :user
                          ::sut/ns   :ex.endpoint.user
                          ::sut/type ::sut/unary}]]
-         (sut/ns-pair->ns-route [:ex.endpoint.user]))))
+         (sut/expand-route [:ex.endpoint.user]))))
 
 (deftest nested-route
   (is (= [["/admin/user"      {:name      :admin.users
@@ -20,37 +20,38 @@
           ["/admin/user/{id}" {:name      :admin.user
                                ::sut/ns   :ex.endpoint.admin.user
                                ::sut/type ::sut/unary}]]
-         (sut/ns-pair->ns-route [:ex.endpoint.admin.user]))))
+         (sut/expand-route [:ex.endpoint.admin.user]))))
 
 (deftest exclude-route
-  (is (= [["/user" {:name      :users
-                    ::sut/ns   :ex.endpoint.user
-                    ::sut/type ::sut/coll}]]
-         (sut/ns-pair->ns-route [:ex.endpoint.user {::sut/unary false}])))
+  (testing "leaves out a unary or coll route"
+    (is (= [["/user" {:name      :users
+                      ::sut/ns   :ex.endpoint.user
+                      ::sut/type ::sut/coll}]]
+           (sut/expand-route [:ex.endpoint.user {::sut/unary false}])))
 
-  (is (= [["/user/{id}" {:name      :user
-                         ::sut/ns   :ex.endpoint.user
-                         ::sut/type ::sut/unary}]]
-         (sut/ns-pair->ns-route [:ex.endpoint.user {::sut/coll false}]))))
+    (is (= [["/user/{id}" {:name      :user
+                           ::sut/ns   :ex.endpoint.user
+                           ::sut/type ::sut/unary}]]
+           (sut/expand-route [:ex.endpoint.user {::sut/coll false}])))))
 
 (deftest common-opts
-  (is (= (sut/ns-pairs->ns-routes [{:id-key :db/id}
-                                   [:ex.endpoint.user]
-                                   [:ex.endpoint.topic]])
-
-         [["/user" {:name      :users
-                    ::sut/ns   :ex.endpoint.user
-                    ::sut/type ::sut/coll
-                    :id-key    :db/id}]
-          ["/user/{db/id}" {:name      :user
-                            ::sut/ns   :ex.endpoint.user
-                            ::sut/type ::sut/unary
-                            :id-key    :db/id}]
-          ["/topic" {:name      :topics
-                     ::sut/ns   :ex.endpoint.topic
-                     ::sut/type ::sut/coll
-                     :id-key    :db/id}]
-          ["/topic/{db/id}" {:name      :topic
-                             ::sut/ns   :ex.endpoint.topic
-                             ::sut/type ::sut/unary
-                             :id-key    :db/id}]])))
+  (testing "you can specify common opts and override them"
+    (is (= [["/user" {:name      :users
+                      ::sut/ns   :ex.endpoint.user
+                      ::sut/type ::sut/coll
+                      :id-key    :db/id}]
+            ["/user/{weird/id}" {:name      :user
+                                 ::sut/ns   :ex.endpoint.user
+                                 ::sut/type ::sut/unary
+                                 :id-key    :weird/id}]
+            ["/topic" {:name      :topics
+                       ::sut/ns   :ex.endpoint.topic
+                       ::sut/type ::sut/coll
+                       :id-key    :db/id}]
+            ["/topic/{db/id}" {:name      :topic
+                               ::sut/ns   :ex.endpoint.topic
+                               ::sut/type ::sut/unary
+                               :id-key    :db/id}]]
+           (sut/expand-routes [{:id-key :db/id}
+                               [:ex.endpoint.user {::sut/unary {:id-key :weird/id}}]
+                               [:ex.endpoint.topic]])))))

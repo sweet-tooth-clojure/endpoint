@@ -90,6 +90,9 @@
 (defmethod es/config ::test [_]
   (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))
 
+;; With reitit-routed handlers as the final product of a lot of magic,
+;; this test also tests other layers in the system, like gzip
+;; middleware
 (deftest handler-works
   (eth/with-system ::test
     (is (= ["YAY"]
