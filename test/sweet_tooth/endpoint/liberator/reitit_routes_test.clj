@@ -108,3 +108,9 @@
                ((eth/handler))
                :headers
                (dissoc "Set-Cookie"))))))
+
+(deftest ns-routes-exception-handling
+  (is (#'sut/resolve-ns-routes ::ns-routes))
+  (is (thrown-with-msg? clojure.lang.ExceptionInfo
+                        #"Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-routes/ns-routes is incorrect. Could not find the var specified by :ns-routes."
+                        (#'sut/resolve-ns-routes ::blar))))

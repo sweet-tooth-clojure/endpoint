@@ -32,7 +32,7 @@
 ;; duct
 ;;-----------
 (defn liberator-resources
-  "Return both entry and collection request handlers"
+  "Return both unary and collection request handlers"
   [endpoint-opts]
   (let [endpoint-ns (::err/ns endpoint-opts)
         decisions   (try (-> (ns-resolve (symbol endpoint-ns) 'decisions)
@@ -44,6 +44,7 @@
          (lu/merge-decisions el/decision-defaults)
          (lu/resources lu/resource-groups))))
 
+;; Individual route handlers are derived from these handlers
 (defmethod ig/init-key ::unary-handler [_ endpoint-opts]
   (:entry (liberator-resources endpoint-opts)))
 (defmethod ig/init-key ::coll-handler [_ endpoint-opts]
@@ -96,29 +97,32 @@
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]
-      (assoc (f req) :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :auth-id-key :ent-type])))))
+      (assoc (f req)
+             :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :auth-id-key :ent-type])))))
 
 (defn add-middleware
   "Middleware is added to reitit in order to work on the request map
   that reitit produces before that request map is passed to the
   handler"
   [ns-route]
-  (update-in ns-route [1 :middleware] #(mm/meta-merge [(format-middleware-fn ns-route) em/wrap-merge-params] %)))
+  (update-in ns-route
+             [1 :middleware]
+             #(mm/meta-merge [(format-middleware-fn ns-route)
+                              em/wrap-merge-params]
+                             %)))
 
-(defn magic-the-f-out-of-this-route-data
-  "I'M SORRY
-
-  TODO come up with a better name"
-  [route-data]
-  (-> route-data
+(defn add-route-defaults
+  ""
+  [route-config]
+  (-> route-config
       add-id-keys
       add-ent-type
       add-handler-ref
       add-middleware))
 
-(defn magic-the-handler
-  [route-data]
-  (-> route-data
+(defn add-handler-defaults
+  [route-config]
+  (-> route-config
       add-id-keys
       add-ent-type))
 
@@ -127,15 +131,25 @@
   (cond-> ns-route-config
     (::err/ns ns-route-opts) (assoc (endpoint-handler-key ns-route-opts) ns-route-opts)))
 
+(defn- resolve-ns-routes
+  "User can specify ns-routes directly for the ::ns-routes module, or
+  use a symbol or keyword that will get resolved to the corresponding
+  var."
+  [ns-routes]
+  (cond (vector? ns-routes) ns-routes
+
+        (or (keyword? ns-routes)
+            (symbol? ns-routes))
+        (try (require (symbol (namespace ns-routes)))
+             @(ns-resolve (symbol (namespace ns-routes))
+                          (symbol (name ns-routes)))
+             (catch Exception e
+               (throw (ex-info "Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-routes/ns-routes is incorrect. Could not find the var specified by :ns-routes."
+                        {:ns-routes ns-routes}))))))
+
+;; This is a module
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
-  (let [ns-routes (cond (vector? ns-routes) ns-routes
-
-                        (or (keyword? ns-routes)
-                            (symbol? ns-routes))
-                        (do (require (symbol (namespace ns-routes)))
-                            @(ns-resolve (symbol (namespace ns-routes))
-                                         (symbol (name ns-routes)))))]
-
+  (let [ns-routes (resolve-ns-routes ns-routes)]
     (fn [config]
       ;; Have each endpoint handler's integrant key drive from a
       ;; default key
@@ -149,9 +163,9 @@
 
       (-> config
           (duct/merge-configs
-            {::router (mapv magic-the-f-out-of-this-route-data ns-routes)}
+            {::router (mapv add-route-defaults ns-routes)}
             (->> ns-routes
-                 (mapv magic-the-handler)
+                 (mapv add-handler-defaults)
                  (filter ns-route?)
                  (reduce add-ns-route-config {})))
           (dissoc :duct.router/cascading)))))
