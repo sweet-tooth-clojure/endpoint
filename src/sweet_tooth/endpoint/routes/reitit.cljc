@@ -1,11 +1,26 @@
 (ns sweet-tooth.endpoint.routes.reitit
-  "Lets you:
+  "Sugar for reitit routes. Lets you:
 
   1. Specify a map of options that apply to a group of routes
   2. Transform names (usually namespace names) into reitit
   routes that include both:
      2a. a collection routes, e.g. `/users`
-     2b. a unary route, e.g. `/user/{id}`"
+     2b. a unary route, e.g. `/user/{id}`
+
+  A sugared route definition might be:
+
+  [[:my-app.endpoint.user]]
+
+  This would expand to:
+
+  [[\"/user\" {:name        :users
+               ::sterr/ns   :my-app.endpoint.user
+               ::sterr/type ::sterr/coll
+               :id-key      :id}]
+  [\"/user/{id}\" {:name        :user
+                   ::sterr/ns   :my-app.endpoint.user
+                   ::sterr/type ::sterr/unary
+                   :id-key      :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [integrant.core :as ig]
