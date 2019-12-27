@@ -87,42 +87,44 @@
   [route f & args]
   (apply update route 1 f args))
 
-(defn- update-ns-route-opts
+(defmacro update-opts-if-ns-route
   [route f & args]
-  (if (ns-route? route)
-    (apply update-route-opts route f args)
-    route))
+  `(if (ns-route? ~route)
+     (update-route-opts ~route ~f ~@args)
+     ~route))
 
 (defn- route-opts
   [route]
   (get route 1))
 
+(defn- flip-merge
+  [x y]
+  (merge y x))
+
 (defn- add-handler-ref
   "Adds an integrant ref to an ns-route for `:handler` so that the
   handler can be initialized by the backend"
   [route]
-  (update-ns-route-opts route #(merge {:handler (-> route
-                                                    route-opts
-                                                    endpoint-handler-key
-                                                    ig/ref)}
-                                      %)))
+  (update-opts-if-ns-route route flip-merge {:handler (-> route
+                                                          route-opts
+                                                          endpoint-handler-key
+                                                          ig/ref)}))
 
 (defn- add-ent-type
   [route]
-  (update-ns-route-opts route #(merge {:ent-type (-> route
-                                                     route-opts
-                                                     ::err/ns
-                                                     name
-                                                     (str/replace #".*\.(?=[^.]+$)" "")
-                                                     keyword)}
-                                      %)))
+  (update-opts-if-ns-route route flip-merge {:ent-type (-> route
+                                                           route-opts
+                                                           ::err/ns
+                                                           name
+                                                           (str/replace #".*\.(?=[^.]+$)" "")
+                                                           keyword)}))
 
 (defn- add-id-keys
   [route]
   (let [default-id-keys {:id-key :id, :auth-id-key :id}]
     (-> route
-        (update-ns-route-opts #(merge default-id-keys %))
-        (update-ns-route-opts update :ctx #(merge default-id-keys %)))))
+        (update-opts-if-ns-route flip-merge default-id-keys)
+        (update-opts-if-ns-route update :ctx flip-merge default-id-keys))))
 
 (defn- format-middleware-fn
   [[_ endpoint-opts]]
@@ -142,7 +144,7 @@
 
 (defn- add-decisions
   [route]
-  (update-ns-route-opts route merge {:decisions 'decisions}))
+  (update-opts-if-ns-route route merge {:decisions 'decisions}))
 
 (defn add-route-defaults
   "Compose the final route passed to reitit/router"
@@ -187,7 +189,9 @@
                (throw (ex-info "Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-routes/ns-routes is incorrect. Could not find the var specified by :ns-routes."
                         {:ns-routes ns-routes}))))))
 
-;; This is a module
+;; This module populates the system config with a ::router component
+;; and with components for each individual handler needed for the
+;; routes
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
   (let [ns-routes (resolve-ns-routes ns-routes)]
     (fn [config]
