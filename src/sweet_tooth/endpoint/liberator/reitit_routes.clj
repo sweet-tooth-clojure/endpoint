@@ -43,6 +43,7 @@
 ;; duct
 ;;-----------
 (defn- resolve-decisions
+  
   [{:keys [decisions ::err/ns] :as endpoint-opts}]
   (try (-> (ns-resolve (symbol ns) decisions)
            deref
@@ -64,10 +65,11 @@
          (lu/resources lu/resource-groups))))
 
 ;; Individual route handlers are derived from these handlers
-(defmethod ig/init-key ::unary-handler [_ endpoint-opts]
-  (:entry (liberator-resources endpoint-opts)))
-(defmethod ig/init-key ::coll-handler [_ endpoint-opts]
-  (:collection (liberator-resources endpoint-opts)))
+(defmethod ig/init-key ::handler [_ endpoint-opts]
+  (get (liberator-resources endpoint-opts)
+       (get {::err/unary :entry
+             ::err/coll  :collection}
+            (::err/type endpoint-opts))))
 
 (defn endpoint-handler-key
   [endpoint-opts]
@@ -180,10 +182,7 @@
       (doseq [endpoint-opts (->> ns-routes
                                  (filter ns-route?)
                                  (map #(get % 1)))]
-        (derive (endpoint-handler-key endpoint-opts)
-                (case (::err/type endpoint-opts)
-                  ::err/unary ::unary-handler
-                  ::err/coll  ::coll-handler)))
+        (derive (endpoint-handler-key endpoint-opts) ::handler))
 
       (-> config
           (duct/merge-configs
