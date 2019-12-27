@@ -16,8 +16,8 @@
   {:list {:handle-ok ["YAY"]}})
 
 (def ns-routes
-  (err/ns-pairs->ns-routes [[:sweet-tooth.endpoint.liberator.reitit-routes-test]
-                            ["/" {:woo :yeah :handler "x"}]]))
+  (err/expand-routes [[:sweet-tooth.endpoint.liberator.reitit-routes-test]
+                      ["/" {:woo :yeah :handler "x"}]]))
 
 (def duct-config
   {:duct.profile/base {:duct.core/project-ns  'sweet-tooth
