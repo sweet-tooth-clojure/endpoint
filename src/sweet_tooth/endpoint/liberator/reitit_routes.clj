@@ -43,11 +43,8 @@
 ;; duct
 ;;-----------
 (defn- resolve-decisions
-  
   [{:keys [decisions ::err/ns] :as endpoint-opts}]
-  (try (-> (ns-resolve (symbol ns) decisions)
-           deref
-           (el/initialize-decisions (assoc (:ctx endpoint-opts) :sweet-tooth.endpoint/namspace ns)))
+  (try @(ns-resolve (symbol ns) decisions)
        (catch Throwable t
          (throw (ex-info (format "could not find decision var '%s in %s"
                                  decisions
@@ -57,10 +54,11 @@
 
 (defn liberator-resources
   "Return both unary and collection request handlers"
-  [{:keys [decisions]
-    :as   endpoint-opts}]
-  (let [decision-map (resolve-decisions endpoint-opts)]
-    (->> decision-map
+  [{:keys [decisions ::err/ns ctx] :as endpoint-opts}]
+  (let [decision-map (cond (map? decisions)    decisions
+                           (symbol? decisions) (resolve-decisions endpoint-opts))]
+    (->> (el/initialize-decisions decision-map
+                                  (assoc ctx :sweet-tooth.endpoint/namspace ns))
          (lu/merge-decisions el/decision-defaults)
          (lu/resources lu/resource-groups))))
 
