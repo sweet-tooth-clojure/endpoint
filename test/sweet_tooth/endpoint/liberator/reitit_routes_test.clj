@@ -31,54 +31,51 @@
    :sweet-tooth.endpoint/middleware {}})
 
 (deftest builds-duct-config
-  (is (= {::sut/router
-          [["/liberator/reitit-routes-test"
-            {:name        :liberator.reitit-routes-tests
-             :id-key      :id
-             :auth-id-key :id
-             :ent-type    :reitit-routes-test
-             :middleware  [em/wrap-merge-params]
-             :handler     (ig/ref ::coll-handler)
-             :ctx         {:id-key      :id
-                           :auth-id-key :id}
-             ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
-             ::err/type   ::err/coll}]
-           ["/liberator/reitit-routes-test/{id}"
-            {:name        :liberator.reitit-routes-test
-             :id-key      :id
-             :auth-id-key :id
-             :ent-type    :reitit-routes-test
-             :middleware  [em/wrap-merge-params]
-             :handler     (ig/ref ::unary-handler)
-             :ctx         {:id-key      :id
-                           :auth-id-key :id}
-             ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
-             ::err/type   ::err/unary}]
-           ["/" {:woo        :yeah
-                 :handler    "x"
-                 :middleware [em/wrap-merge-params]}]]
+  (is (= {::sut/router [["/liberator/reitit-routes-test"
+                         {:name        :liberator.reitit-routes-tests
+                          :id-key      :id
+                          :auth-id-key :id
+                          :ent-type    :reitit-routes-test
+                          :middleware  [em/wrap-merge-params]
+                          :handler     (ig/ref ::coll-handler)
+                          :ctx         {:id-key      :id
+                                        :auth-id-key :id}
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          ::err/type   ::err/coll}]
+                        ["/liberator/reitit-routes-test/{id}"
+                         {:name        :liberator.reitit-routes-test
+                          :id-key      :id
+                          :auth-id-key :id
+                          :ent-type    :reitit-routes-test
+                          :middleware  [em/wrap-merge-params]
+                          :handler     (ig/ref ::unary-handler)
+                          :ctx         {:id-key      :id
+                                        :auth-id-key :id}
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          ::err/type   ::err/unary}]
+                        ["/" {:woo        :yeah
+                              :handler    "x"
+                              :middleware [em/wrap-merge-params]}]]
 
-          ::coll-handler
-          {:name        :liberator.reitit-routes-tests
-           :id-key      :id
-           :auth-id-key :id
-           :ctx         {:id-key      :id
-                         :auth-id-key :id}
-           :decisions   'decisions
-           :ent-type    :reitit-routes-test
-           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
-           ::err/type   ::err/coll}
+          ::coll-handler {:name        :liberator.reitit-routes-tests
+                          :id-key      :id
+                          :auth-id-key :id
+                          :ctx         {:id-key      :id
+                                        :auth-id-key :id}
+                          :decisions   'decisions
+                          :ent-type    :reitit-routes-test
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          ::err/type   ::err/coll}
 
-          ::unary-handler
-          {:name        :liberator.reitit-routes-test
-           :id-key      :id
-           :auth-id-key :id
-           :ctx         {:id-key      :id
-                         :auth-id-key :id}
-           :decisions   'decisions
-           :ent-type    :reitit-routes-test
-           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
-           ::err/type   ::err/unary}}
+          ::unary-handler {:name        :liberator.reitit-routes-test
+                           :id-key      :id
+                           :auth-id-key :id
+                           :ctx         {:id-key      :id
+                                         :auth-id-key :id}
+                           :decisions   'decisions
+                           :ent-type    :reitit-routes-test
+                           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                           ::err/type   ::err/unary}}
          (-> (select-keys (duct/prep-config duct-config) [::sut/router ::coll-handler ::unary-handler])
              ;; TODO figure out how to not have to do these
              ;; shenanigans

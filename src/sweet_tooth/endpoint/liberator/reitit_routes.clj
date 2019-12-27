@@ -40,9 +40,10 @@
   (get-in route [1 ::err/ns]))
 
 ;;-----------
-;; duct
+;; liberator handlers
 ;;-----------
 (defn- resolve-decisions
+  "Resolves the var defining liberator decisions for routes"
   [{:keys [decisions ::err/ns] :as endpoint-opts}]
   (try @(ns-resolve (symbol ns) decisions)
        (catch Throwable t
@@ -69,7 +70,12 @@
              ::err/coll  :collection}
             (::err/type endpoint-opts))))
 
-(defn endpoint-handler-key
+;;-----------
+;; handler component config
+;;-----------
+(defn- endpoint-handler-key
+  "keyword used to define an integrant component for an endpoint
+  handler"
   [endpoint-opts]
   (let [ns   (::err/ns endpoint-opts)
         type (::err/type endpoint-opts)]
@@ -77,75 +83,78 @@
                          ::err/unary "unary-handler"
                          ::err/coll  "coll-handler"))))
 
-(defn add-handler-ref
-  "Adds an integrant ref to an ns-route for `:handler` so that the
-  handler can be initialized by the backend"
-  [ns-route]
-  (let [{:keys [sweet-tooth.endpoint.routes.reitit/ns handler]} (get ns-route 1)]
-    (cond-> ns-route
-      (and (not handler) ns) (assoc-in [1 :handler] (-> ns-route
-                                                        (get 1)
-                                                        endpoint-handler-key
-                                                        ig/ref)))))
+(defn- update-route-opts
+  [route f & args]
+  (apply update route 1 f args))
 
-(defn add-ent-type
-  [[_ endpoint-opts :as route]]
+(defn- update-ns-route-opts
+  [route f & args]
   (if (ns-route? route)
-    (update-in route [1 :ent-type] #(or % (-> endpoint-opts
-                                              ::err/ns
-                                              name
-                                              (str/replace #".*\.(?=[^.]+$)" "")
-                                              keyword)))
+    (apply update-route-opts route f args)
     route))
 
-(defn add-id-keys
-  [ns-route]
-  (if (ns-route? ns-route)
-    (let [[_ {:keys [id-key auth-id-key]
-              :or   {id-key      :id
-                     auth-id-key :id}
-              :as   route-data}] ns-route
-          id-keys                {:id-key      id-key
-                                  :auth-id-key auth-id-key}]
-      (assoc ns-route 1 (-> route-data
-                            (merge id-keys)
-                            (update :ctx (fn [ctx] (merge id-keys ctx))))))
-    ns-route))
+(defn- route-opts
+  [route]
+  (get route 1))
 
-(defn format-middleware-fn
+(defn- add-handler-ref
+  "Adds an integrant ref to an ns-route for `:handler` so that the
+  handler can be initialized by the backend"
+  [route]
+  (update-ns-route-opts route update :handler #(or % (-> route
+                                                         route-opts
+                                                         endpoint-handler-key
+                                                         ig/ref))))
+
+(defn- add-ent-type
+  [[_ endpoint-opts :as route]]
+  (update-ns-route-opts route update :ent-type #(or % (-> endpoint-opts
+                                                          ::err/ns
+                                                          name
+                                                          (str/replace #".*\.(?=[^.]+$)" "")
+                                                          keyword))))
+
+(defn- add-id-keys
+  [route]
+  (let [default-id-keys {:id-key :id, :auth-id-key :id}]
+    (-> route
+        (update-ns-route-opts #(merge default-id-keys %))
+        (update-ns-route-opts update :ctx #(merge default-id-keys %)))))
+
+(defn- format-middleware-fn
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]
       (assoc (f req)
              :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :auth-id-key :ent-type])))))
 
-(defn add-middleware
+(defn- add-middleware
   "Middleware is added to reitit in order to work on the request map
   that reitit produces before that request map is passed to the
-  handler"
-  [ns-route]
-  (update-in ns-route
-             [1 :middleware]
-             #(mm/meta-merge [(format-middleware-fn ns-route)
-                              em/wrap-merge-params]
-                             %)))
+  handler. For example, reitit adds route params to the request map."
+  [route]
+  (update-route-opts route update :middleware #(mm/meta-merge [(format-middleware-fn route)
+                                                               em/wrap-merge-params]
+                                                              %)))
 
-(defn add-decisions
-  [route-config]
-  (update route-config 1 #(merge {:decisions 'decisions} %)))
+(defn- add-decisions
+  [route]
+  (update-ns-route-opts route merge {:decisions 'decisions}))
 
 (defn add-route-defaults
-  ""
-  [route-config]
-  (-> route-config
+  "Compose the final route passed to reitit/router"
+  [route]
+  (-> route
       add-id-keys
       add-ent-type
       add-handler-ref
       add-middleware))
 
 (defn add-handler-defaults
-  [route-config]
-  (-> route-config
+  "Compose configuration used for handler components, used to create
+  liberator handlers"
+  [route]
+  (-> route
       add-id-keys
       add-ent-type
       add-decisions))
@@ -154,6 +163,10 @@
   [ns-route-config [_ ns-route-opts]]
   (cond-> ns-route-config
     (::err/ns ns-route-opts) (assoc (endpoint-handler-key ns-route-opts) ns-route-opts)))
+
+;;-----------
+;; create the router
+;;-----------
 
 (defn- resolve-ns-routes
   "User can specify ns-routes directly for the ::ns-routes module, or
