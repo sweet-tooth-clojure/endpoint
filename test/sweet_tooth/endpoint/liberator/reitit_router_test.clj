@@ -1,5 +1,5 @@
-(ns sweet-tooth.endpoint.liberator.reitit-routes-test
-  (:require [sweet-tooth.endpoint.liberator.reitit-routes :as sut]
+(ns sweet-tooth.endpoint.liberator.reitit-router-test
+  (:require [sweet-tooth.endpoint.liberator.reitit-router :as sut]
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.test.harness :as eth]
             [sweet-tooth.endpoint.system :as es]
@@ -16,7 +16,7 @@
   {:list {:handle-ok ["YAY"]}})
 
 (def ns-routes
-  (err/expand-routes [[:sweet-tooth.endpoint.liberator.reitit-routes-test]
+  (err/expand-routes [[:sweet-tooth.endpoint.liberator.reitit-router-test]
                       ["/" {:woo :yeah :handler "x"}]]))
 
 (def duct-config
@@ -31,50 +31,50 @@
    :sweet-tooth.endpoint/middleware {}})
 
 (deftest builds-duct-config
-  (is (= {::sut/router [["/liberator/reitit-routes-test"
-                         {:name        :liberator.reitit-routes-tests
+  (is (= {::sut/router [["/liberator/reitit-router-test"
+                         {:name        :liberator.reitit-router-tests
                           :id-key      :id
                           :auth-id-key :id
-                          :ent-type    :reitit-routes-test
+                          :ent-type    :reitit-router-test
                           :middleware  [em/wrap-merge-params]
                           :handler     (ig/ref ::coll-handler)
                           :ctx         {:id-key      :id
                                         :auth-id-key :id}
-                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-router-test
                           ::err/type   ::err/coll}]
-                        ["/liberator/reitit-routes-test/{id}"
-                         {:name        :liberator.reitit-routes-test
+                        ["/liberator/reitit-router-test/{id}"
+                         {:name        :liberator.reitit-router-test
                           :id-key      :id
                           :auth-id-key :id
-                          :ent-type    :reitit-routes-test
+                          :ent-type    :reitit-router-test
                           :middleware  [em/wrap-merge-params]
                           :handler     (ig/ref ::unary-handler)
                           :ctx         {:id-key      :id
                                         :auth-id-key :id}
-                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-router-test
                           ::err/type   ::err/unary}]
                         ["/" {:woo        :yeah
                               :handler    "x"
                               :middleware [em/wrap-merge-params]}]]
 
-          ::coll-handler {:name        :liberator.reitit-routes-tests
+          ::coll-handler {:name        :liberator.reitit-router-tests
                           :id-key      :id
                           :auth-id-key :id
                           :ctx         {:id-key      :id
                                         :auth-id-key :id}
                           :decisions   'decisions
-                          :ent-type    :reitit-routes-test
-                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                          :ent-type    :reitit-router-test
+                          ::err/ns     :sweet-tooth.endpoint.liberator.reitit-router-test
                           ::err/type   ::err/coll}
 
-          ::unary-handler {:name        :liberator.reitit-routes-test
+          ::unary-handler {:name        :liberator.reitit-router-test
                            :id-key      :id
                            :auth-id-key :id
                            :ctx         {:id-key      :id
                                          :auth-id-key :id}
                            :decisions   'decisions
-                           :ent-type    :reitit-routes-test
-                           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
+                           :ent-type    :reitit-router-test
+                           ::err/ns     :sweet-tooth.endpoint.liberator.reitit-router-test
                            ::err/type   ::err/unary}}
          (-> (select-keys (duct/prep-config duct-config) [::sut/router ::coll-handler ::unary-handler])
              ;; TODO figure out how to not have to do these
@@ -95,14 +95,14 @@
 (deftest handler-works
   (eth/with-system ::test
     (is (= ["YAY"]
-           (eth/resp-read-transit (eth/req :get "/liberator/reitit-routes-test"))))
+           (eth/resp-read-transit (eth/req :get "/liberator/reitit-router-test"))))
     (is (= {"Content-Type"           "application/transit+json"
             "Content-Encoding"       "gzip"
             "Vary"                   "Accept, Accept-Encoding"
             "X-XSS-Protection"       "1; mode=block"
             "X-Frame-Options"        "SAMEORIGIN"
             "X-Content-Type-Options" "nosniff"}
-           (-> (eth/base-request :get "/liberator/reitit-routes-test" {})
+           (-> (eth/base-request :get "/liberator/reitit-router-test" {})
                (mock/header "accept-encoding" "gzip")
                ((eth/handler))
                :headers
@@ -111,5 +111,5 @@
 (deftest ns-routes-exception-handling
   (is (#'sut/resolve-ns-routes ::ns-routes))
   (is (thrown-with-msg? clojure.lang.ExceptionInfo
-                        #"Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-routes/ns-routes is incorrect. Could not find the var specified by :ns-routes."
+                        #"Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-router/ns-routes is incorrect. Could not find the var specified by :ns-routes."
                         (#'sut/resolve-ns-routes ::blar))))

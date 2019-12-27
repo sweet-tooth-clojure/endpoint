@@ -1,4 +1,4 @@
-(ns sweet-tooth.endpoint.liberator.reitit-routes
+(ns sweet-tooth.endpoint.liberator.reitit-router
   "Module for creating a ring router (a function that receives a ring
   requests and dispatches to a handler function based on the request's
   URL). It ties together the sugar for defining reitit routes and
@@ -185,7 +185,7 @@
              @(ns-resolve (symbol (namespace ns-routes))
                           (symbol (name ns-routes)))
              (catch Exception e
-               (throw (ex-info "Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-routes/ns-routes is incorrect. Could not find the var specified by :ns-routes."
+               (throw (ex-info "Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-router/ns-routes is incorrect. Could not find the var specified by :ns-routes."
                         {:ns-routes ns-routes}))))))
 
 ;; This module populates the system config with a ::router component
