@@ -42,16 +42,24 @@
 ;;-----------
 ;; duct
 ;;-----------
+(defn- resolve-decisions
+  [{:keys [decisions ::err/ns] :as endpoint-opts}]
+  (try (-> (ns-resolve (symbol ns) decisions)
+           deref
+           (el/initialize-decisions (assoc (:ctx endpoint-opts) :sweet-tooth.endpoint/namspace ns)))
+       (catch Throwable t
+         (throw (ex-info (format "could not find decision var '%s in %s"
+                                 decisions
+                                 ns)
+                  {:ns        ns
+                   :decisions decisions})))))
+
 (defn liberator-resources
   "Return both unary and collection request handlers"
-  [endpoint-opts]
-  (let [endpoint-ns (::err/ns endpoint-opts)
-        decisions   (try (-> (ns-resolve (symbol endpoint-ns) 'decisions)
-                             deref
-                             (el/initialize-decisions (assoc (:ctx endpoint-opts)
-                                                             :sweet-tooth.endpoint/namspace endpoint-ns)))
-                         (catch Throwable t (throw (ex-info "could not find 'decisions in namespace" {:ns (::err/ns endpoint-opts)}))))]
-    (->> decisions
+  [{:keys [decisions]
+    :as   endpoint-opts}]
+  (let [decision-map (resolve-decisions endpoint-opts)]
+    (->> decision-map
          (lu/merge-decisions el/decision-defaults)
          (lu/resources lu/resource-groups))))
 
@@ -122,6 +130,10 @@
                               em/wrap-merge-params]
                              %)))
 
+(defn add-decisions
+  [route-config]
+  (update route-config 1 #(merge {:decisions 'decisions} %)))
+
 (defn add-route-defaults
   ""
   [route-config]
@@ -135,7 +147,8 @@
   [route-config]
   (-> route-config
       add-id-keys
-      add-ent-type))
+      add-ent-type
+      add-decisions))
 
 (defn add-ns-route-config
   [ns-route-config [_ ns-route-opts]]

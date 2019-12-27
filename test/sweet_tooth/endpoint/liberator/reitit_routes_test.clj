@@ -39,7 +39,7 @@
              :ent-type    :reitit-routes-test
              :middleware  [em/wrap-merge-params]
              :handler     (ig/ref ::coll-handler)
-             :ctx         {:id-key      :id,
+             :ctx         {:id-key      :id
                            :auth-id-key :id}
              ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
              ::err/type   ::err/coll}]
@@ -50,7 +50,7 @@
              :ent-type    :reitit-routes-test
              :middleware  [em/wrap-merge-params]
              :handler     (ig/ref ::unary-handler)
-             :ctx         {:id-key      :id,
+             :ctx         {:id-key      :id
                            :auth-id-key :id}
              ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
              ::err/type   ::err/unary}]
@@ -64,6 +64,7 @@
            :auth-id-key :id
            :ctx         {:id-key      :id
                          :auth-id-key :id}
+           :decisions   'decisions
            :ent-type    :reitit-routes-test
            ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
            ::err/type   ::err/coll}
@@ -74,6 +75,7 @@
            :auth-id-key :id
            :ctx         {:id-key      :id
                          :auth-id-key :id}
+           :decisions   'decisions
            :ent-type    :reitit-routes-test
            ::err/ns     :sweet-tooth.endpoint.liberator.reitit-routes-test
            ::err/type   ::err/unary}}
