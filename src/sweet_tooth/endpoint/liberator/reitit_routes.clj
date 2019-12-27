@@ -101,18 +101,21 @@
   "Adds an integrant ref to an ns-route for `:handler` so that the
   handler can be initialized by the backend"
   [route]
-  (update-ns-route-opts route update :handler #(or % (-> route
-                                                         route-opts
-                                                         endpoint-handler-key
-                                                         ig/ref))))
+  (update-ns-route-opts route #(merge {:handler (-> route
+                                                    route-opts
+                                                    endpoint-handler-key
+                                                    ig/ref)}
+                                      %)))
 
 (defn- add-ent-type
-  [[_ endpoint-opts :as route]]
-  (update-ns-route-opts route update :ent-type #(or % (-> endpoint-opts
-                                                          ::err/ns
-                                                          name
-                                                          (str/replace #".*\.(?=[^.]+$)" "")
-                                                          keyword))))
+  [route]
+  (update-ns-route-opts route #(merge {:ent-type (-> route
+                                                     route-opts
+                                                     ::err/ns
+                                                     name
+                                                     (str/replace #".*\.(?=[^.]+$)" "")
+                                                     keyword)}
+                                      %)))
 
 (defn- add-id-keys
   [route]
