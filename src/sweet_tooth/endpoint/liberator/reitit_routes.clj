@@ -144,7 +144,7 @@
 
 (defn- add-decisions
   [route]
-  (update-opts-if-ns-route route merge {:decisions 'decisions}))
+  (update-opts-if-ns-route route flip-merge {:decisions 'decisions}))
 
 (defn add-route-defaults
   "Compose the final route passed to reitit/router"
@@ -164,10 +164,9 @@
       add-ent-type
       add-decisions))
 
-(defn add-ns-route-config
-  [ns-route-config [_ ns-route-opts]]
-  (cond-> ns-route-config
-    (::err/ns ns-route-opts) (assoc (endpoint-handler-key ns-route-opts) ns-route-opts)))
+(defn add-route-handler-to-config
+  [config [_ route-opts]]
+  (assoc config (endpoint-handler-key route-opts) route-opts))
 
 ;;-----------
 ;; create the router
@@ -195,8 +194,8 @@
 (defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
   (let [ns-routes (resolve-ns-routes ns-routes)]
     (fn [config]
-      ;; Have each endpoint handler's integrant key drive from a
-      ;; default key
+      ;; This lets us use the `::handler` ig/init-key method for all
+      ;; handlers.
       (doseq [endpoint-opts (->> ns-routes
                                  (filter ns-route?)
                                  (map #(get % 1)))]
@@ -206,9 +205,9 @@
           (duct/merge-configs
             {::router (mapv add-route-defaults ns-routes)}
             (->> ns-routes
-                 (mapv add-handler-defaults)
                  (filter ns-route?)
-                 (reduce add-ns-route-config {})))
+                 (mapv add-handler-defaults)
+                 (reduce add-route-handler-to-config {})))
           (dissoc :duct.router/cascading)))))
 
 ;; This is a component
