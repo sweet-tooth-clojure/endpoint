@@ -29,7 +29,7 @@
    :duct.module.web/api  {}
    :duct.module.web/site {}
 
-   :sweet-tooth.endpoint/middleware {}})
+   :sweet-tooth.endpoint.module/middleware {}})
 
 (deftest builds-duct-config
   (is (= {::sut/reitit-router [["/module/liberator-reitit-router-test"

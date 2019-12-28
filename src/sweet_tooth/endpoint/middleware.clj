@@ -114,37 +114,3 @@
 
 (defmethod ig/init-key ::gzip [_ _]
   #(ring-gzip/wrap-gzip %))
-
-;;---
-;; middleware module
-;;---
-
-(derive :sweet-tooth.endpoint/middleware :duct/module)
-
-(def middleware-config
-  {::gzip             {}
-   ::restful-format   {:formats [:transit-json]}
-   ::merge-params     {}
-   ::flush            {}
-   ::format-response  {}
-   ::format-exception {:include-data true}})
-
-(def appending-middleware
-  #{::gzip})
-
-(defmethod ig/init-key :sweet-tooth.endpoint/middleware [_ {:keys [middlewares]}]
-  (fn [config]
-    (let [selected-middlewares (filter identity (if (empty? middlewares)
-                                                  [::format-response
-                                                   ::restful-format
-                                                   ::merge-params
-                                                   ::flush
-                                                   ::gzip]
-                                                  middlewares))
-          prepend-middlewares  (remove appending-middleware selected-middlewares)
-          append-middlewares   (filter appending-middleware selected-middlewares)]
-      (duct/merge-configs
-        (select-keys middleware-config selected-middlewares)
-        config
-        {:duct.handler/root {:middleware ^:prepend (mapv ig/ref prepend-middlewares)}}
-        {:duct.handler/root {:middleware ^:prepend (mapv ig/ref append-middlewares)}}))))
