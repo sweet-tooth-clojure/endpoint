@@ -1,4 +1,4 @@
-(ns sweet-tooth.endpoint.liberator.reitit-router
+(ns sweet-tooth.endpoint.module.liberator-reitit-router
   "Module for creating a ring router (a function that receives a ring
   requests and dispatches to a handler function based on the request's
   URL). It ties together the sugar for defining reitit routes and
@@ -173,43 +173,46 @@
 ;;-----------
 
 (defn- resolve-ns-routes
-  "User can specify ns-routes directly for the ::ns-routes module, or
+  "User can specify routes directly for the ::routes module, or
   use a symbol or keyword that will get resolved to the corresponding
   var."
-  [ns-routes]
-  (cond (vector? ns-routes) ns-routes
+  [routes]
+  (cond (vector? routes) routes
 
-        (or (keyword? ns-routes)
-            (symbol? ns-routes))
-        (try (require (symbol (namespace ns-routes)))
-             @(ns-resolve (symbol (namespace ns-routes))
-                          (symbol (name ns-routes)))
+        (or (keyword? routes)
+            (symbol? routes))
+        (try (require (symbol (namespace routes)))
+             @(ns-resolve (symbol (namespace routes))
+                          (symbol (name routes)))
              (catch Exception e
-               (throw (ex-info "Your duct configuration for :sweet-tooth.endpoint.liberator.reitit-router/ns-routes is incorrect. Could not find the var specified by :ns-routes."
-                        {:ns-routes ns-routes}))))))
+               (throw (ex-info (format "Your duct configuration for %s is incorrect. Could not find the var specified by :routes."
+                                       :sweet-tooth.endpoint.module/liberator-reitit-router)
+                        {:routes routes}))))))
 
 ;; This module populates the system config with a ::router component
 ;; and with components for each individual handler needed for the
 ;; routes
-(defmethod ig/init-key ::ns-routes [_ {:keys [ns-routes]}]
-  (let [ns-routes (resolve-ns-routes ns-routes)]
+(defmethod ig/init-key :sweet-tooth.endpoint.module/liberator-reitit-router
+  [_ {:keys [routes]}]
+  (let [routes (resolve-ns-routes routes)]
     (fn [config]
       ;; This lets us use the `::handler` ig/init-key method for all
       ;; handlers.
-      (doseq [endpoint-opts (->> ns-routes
+      (doseq [endpoint-opts (->> routes
                                  (filter ns-route?)
                                  (map #(get % 1)))]
         (derive (endpoint-handler-key endpoint-opts) ::handler))
 
       (-> config
           (duct/merge-configs
-            {::router (mapv add-route-defaults ns-routes)}
-            (->> ns-routes
+            {::reitit-router (mapv add-route-defaults routes)}
+            (->> routes
                  (filter ns-route?)
                  (mapv add-handler-defaults)
                  (reduce add-route-handler-to-config {})))
           (dissoc :duct.router/cascading)))))
 
-;; This is a component
-(defmethod ig/init-key ::router [_ routes]
+;; This is the actual component that the duct web module picks up and
+;; uses as the router for the ring stack.
+(defmethod ig/init-key ::reitit-router [_ routes]
   (rr/ring-handler (rr/router routes)))
