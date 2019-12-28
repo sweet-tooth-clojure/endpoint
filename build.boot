@@ -1,5 +1,5 @@
 (set-env!
-  :source-paths   #{"src"}
+  :source-paths   #{"src" "test"}
   :target-path    "target/build"
   :dependencies   '[[org.clojure/clojure        "1.10.0"    :scope "provided"]
                     [boot/core                  "2.5.5"     :scope "provided"]
@@ -46,21 +46,28 @@
   (comp (watch)
         (repl :server true)))
 
+(deftask prebuild
+  "Remove directories that shouldn't go into the final jar"
+  []
+  (set-env! :source-paths #(into #{} (remove #{"test"} %)))
+  identity)
+
 (deftask make-install
   "local install"
   []
-  (comp (pom)
+  (comp (prebuild)
+        (pom)
         (jar)
         (install)))
 
 (deftask push-release-without-gpg
   "Deploy release version to Clojars without gpg signature."
   [f file PATH str "The jar file to deploy."]
-  (comp
-    (#'adzerk.bootlaces/collect-clojars-credentials)
-    (push
-      :file           file
-      :tag            (boolean #'adzerk.bootlaces/+last-commit+)
-      :gpg-sign       false
-      :ensure-release true
-      :repo           "deploy-clojars")))
+  (comp (prebuild)
+        (#'adzerk.bootlaces/collect-clojars-credentials)
+        (push
+          :file           file
+          :tag            (boolean #'adzerk.bootlaces/+last-commit+)
+          :gpg-sign       false
+          :ensure-release true
+          :repo           "deploy-clojars")))

@@ -11,5 +11,5 @@
                               :router     (ig/ref :duct/router)}
 
           :sweet-tooth.endpoint.middleware/restful-format {:formats [:json]}}
-         (duct/prep-config {:duct.profile/base               {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}
-                            :sweet-tooth.endpoint/middleware {:middlewares [::em/restful-format]}}))))
+         (duct/prep-config {:duct.profile/base                      {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}
+                            :sweet-tooth.endpoint.module/middleware {:middlewares [::em/restful-format]}}))))

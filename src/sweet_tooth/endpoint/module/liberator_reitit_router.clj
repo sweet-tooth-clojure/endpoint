@@ -130,8 +130,7 @@
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]
-      (assoc (f req)
-             :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :auth-id-key :ent-type])))))
+      (assoc (f req) :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :ent-type])))))
 
 (defn- add-middleware
   "Middleware is added to reitit in order to work on the request map
