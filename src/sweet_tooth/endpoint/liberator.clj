@@ -14,19 +14,19 @@
      :headers {"Content-Type" (get-in context [:representation :media-type])}}))
 
 (defmethod lr/render-map-generic "application/transit+json"
-  [data context]
+  [data _ctx]
   (->TransitResponse data))
 
 (defmethod lr/render-map-generic "application/transit+msgpack"
-  [data context]
+  [data _ctx]
   (->TransitResponse data))
 
 (defmethod lr/render-seq-generic "application/transit+json"
-  [data context]
+  [data _ctx]
   (->TransitResponse data))
 
 (defmethod lr/render-seq-generic "application/transit+msgpack"
-  [data context]
+  [data _ctx]
   (->TransitResponse data))
 
 ;; -------------------------

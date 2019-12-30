@@ -1,8 +1,8 @@
 (ns sweet-tooth.endpoint.datomic.session-store
   (:require [datomic.api :as d]
             [com.flyingmachine.datomic-junk :as dj]
-            [integrant.core :as ig])
-  (:use [ring.middleware.session.store]))
+            [integrant.core :as ig]
+            [ring.middleware.session.store :as ss]))
 
 ;;--------
 ;; add a datomic session store for ring's session middleware
@@ -10,16 +10,16 @@
 (defn str->uuid [s]
   (when s
     (try (java.util.UUID/fromString s)
-         (catch java.lang.IllegalArgumentException e nil))))
+         (catch java.lang.IllegalArgumentException _e nil))))
 
 (deftype DatomicSessionStore [key-attr data-attr partition auto-key-change? db]
-  SessionStore
-  (read-session [_ key]
+  ss/SessionStore
+  (ss/read-session [_ key]
     (let [key (and key (str->uuid key))]
       (if-let [data (and key (data-attr (dj/one (d/db (:conn db)) [key-attr key])))]
         (read-string data)
         {})))
-  (write-session [_ key data]
+  (ss/write-session [_ key data]
     (let [uuid-key    (str->uuid key)
           sess-data   (str data)
           eid         (when uuid-key (:db/id (dj/one (d/db (:conn db)) [key-attr uuid-key])))
@@ -30,7 +30,7 @@
                        data-attr sess-data}]
       @(d/transact (:conn db) [txdata])
       (str uuid-key)))
-  (delete-session [_ key]
+  (ss/delete-session [_ key]
     (when-let [session-id (ffirst (d/q [:find '?c :where ['?c key-attr (str->uuid key)]]
                                        (d/db (:conn db))))]
       @(d/transact (:conn db) [[:db.fn/retractEntity session-id]]))

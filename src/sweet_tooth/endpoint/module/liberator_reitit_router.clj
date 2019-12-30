@@ -44,14 +44,14 @@
 ;;-----------
 (defn- resolve-decisions
   "Resolves the var defining liberator decisions for routes"
-  [{:keys [decisions ::err/ns] :as endpoint-opts}]
+  [{:keys [decisions ::err/ns]}]
   (try @(ns-resolve (symbol ns) decisions)
-       (catch Throwable t
+       (catch Throwable _t
          (throw (ex-info (format "could not find decision var '%s in %s"
                                  decisions
                                  ns)
-                  {:ns        ns
-                   :decisions decisions})))))
+                         {:ns        ns
+                          :decisions decisions})))))
 
 (defn liberator-resources
   "Return both unary and collection request handlers"
@@ -183,10 +183,10 @@
         (try (require (symbol (namespace routes)))
              @(ns-resolve (symbol (namespace routes))
                           (symbol (name routes)))
-             (catch Exception e
+             (catch Exception _e
                (throw (ex-info (format "Your duct configuration for %s is incorrect. Could not find the var specified by :routes."
                                        :sweet-tooth.endpoint.module/liberator-reitit-router)
-                        {:routes routes}))))))
+                               {:routes routes}))))))
 
 ;; This module populates the system config with a ::router component
 ;; and with components for each individual handler needed for the

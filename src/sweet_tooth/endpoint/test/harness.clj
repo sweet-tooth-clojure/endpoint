@@ -1,8 +1,7 @@
 (ns sweet-tooth.endpoint.test.harness
-  (:require [ring.mock.request :as mock]
-            [cognitect.transit :as transit]
-            [duct.core :as duct]
+  (:require [cognitect.transit :as transit]
             [integrant.core :as ig]
+            [ring.mock.request :as mock]
             [sweet-tooth.endpoint.system :as es]))
 
 (def ^:dynamic *system* nil)

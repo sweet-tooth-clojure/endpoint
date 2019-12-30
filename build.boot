@@ -1,14 +1,15 @@
 (set-env!
   :source-paths   #{"src" "test"}
+  :resource-paths #{"test-resources"}
   :target-path    "target/build"
-  :dependencies   '[[org.clojure/clojure        "1.10.0"    :scope "provided"]
-                    [boot/core                  "2.5.5"     :scope "provided"]
-                    [adzerk/bootlaces           "0.1.13"    :scope "test"]
-                    [adzerk/boot-test           "1.1.1"     :scope "test"]
-                    [medley                     "0.7.1"]
-                    [meta-merge                 "1.0.0"]
-                    [metosin/reitit-core        "0.3.9"]
-                    [metosin/reitit-ring        "0.3.9"]
+  :dependencies   '[[org.clojure/clojure "1.10.0" :scope "provided"]
+                    [boot/core           "2.5.5"  :scope "provided"]
+                    [adzerk/bootlaces    "0.1.13" :scope "test"]
+                    [adzerk/boot-test    "1.1.1"  :scope "test"]
+                    [medley              "0.7.1"]
+                    [meta-merge          "1.0.0"]
+                    [metosin/reitit-core "0.3.9"]
+                    [metosin/reitit-ring "0.3.9"]
 
                     [duct/core           "0.7.0"]
                     [duct/module.logging "0.4.0" :scope "test"]
@@ -50,6 +51,7 @@
   "Remove directories that shouldn't go into the final jar"
   []
   (set-env! :source-paths #(into #{} (remove #{"test"} %)))
+  (set-env! :resource-paths #{})
   identity)
 
 (deftask make-install

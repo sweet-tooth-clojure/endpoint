@@ -15,14 +15,6 @@
           x
           update-map))
 
-(defn remove-nils-from-map
-  [record]
-  (into {} (remove (comp nil? second) record)))
-
-(defn key-by
-  [k xs]
-  (into {} (map (juxt k identity) xs)))
-
 ;; -------------------------
 ;; Organize response records for easy frontend consumption
 ;; -------------------------
@@ -41,7 +33,10 @@
      {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))})})
 
 (defn ent-type
+  "add ent-type metadata to obj. ent-type should be a keyword."
   [x y]
+  {:pre [(or (keyword? x) (keyword? y))]}
+  ;; allow for both `->` and `->>`
   (if (keyword? x)
     (with-meta y {:ent-type x})
     (with-meta x {:ent-type y})))

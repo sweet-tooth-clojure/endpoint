@@ -23,7 +23,6 @@
                    :id-key      :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [integrant.core :as ig]
             [meta-merge.core :as mm]
             #?@(:cljs [[goog.string :as gstr]
                        [goog.string.format]]))

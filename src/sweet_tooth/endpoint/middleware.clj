@@ -2,7 +2,6 @@
   (:require [buddy.auth.backends :as backends]
             [buddy.auth.middleware :as buddy]
             [clojure.stacktrace :as cst]
-            [duct.core :as duct]
             [integrant.core :as ig]
             [ring.middleware.format :as f]
             [ring.middleware.gzip :as ring-gzip]

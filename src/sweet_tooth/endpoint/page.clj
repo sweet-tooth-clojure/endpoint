@@ -1,5 +1,5 @@
 (ns sweet-tooth.endpoint.page
-  (:require [sweet-tooth.endpoint.utils :as u]
+  (:require [sweet-tooth.endpoint.utils :as eu]
             [sweet-tooth.endpoint.liberator :as el]
             [clojure.string :as str]))
 
@@ -39,7 +39,7 @@
         data      (cond->> ents
                     (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
                     true         (slice page per-page))]
-    [[:entity {type (u/key-by id-key data)}]
+    [[:entity {type (eu/key-by id-key data)}]
      [:page   {(:query-id p) {:query      p
                               :result     {p {:ent-count   ent-count
                                               :ordered-ids (map id-key data)}}
@@ -65,8 +65,8 @@
   (-> (el/params ctx)
       (select-keys (into [:page :per-page :sort-order :sort-by :query-id :type]
                          allowed-keys))
-      (u/update-vals {[:page :per-page]
-                      (fn [n] (if (string? n) (Integer. n) n))
+      (eu/update-vals {[:page :per-page]
+                       (fn [n] (if (string? n) (Integer. n) n))
 
-                      [:sort-by :sort-order :query-id :type]
-                      #(keyword (str/replace % #"^:" ""))})))
+                       [:sort-by :sort-order :query-id :type]
+                       #(keyword (str/replace % #"^:" ""))})))

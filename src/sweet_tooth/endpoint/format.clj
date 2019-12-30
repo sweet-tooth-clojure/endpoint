@@ -1,7 +1,6 @@
 (ns sweet-tooth.endpoint.format
-  (:require [sweet-tooth.endpoint.utils :as eu]
-            [clojure.spec.alpha :as s]
-            [clojure.string :as str]))
+  (:require [clojure.spec.alpha :as s]
+            [sweet-tooth.endpoint.utils :as eu]))
 
 (s/def ::item-key keyword?)
 (s/def ::item-val any?)

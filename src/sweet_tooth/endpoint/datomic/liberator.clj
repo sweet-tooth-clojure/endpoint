@@ -2,43 +2,30 @@
   "Helper functions for working with datomic entities.
 
   Transaction results are put in `:result` in the liberator context."
-  (:require [sweet-tooth.endpoint.utils :as u]
-            [sweet-tooth.endpoint.liberator :as el]
+  (:refer-clojure :exclude [update])
+  (:require [datomic.api :as d]
             [medley.core :as medley]
-            [datomic.api :as d]
-            [integrant.core :as ig]
-            [com.flyingmachine.datomic-junk :as dj]))
+            [sweet-tooth.endpoint.liberator :as el]
+            [sweet-tooth.endpoint.utils :as eu]))
 
 (def db-after (el/get-ctx [:result :db-after]))
 (def db-before (el/get-ctx [:result :db-before]))
 
-(defn ctx-id
-  "Get id from the params, try to convert to number
-  TODO this is better solved with routing type hint"
-  [ctx & [id-key]]
-  (let [id-key (or id-key (:id-key ctx) :id)]
-    (if-let [id (id-key (el/params ctx))]
-      (Long/parseLong id)
-      (:db/id (el/params ctx)))))
+(defn req-id-key
+  [ctx id-key]
+  (or id-key (:id-key ctx) :id))
 
-(defn created-id
-  [ctx]
-  (-> ctx
-      (get-in [:result :tempids])
-      first
-      second))
+(defn ctx-id
+  "Get id from the params, try to convert to number"
+  [ctx & [id-key]]
+  (let [id-key (req-id-key ctx id-key)]
+    (if-let [id (id-key (el/params ctx))]
+      (cond (int? id)    id
+            (string? id) (Long/parseLong id)))))
 
 (defn assoc-tempid
   [x]
   (assoc x :db/id (d/tempid :db.part/user)))
-
-(defn ctx->create-map
-  ""
-  [ctx]
-  (-> ctx
-      el/params
-      u/remove-nils-from-map
-      assoc-tempid))
 
 (defn conn
   [ctx]
@@ -48,11 +35,32 @@
   [ctx]
   (d/db (conn ctx)))
 
+(defn auth-owns?
+  "Check if the user entity is the same as the authenticated user"
+  [ctx db user-key & [id-key]]
+  (let [ent (d/entity db (ctx-id ctx id-key))]
+    (= (:db/id (user-key ent)) (el/auth-id ctx))))
+
+;;-----
+;; create
+;;-----
+
+(defn ctx->create-map
+  "given a liberator context, returns a map that's ready to be used in a
+  datomic transaction to create an entity"
+  [ctx]
+  (->> ctx
+       el/params
+       (medley/filter-vals identity)
+       assoc-tempid))
+
 (defn create
+  "transact the params in a context"
   [ctx]
   (d/transact (conn ctx) [(ctx->create-map ctx)]))
 
 (defn created-id
+  "return id of created entity, assuming you've only created one entity"
   [{:keys [result]}]
   (first (vals (:tempids result))))
 
@@ -68,13 +76,18 @@
   [ctx]
   (d/pull (db-after ctx) '[:*] (created-id ctx)))
 
+;;-----
+;; update
+;;-----
+
 (defn ctx->update-map
-  [ctx]
+  "cleans up params from liberator context"
+  [ctx & [id-key]]
   (-> ctx
       el/params
-      u/remove-nils-from-map
-      (assoc :db/id (ctx-id ctx))
-      (dissoc :id)))
+      (->> (medley/filter-vals identity))
+      (dissoc (req-id-key ctx id-key))
+      (assoc :db/id (ctx-id ctx id-key))))
 
 (defn update
   [ctx]
@@ -92,21 +105,29 @@
   [ctx]
   (d/pull (db-after ctx) '[:*] (ctx-id ctx)))
 
+;;-----
+;; delete
+;;-----
+
 (defn delete
-  [ctx]
-  (d/transact (conn ctx) [[:db.fn/retractEntity (ctx-id ctx)]]))
+  [ctx & [id-key]]
+  (d/transact (conn ctx) [[:db.fn/retractEntity (ctx-id ctx id-key)]]))
+
+;;-----
+;; compose tx functions, put result in :result
+;;-----
 
 (defn deref->:result
-  "deref a transaction put the result in :result of ctx"
+  "deref a transaction and put the result in `:result` of ctx."
   [tx]
   ((comp #(el/->ctx % :result) deref) tx))
 
-(def update->:result (comp deref->:result update))
-(def delete->:result (comp deref->:result delete))
-(def create->:result (comp deref->:result create))
+(defn transact->ctx
+  [tx-fn]
+  (fn [ctx]
+    (merge ctx
+           (-> ctx tx-fn deref->:result))))
 
-(defn auth-owns?
-  "Check if the user entity is the same as the authenticated user"
-  [ctx db user-key]
-  (let [ent (d/entity db (ctx-id ctx))]
-    (= (:db/id (user-key ent)) (el/auth-id ctx))))
+(def update->:result (transact->ctx update))
+(def delete->:result (transact->ctx delete))
+(def create->:result (transact->ctx create))

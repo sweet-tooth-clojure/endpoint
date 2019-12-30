@@ -1,8 +1,8 @@
 (ns sweet-tooth.endpoint.group-routes
   "Add multiple endpoints to cascading routes and give them all the same
   options"
-  (:require [integrant.core :as ig]
-            [duct.core :as duct]))
+  (:require [duct.core :as duct]
+            [integrant.core :as ig]))
 
 (derive :sweet-tooth.endpoint/group-routes :duct/module)
 

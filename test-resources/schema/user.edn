@@ -1,0 +1,17 @@
+{:sweet-tooth.endpoint/user-schema
+ {:txes [[{:db/ident :user/username
+           :db/id #db/id [:db.part/db]
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/unique :db.unique/identity
+           :db/index true
+           :db/fulltext true
+           :db.install/_attribute :db.part/db}
+
+          {:db/ident :user/email
+           :db/id #db/id [:db.part/db]
+           :db/valueType :db.type/string
+           :db/cardinality :db.cardinality/one
+           :db/index true
+           :db/fulltext true
+           :db.install/_attribute :db.part/db}]]}}
