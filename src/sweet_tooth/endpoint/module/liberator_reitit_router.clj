@@ -142,8 +142,14 @@
                                                               %)))
 
 (defn- add-decisions
+  "Add default `'decisions` symbol, meaning that var will get resolved
+  to retrieve the decisions"
   [route]
   (update-opts-if-ns-route route flip-merge {:decisions 'decisions}))
+
+(defn- add-logger-ref
+  [route]
+  (update-opts-if-ns-route route update :ctx flip-merge {:logger (ig/ref :duct/logger)}))
 
 (defn add-route-defaults
   "Compose the final route passed to reitit/router"
@@ -161,6 +167,7 @@
   (-> route
       add-id-keys
       add-ent-type
+      add-logger-ref
       add-decisions))
 
 (defn add-route-handler-to-config

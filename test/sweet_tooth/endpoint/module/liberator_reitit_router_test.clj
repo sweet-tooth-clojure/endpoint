@@ -62,7 +62,8 @@
                           :id-key      :id
                           :auth-id-key :id
                           :ctx         {:id-key      :id
-                                        :auth-id-key :id}
+                                        :auth-id-key :id
+                                        :logger      (ig/ref :duct/logger)}
                           :decisions   'decisions
                           :ent-type    :liberator-reitit-router-test
                           ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
@@ -72,7 +73,8 @@
                            :id-key      :id
                            :auth-id-key :id
                            :ctx         {:id-key      :id
-                                         :auth-id-key :id}
+                                         :auth-id-key :id
+                                         :logger      (ig/ref :duct/logger)}
                            :decisions   'decisions
                            :ent-type    :liberator-reitit-router-test
                            ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
