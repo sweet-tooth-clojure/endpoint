@@ -39,8 +39,6 @@
                                  :ent-type    :liberator-reitit-router-test
                                  :middleware  [em/wrap-merge-params]
                                  :handler     (ig/ref ::coll-handler)
-                                 :ctx         {:id-key      :id
-                                               :auth-id-key :id}
                                  ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
                                  ::err/type   ::err/coll}]
                                ["/module/liberator-reitit-router-test/{id}"
@@ -50,8 +48,6 @@
                                  :ent-type    :liberator-reitit-router-test
                                  :middleware  [em/wrap-merge-params]
                                  :handler     (ig/ref ::unary-handler)
-                                 :ctx         {:id-key      :id
-                                               :auth-id-key :id}
                                  ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
                                  ::err/type   ::err/unary}]
                                ["/" {:woo        :yeah
@@ -61,9 +57,10 @@
           ::coll-handler {:name        :module.liberator-reitit-router-tests
                           :id-key      :id
                           :auth-id-key :id
-                          :ctx         {:id-key      :id
-                                        :auth-id-key :id
-                                        :logger      (ig/ref :duct/logger)}
+                          :ctx         {:id-key                         :id
+                                        :auth-id-key                    :id
+                                        :logger                         (ig/ref :duct/logger)
+                                        :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
                           :decisions   'decisions
                           :ent-type    :liberator-reitit-router-test
                           ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
@@ -72,9 +69,10 @@
           ::unary-handler {:name        :module.liberator-reitit-router-test
                            :id-key      :id
                            :auth-id-key :id
-                           :ctx         {:id-key      :id
-                                         :auth-id-key :id
-                                         :logger      (ig/ref :duct/logger)}
+                           :ctx         {:id-key                         :id
+                                         :auth-id-key                    :id
+                                         :logger                         (ig/ref :duct/logger)
+                                         :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
                            :decisions   'decisions
                            :ent-type    :liberator-reitit-router-test
                            ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test

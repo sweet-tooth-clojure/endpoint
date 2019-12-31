@@ -55,11 +55,10 @@
 
 (defn liberator-resources
   "Return both unary and collection request handlers"
-  [{:keys [decisions ::err/ns ctx] :as endpoint-opts}]
+  [{:keys [decisions ctx] :as endpoint-opts}]
   (let [decision-map (cond (map? decisions)    decisions
                            (symbol? decisions) (resolve-decisions endpoint-opts))]
-    (->> (el/initialize-decisions decision-map
-                                  (assoc ctx :sweet-tooth.endpoint/namspace ns))
+    (->> (el/initialize-decisions decision-map ctx)
          (lu/merge-decisions el/decision-defaults)
          (lu/resources lu/resource-groups))))
 
@@ -121,10 +120,7 @@
 
 (defn- add-id-keys
   [route]
-  (let [default-id-keys {:id-key :id, :auth-id-key :id}]
-    (-> route
-        (update-opts-if-ns-route flip-merge default-id-keys)
-        (update-opts-if-ns-route update :ctx flip-merge default-id-keys))))
+  (update-opts-if-ns-route route flip-merge {:id-key :id, :auth-id-key :id}))
 
 (defn- format-middleware-fn
   [[_ endpoint-opts]]
@@ -147,9 +143,12 @@
   [route]
   (update-opts-if-ns-route route flip-merge {:decisions 'decisions}))
 
-(defn- add-logger-ref
-  [route]
-  (update-opts-if-ns-route route update :ctx flip-merge {:logger (ig/ref :duct/logger)}))
+(defn- add-default-ctx
+  [[_ endpoint-opts :as route]]
+  (let [ctx (merge (select-keys endpoint-opts [:id-key :auth-id-key])
+                   {:logger                         (ig/ref :duct/logger)
+                    :sweet-tooth.endpoint/namespace (::err/ns endpoint-opts)})]
+    (update-opts-if-ns-route route update :ctx flip-merge ctx)))
 
 (defn add-route-defaults
   "Compose the final route passed to reitit/router"
@@ -167,7 +166,7 @@
   (-> route
       add-id-keys
       add-ent-type
-      add-logger-ref
+      add-default-ctx
       add-decisions))
 
 (defn add-route-handler-to-config
