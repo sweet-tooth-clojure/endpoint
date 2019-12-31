@@ -55,3 +55,11 @@
            (sut/expand-routes [{:id-key :db/id}
                                [:ex.endpoint.user {::sut/unary {:id-key :weird/id}}]
                                [:ex.endpoint.topic]])))))
+
+(deftest singleton?
+  (testing "singleton? as a shorthand for singleton resources"
+    (is (= [["/user" {:name            :user
+                      ::sut/ns         :ex.endpoint.user
+                      ::sut/type       ::sut/coll
+                      ::sut/singleton? true}]]
+           (sut/expand-routes [[:ex.endpoint.user {::sut/singleton? true}]])))))

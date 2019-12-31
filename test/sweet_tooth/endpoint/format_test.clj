@@ -1,6 +1,6 @@
 (ns sweet-tooth.endpoint.format-test
   (:require [sweet-tooth.endpoint.format :as sut]
-            [clojure.test :refer :all]
+            [clojure.test :refer [deftest is]]
             [clojure.spec.alpha :as s]))
 
 

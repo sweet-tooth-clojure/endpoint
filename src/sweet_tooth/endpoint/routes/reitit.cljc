@@ -76,6 +76,16 @@
             opts
             unary-opts)]))
 
+(defn transform-singleton
+  "Handles cases where the route corresponds to a 'singleton' resource,
+  like a user session"
+  [single-name opts]
+  (if (::singleton? opts)
+    (-> opts
+        (assoc ::unary false)
+        (update-in [::coll :name] #(or % (keyword single-name))))
+    opts))
+
 (defn expand-route
   "In a pair of [n m], if n is a keyword then the pair is treated as a
   name route and is expanded. Otherwise the pair returned as-is (it's
@@ -91,7 +101,7 @@
      (let [name (-> (str ns)
                     (str/split delimiter)
                     (second))
-           path (str "/" name)]
+           opts (transform-singleton name opts)]
        (cond-> []
          (include-route? opts ::coll)  (conj (coll-route name ns opts))
          (include-route? opts ::unary) (conj (unary-route name ns opts))))

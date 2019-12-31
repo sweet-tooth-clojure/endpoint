@@ -5,8 +5,7 @@
   (:refer-clojure :exclude [update])
   (:require [datomic.api :as d]
             [medley.core :as medley]
-            [sweet-tooth.endpoint.liberator :as el]
-            [sweet-tooth.endpoint.utils :as eu]))
+            [sweet-tooth.endpoint.liberator :as el]))
 
 (def db-after (el/get-ctx [:result :db-after]))
 (def db-before (el/get-ctx [:result :db-before]))
