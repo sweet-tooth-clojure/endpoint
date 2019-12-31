@@ -7,7 +7,6 @@
   {::em/gzip             {}
    ::em/restful-format   {:formats [:transit-json]}
    ::em/merge-params     {}
-   ::em/flush            {}
    ::em/format-response  {}
    ::em/format-exception {:include-data true}})
 
@@ -20,7 +19,6 @@
                                                   [::em/format-response
                                                    ::em/restful-format
                                                    ::em/merge-params
-                                                   ::em/flush
                                                    ::em/gzip]
                                                   middlewares))
           prepend-middlewares  (remove appending-middleware selected-middlewares)

@@ -8,21 +8,6 @@
             [sweet-tooth.endpoint.format :as ef]))
 
 ;;---
-;; flush
-;;---
-
-(defn wrap-flush
-  "Flush output after each request"
-  [f]
-  (fn [req]
-    (let [res (f req)]
-      (flush)
-      res)))
-
-(defmethod ig/init-key ::flush [_ _]
-  #(wrap-flush %))
-
-;;---
 ;; merge params
 ;;---
 
