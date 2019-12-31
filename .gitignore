@@ -15,3 +15,5 @@ crash.log
 tmp
 scratch.org
 *.retry
+.lein-failures
+pom.xml
