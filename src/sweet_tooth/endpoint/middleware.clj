@@ -70,7 +70,8 @@
         {:status 200 :headers headers :body "preflight complete"}
         (-> (handler req)
             (update :headers merge headers))))))
-(defmethod ig/init-key ::dev-cors [_ config]
+
+(defmethod ig/init-key ::dev-cors [_ _]
   #(wrap-dev-cors %))
 
 (defn wrap-latency
