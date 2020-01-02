@@ -1,4 +1,4 @@
-(ns sweet-tooth.endpoint.tasks
+(ns sweet-tooth.endpoint.task
   (:require [integrant.core :as ig]
             [clojure.stacktrace :as stacktrace]))
 
