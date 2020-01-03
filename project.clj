@@ -15,7 +15,7 @@
                  [duct/module.logging "0.4.0"]
                  [duct/module.web     "0.7.0"]
 
-                 [sweet-tooth/describe "0.1.0"]
+                 [sweet-tooth/describe "0.3.0"]
 
                  ;; server
                  [com.flyingmachine/liberator-unbound "0.2.0"]
