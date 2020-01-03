@@ -5,7 +5,8 @@
             [buddy.auth :as buddy]
             [medley.core :as medley]
             [compojure.core :refer [routes]]
-            [flyingmachine.webutils.validation :refer [if-valid]]))
+            [flyingmachine.webutils.validation :refer [if-valid]]
+            [sweet-tooth.describe :as d]))
 
 (defrecord TransitResponse [data]
   liberator.representation.Representation
@@ -178,3 +179,13 @@
   {:pre [(or (map? initial-context) (fn? initial-context) (nil? initial-context))]}
   (routes (resource-route route (cond-> decisions
                                   initial-context (initialize-decisions initial-context)))))
+
+(defn validate-describe
+  "Use describe lib to validate a request. Returns a function that's
+  meant to be used with the `:malformed?` liberator decision"
+  [rules & [describe-context]]
+  (fn [ctx]
+    (when-let [descriptions (d/describe (params ctx)
+                                        rules
+                                        (when describe-context (describe-context ctx)))]
+      [true (errors-map (d/map-rollup-descriptions descriptions))])))
