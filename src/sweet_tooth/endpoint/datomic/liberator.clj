@@ -41,6 +41,15 @@
     (= (:db/id (user-key ent)) (el/auth-id ctx))))
 
 ;;-----
+;; get
+;;-----
+(defn pull-ctx-id
+  [ctx]
+  (let [e (d/pull (db ctx) '[:*] (ctx-id ctx))]
+    (when (not= [:db/id] (keys e))
+      e)))
+
+;;-----
 ;; create
 ;;-----
 

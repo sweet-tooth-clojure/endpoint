@@ -17,3 +17,4 @@ scratch.org
 *.retry
 .lein-failures
 pom.xml
+.clj-kondo/.cache

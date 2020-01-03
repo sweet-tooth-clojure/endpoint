@@ -25,31 +25,33 @@
 
 (def task-config {:db (ig/ref :sweet-tooth.endpoint.datomic/connection)})
 
-(defn task-system
+(defn query []
+  (d/q '[:find ?e
+         :where [?e :user/username]
+         :in $]
+       (d/db (d/connect uri))))
+
+(defn exec-task
   [task-name]
-  (merge db-config {task-name task-config}))
+  (let [system (ig/init (merge db-config {task-name task-config}))]
+    ((task-name system))))
 
 (deftest test-recreate-db
   (is (thrown? Exception (d/connect uri)))
-  (ig/init (task-system ::sut/recreate))
-  (is (d/connect uri))
-  ;; TODO test that data is deleted or otherwise show this is a new db
-  (ig/init (task-system ::sut/recreate))
-  (is (d/connect uri)))
+  (exec-task ::sut/recreate)
+  (d/transact (d/connect uri) [{:db/id (d/tempid :db.part/user) :user/username "boop"}])
+  (is (not-empty (query)))
+  (exec-task ::sut/recreate)
+  (is (empty? (query))))
 
 (deftest test-install-schemas
-  (letfn [(query []
-            (d/q '[:find ?e
-                   :where [?e :user/username]
-                   :in $]
-                 (d/db (d/connect uri))))]
-    (d/create-database uri)
-    (is (thrown? Exception (query)))
-    (ig/init (task-system ::sut/install-schemas))
-    (is (query))))
+  (d/create-database uri)
+  (is (thrown? Exception (query)))
+  (exec-task ::sut/install-schemas)
+  (is (query)))
 
 (deftest test-delete-db
   (d/create-database uri)
   (is (d/connect uri))
-  (ig/init (task-system ::sut/delete-db))
+  (exec-task ::sut/delete-db)
   (is (thrown? Exception (d/connect uri))))

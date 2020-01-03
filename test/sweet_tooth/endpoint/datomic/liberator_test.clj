@@ -30,6 +30,30 @@
      (try ~@body
           (finally (ig/halt! ~system-name)))))
 
+(defn create-user
+  [db]
+  @(sut/create {:db db
+                :request {:params {:user/username "boop"}}}))
+
+;;-----
+;; get
+;;-----
+(deftest pull-ctx-id
+  (with-system system db
+    (create-user db)
+    (let [db-id (-> (d/db (:conn db))
+                    (dj/one [:user/username])
+                    (:db/id))]
+      (is (nil? (sut/pull-ctx-id {:db      db
+                                  :id-key  :db/id
+                                  :request {:params {:db/id 1000000}}})))
+      (is (= {:db/id         db-id
+              :user/username "boop"}
+             (sut/pull-ctx-id {:db      db
+                               :id-key  :db/id
+                               :request {:params {:db/id db-id}}}))))))
+
+
 ;;-------
 ;; create
 ;;-------
@@ -42,11 +66,6 @@
     (is (not (contains? m :x)))
     (is (= #{:title :db/id}
            (set (keys m))))))
-
-(defn create-user
-  [db]
-  @(sut/create {:db db
-                :request {:params {:user/username "boop"}}}))
 
 (deftest test-create
   (with-system system db

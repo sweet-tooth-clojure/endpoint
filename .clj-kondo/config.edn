@@ -1,0 +1,3 @@
+{:linters
+ {:unresolved-symbol
+  {:exclude [(sweet-tooth.endpoint.datomic.liberator-test/with-system [system db])]}}}
