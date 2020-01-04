@@ -53,6 +53,20 @@
 (defmethod ig/init-key ::format-exception [_ opts]
   #(wrap-format-exception % opts))
 
+;;---
+;; debug
+;;---
+
+(defn wrap-print
+  [f]
+  (fn [req]
+    (prn ::req req)
+    (let [resp (f req)]
+      (prn ::resp resp)
+      resp)))
+
+(defmethod ig/init-key ::print [_ _]
+  #(wrap-print %))
 
 ;;---
 ;; dev CORS
@@ -62,17 +76,21 @@
   "Configures CORS for sweet tooth's default shadow-cljs setup"
   [handler]
   (fn [req]
-    (let [headers {"Access-Control-Allow-Origin" "http://localhost:3000"
-                   "Access-Control-Allow-Methods" "GET, PUT, POST, DELETE, OPTIONS"
-                   "Access-Control-Allow-Headers" "Content-Type, *"
+    (let [headers {"Access-Control-Allow-Origin"      "http://localhost:3000"
+                   "Access-Control-Allow-Methods"     "GET, PUT, POST, DELETE, OPTIONS"
+                   "Access-Control-Allow-Headers"     "Content-Type, *"
                    "Access-Control-Allow-Credentials" "true"}]
       (if (= (:request-method req) :options)
         {:status 200 :headers headers :body "preflight complete"}
-        (-> (handler req)
-            (update :headers merge headers))))))
+        (some-> (handler req)
+                (update :headers merge headers))))))
 
 (defmethod ig/init-key ::dev-cors [_ _]
   #(wrap-dev-cors %))
+
+;;---
+;; add some latency hey
+;;---
 
 (defn wrap-latency
   "Introduce latency, useful for local dev when you want to simulate
