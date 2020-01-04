@@ -25,6 +25,8 @@
           append-middlewares   (filter appending-middleware selected-middlewares)]
       (duct/merge-configs
         (select-keys middleware-config selected-middlewares)
+        {:duct.middleware.web/not-found           {:error-handler (ig/ref :sweet-tooth.endpoint.handler/index.html)}
+         :sweet-tooth.endpoint.handler/index.html {}}
         config
         {:duct.handler/root {:middleware (with-meta (mapv ig/ref prepend-middlewares) {:prepend true})}}
         {:duct.handler/root {:middleware (mapv ig/ref append-middlewares)}}))))

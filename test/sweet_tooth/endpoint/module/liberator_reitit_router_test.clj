@@ -115,3 +115,8 @@
   (is (thrown-with-msg? clojure.lang.ExceptionInfo
                         #"Your duct configuration for :sweet-tooth.endpoint.module/liberator-reitit-router is incorrect. Could not find the var specified by :routes."
                         (#'sut/resolve-ns-routes ::blar))))
+
+(deftest default-serves-index-html
+  (eth/with-system ::test
+    (is (= "hi! i show the fallback route works.\n"
+           (slurp (:body ((eth/handler) (mock/request :get "/no-route"))))))))
