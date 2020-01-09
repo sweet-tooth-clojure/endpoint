@@ -1,7 +1,5 @@
 (ns sweet-tooth.endpoint.middleware
-  (:require [buddy.auth.backends :as backends]
-            [buddy.auth.middleware :as buddy]
-            [clojure.stacktrace :as cst]
+  (:require [clojure.stacktrace :as cst]
             [integrant.core :as ig]
             [ring.middleware.format :as f]
             [ring.middleware.gzip :as ring-gzip]
@@ -111,9 +109,6 @@
 
 (defmethod ig/init-key ::restful-format [_ options]
   #(f/wrap-restful-format % options))
-
-(defmethod ig/init-key ::buddy-session-auth [_ _]
-  #(buddy/wrap-authentication % (backends/session)))
 
 (defmethod ig/init-key ::gzip [_ _]
   #(ring-gzip/wrap-gzip %))

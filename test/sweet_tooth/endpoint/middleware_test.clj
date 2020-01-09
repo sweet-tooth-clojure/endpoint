@@ -1,6 +1,7 @@
 (ns sweet-tooth.endpoint.middleware-test
   (:require [sweet-tooth.endpoint.middleware :as em]
-            [clojure.test :refer :all]
+            [clojure.test :refer [deftest is]]
+            [duct.middleware.buddy :as dbuddy]
             [duct.core :as duct]
             [integrant.core :as ig]))
 
@@ -15,4 +16,8 @@
           :sweet-tooth.endpoint.handler/index.html        {}}
 
          (duct/prep-config {:duct.profile/base                      {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}
-                            :sweet-tooth.endpoint.module/middleware {:middlewares [::em/restful-format]}}))))
+                            :sweet-tooth.endpoint.module/middleware {:exclude [::em/gzip
+                                                                               ::em/merge-params
+                                                                               ::em/format-response
+                                                                               ::em/format-exception
+                                                                               ::dbuddy/authentication]}}))))

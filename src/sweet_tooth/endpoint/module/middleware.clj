@@ -1,26 +1,33 @@
 (ns sweet-tooth.endpoint.module.middleware
   (:require [duct.core :as duct]
+            [duct.middleware.buddy :as dbuddy]
             [integrant.core :as ig]
             [sweet-tooth.endpoint.middleware :as em]))
 
-(def middleware-config
-  {::em/gzip             {}
-   ::em/restful-format   {:formats [:transit-json]}
-   ::em/merge-params     {}
-   ::em/format-response  {}
-   ::em/format-exception {:include-data true}})
+(def ^:private middleware-config-base
+  {::em/gzip               {}
+   ::em/restful-format     ^:displace {:formats [:transit-json]}
+   ::em/merge-params       {}
+   ::em/format-response    {}
+   ::em/format-exception   {}
+   ::dbuddy/authentication ^:displace {:backend :session}})
+
+(def ^:private middleware-config-dev
+  {::em/format-exception ^:displace {:include-data true}})
 
 (def appending-middleware
   #{::em/gzip})
 
-(defmethod ig/init-key :sweet-tooth.endpoint.module/middleware [_ {:keys [middlewares]}]
-  (fn [config]
-    (let [selected-middlewares (filter identity (if (empty? middlewares)
-                                                  [::em/format-response
-                                                   ::em/restful-format
-                                                   ::em/merge-params
-                                                   ::em/gzip]
-                                                  middlewares))
+(defmethod ig/init-key :sweet-tooth.endpoint.module/middleware [_ {:keys [exclude]}]
+  (fn [{:keys [:duct.core/environment] :as config}]
+    (let [selected-middlewares (remove (set exclude) [::dbuddy/authentication
+                                                      ::em/format-response
+                                                      ::em/format-exception
+                                                      ::em/restful-format
+                                                      ::em/merge-params
+                                                      ::em/gzip])
+          middleware-config    (cond-> middleware-config-base
+                                 (#{:development :test} environment) (merge middleware-config-dev))
           prepend-middlewares  (remove appending-middleware selected-middlewares)
           append-middlewares   (filter appending-middleware selected-middlewares)]
       (duct/merge-configs
