@@ -2,7 +2,8 @@
   (:require [cognitect.transit :as transit]
             [integrant.core :as ig]
             [ring.mock.request :as mock]
-            [sweet-tooth.endpoint.system :as es]))
+            [sweet-tooth.endpoint.system :as es]
+            [cheshire.core :as json]))
 
 (def ^:dynamic *system* nil)
 
@@ -47,6 +48,27 @@
       :body
       (transit/reader :json)
       transit/read))
+
+(defn json-request
+  [method url params]
+  (-> (mock/request method url)
+      (mock/header :content-type "application/json")
+      (mock/header :accept "application/json")
+      (assoc :body (json/encode params))))
+
+(defn json-req
+  [method url & [params]]
+  ((handler) (json-request method url params)))
+
+(defn html-request
+  [method url]
+  (-> (mock/request method url)
+      (mock/header :content-type "text/html")
+      (mock/header :accept "text/html")))
+
+(defn html-req
+  [method url]
+  ((handler) (html-request method url)))
 
 (defn contains-entity?
   "Request's response data creates entity of type `ent-type` that has
