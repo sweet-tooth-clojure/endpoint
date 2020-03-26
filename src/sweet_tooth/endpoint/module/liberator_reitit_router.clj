@@ -123,6 +123,8 @@
   (update-opts-if-ns-route route flip-merge {:id-key :id, :auth-id-key :id}))
 
 (defn- format-middleware-fn
+  "Associates opts which are later used by the format middleware to
+  format responses."
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]

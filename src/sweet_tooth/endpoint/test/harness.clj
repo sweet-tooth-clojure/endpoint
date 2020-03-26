@@ -23,7 +23,8 @@
 
 (defn handler
   []
-  (:duct.handler/root *system*))
+  (or (:duct.handler/root *system*)
+      (throw (ex-info "No request handler for *system*. Try adding (use-fixtures :each (system-fixture :test-system-name)) to your test namespace." {}))))
 
 (defn transit-in
   [data]

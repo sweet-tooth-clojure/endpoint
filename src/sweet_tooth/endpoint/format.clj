@@ -62,14 +62,20 @@
   of maps of a single ent-type. Formats that so that it conforms to
   response."
   [{:keys [body] :as response}]
+  (if (::skip-format (meta body))
+    response
+    (let [body                      (if (sequential? body)
+                                      (vec (filter #(or (and % (not (coll? %)))
+                                                        (not-empty %))
+                                                   body))
+                                      body)
+          {:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
+          conformed                 (s/conform ::raw-response body)]
+      (if (= ::s/invalid conformed)
+        response
+        (assoc response :body (format-body body id-key ent-type conformed))))))
 
-  (let [body                      (if (sequential? body)
-                                    (vec (filter #(or (and % (not (coll? %)))
-                                                      (not-empty %))
-                                                 body))
-                                    body)
-        {:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
-        conformed                 (s/conform ::raw-response body)]
-    (if (= ::s/invalid conformed)
-      response
-      (assoc response :body (format-body body id-key ent-type conformed)))))
+(defn wrap-skip-format
+  [f]
+  (fn [req]
+    (update (f req) :body with-meta {:sweet-tooth.endpoint.format/skip-format true})))
