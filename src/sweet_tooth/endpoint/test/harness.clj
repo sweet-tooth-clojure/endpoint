@@ -1,16 +1,24 @@
 (ns sweet-tooth.endpoint.test.harness
-  (:require [cognitect.transit :as transit]
+  (:require [cheshire.core :as json]
+            [cognitect.transit :as transit]
             [integrant.core :as ig]
             [ring.mock.request :as mock]
-            [sweet-tooth.endpoint.system :as es]
-            [cheshire.core :as json]))
+            [sweet-tooth.endpoint.system :as es]))
 
 (def ^:dynamic *system* nil)
 
 (defmacro with-system
-  "Bind dynamic system vars to a test system."
+  "Bind dynamic system var to a test system."
   [config-name & body]
   `(binding [*system* (es/system ~config-name)]
+     (let [return# (do ~@body)]
+       (ig/halt! *system*)
+       return#)))
+
+(defmacro with-custom-system
+  "Bind dynamic system var to a test system with a custom config."
+  [config-name custom-config & body]
+  `(binding [*system* (es/system ~config-name ~custom-config)]
      (let [return# (do ~@body)]
        (ig/halt! *system*)
        return#)))

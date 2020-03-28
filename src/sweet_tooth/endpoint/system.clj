@@ -1,5 +1,6 @@
 (ns sweet-tooth.endpoint.system
-  (:require [integrant.core :as ig]))
+  (:require [integrant.core :as ig]
+            [meta-merge.core :as mm]))
 
 ;; User
 (defmulti config
@@ -8,5 +9,8 @@
   identity)
 
 (defn system
-  [config-name]
-  (ig/init (config config-name)))
+  [config-name & [custom-config]]
+  (let [cfg (config config-name)]
+    (ig/init (cond (not custom-config)  cfg
+                   (map? custom-config) (mm/meta-merge cfg custom-config)
+                   (fn? custom-config)  (custom-config cfg)))))

@@ -1,9 +1,9 @@
 (ns sweet-tooth.endpoint.middleware-test
-  (:require [sweet-tooth.endpoint.middleware :as em]
-            [clojure.test :refer [deftest is]]
-            [duct.middleware.buddy :as dbuddy]
+  (:require [clojure.test :refer [deftest is]]
             [duct.core :as duct]
-            [integrant.core :as ig]))
+            [duct.middleware.buddy :as dbuddy]
+            [integrant.core :as ig]
+            [sweet-tooth.endpoint.middleware :as em]))
 
 (duct/load-hierarchy)
 
