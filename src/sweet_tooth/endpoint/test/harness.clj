@@ -72,6 +72,8 @@
   (base-request* method url params :transit))
 
 (defn base-request
+  ([method url]
+   (base-request* method url {} nil))
   ([method url params]
    (base-request* method url params nil))
   ([method url params content-type]
