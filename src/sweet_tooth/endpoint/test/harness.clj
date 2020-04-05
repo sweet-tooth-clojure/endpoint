@@ -24,17 +24,20 @@
        return#)))
 
 (defn system-fixture
+  "To be used with `use-fixtures`"
   [config-name]
   (fn [f]
     (with-system config-name
       (f))))
 
 (defn handler
+  "The root handler for the system. Used to perform requests."
   []
   (or (:duct.handler/root *system*)
       (throw (ex-info "No request handler for *system*. Try adding (use-fixtures :each (system-fixture :test-system-name)) to your test namespace." {}))))
 
 (defn transit-in
+  "An input stream of json-enccoded transit. For request bodies."
   [data]
   (let [out (java.io.ByteArrayOutputStream. 4096)]
     (transit/write (transit/writer out :json) data)
@@ -49,7 +52,7 @@
   (fn [_method _url _params content-type]
     content-type))
 
-(defmethod base-request* :transit
+(defmethod base-request* :transit-json
   [method url params _]
   (-> (mock/request method url)
       (mock/header :content-type "application/transit+json")
@@ -69,13 +72,15 @@
 
 (defmethod base-request* :default
   [method url params _]
-  (base-request* method url params :transit))
+  (base-request* method url params :transit-json))
 
 (defn base-request
   ([method url]
    (base-request* method url {} nil))
-  ([method url params]
-   (base-request* method url params nil))
+  ([method url params-or-content-type]
+   (if (keyword? params-or-content-type)
+     (base-request* method url {} params-or-content-type)
+     (base-request* method url params-or-content-type nil)))
   ([method url params content-type]
    (base-request* method url params content-type)))
 
@@ -83,12 +88,30 @@
   [& args]
   ((handler) (apply base-request args)))
 
-(defn resp-read-transit
-  [ring-resp]
-  (-> ring-resp
-      :body
+(defmulti read-body "Read body according to content type"
+  (fn [{:keys [headers]}]
+    (->> (or (get headers "Content-Type")
+             (get headers "content-type"))
+         (re-matches #"(.*?)(;.*)?")
+         second)))
+
+(defmethod read-body "application/transit+json"
+  [{:keys [body]}]
+  (-> body
       (transit/reader :json)
       transit/read))
+
+(defmethod read-body "application/json"
+  [{:keys [body]}]
+  (if (string? body)
+    (json/parse-string body keyword)
+    (json/parse-stream body keyword)))
+
+(defmethod read-body :default
+  [{:keys [body]}]
+  (if (string? body)
+    body
+    (slurp body)))
 
 (defn contains-entity?
   "Request's response data creates entity of type `ent-type` that has

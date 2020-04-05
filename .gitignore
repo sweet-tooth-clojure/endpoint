@@ -16,5 +16,5 @@ tmp
 scratch.org
 *.retry
 .lein-failures
-pom.xml
+pom.xml*
 .clj-kondo/.cache

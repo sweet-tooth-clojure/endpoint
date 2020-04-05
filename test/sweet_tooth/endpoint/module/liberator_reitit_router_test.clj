@@ -97,7 +97,7 @@
   (let [url "/module/liberator-reitit-router-test"]
     (eth/with-system ::test
       (is (= ["YAY"]
-             (eth/resp-read-transit (eth/req :get url))))
+             (eth/read-body (eth/req :get url))))
       (is (= {"Content-Type"           "application/transit+json"
               "Content-Encoding"       "gzip"
               "Vary"                   "Accept, Accept-Encoding"
