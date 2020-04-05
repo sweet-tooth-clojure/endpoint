@@ -65,9 +65,7 @@
 
 (defmethod base-request* :html
   [method url params _]
-  (-> (mock/request method url params)
-      (mock/header :content-type "text/html")
-      (mock/header :accept "text/html")))
+  (mock/request method url params))
 
 (defmethod base-request* :default
   [method url params _]
