@@ -40,16 +40,48 @@
     (transit/write (transit/writer out :json) data)
     (java.io.ByteArrayInputStream. (.toByteArray out))))
 
-(defn base-request
-  [method url params]
+(defn headers
+  "Add all headers"
+  [req headers]
+  (reduce-kv mock/header req headers))
+
+(defmulti base-request*
+  (fn [_method _url _params content-type]
+    content-type))
+
+(defmethod base-request* :transit
+  [method url params _]
   (-> (mock/request method url)
       (mock/header :content-type "application/transit+json")
       (mock/header :accept "application/transit+json")
       (assoc :body (transit-in params))))
 
+(defmethod base-request* :json
+  [method url params _]
+  (-> (mock/request method url)
+      (mock/header :content-type "application/json")
+      (mock/header :accept "application/json")
+      (assoc :body (json/encode params))))
+
+(defmethod base-request* :html
+  [method url params _]
+  (-> (mock/request method url params)
+      (mock/header :content-type "text/html")
+      (mock/header :accept "text/html")))
+
+(defmethod base-request* :default
+  [method url params _]
+  (base-request* method url params :transit))
+
+(defn base-request
+  ([method url params]
+   (base-request* method url params nil))
+  ([method url params content-type]
+   (base-request* method url params content-type)))
+
 (defn req
-  [method url & [params]]
-  ((handler) (base-request method url params)))
+  [& args]
+  ((handler) (apply base-request args)))
 
 (defn resp-read-transit
   [ring-resp]
@@ -57,27 +89,6 @@
       :body
       (transit/reader :json)
       transit/read))
-
-(defn json-request
-  [method url params]
-  (-> (mock/request method url)
-      (mock/header :content-type "application/json")
-      (mock/header :accept "application/json")
-      (assoc :body (json/encode params))))
-
-(defn json-req
-  [method url & [params]]
-  ((handler) (json-request method url params)))
-
-(defn html-request
-  [method url]
-  (-> (mock/request method url)
-      (mock/header :content-type "text/html")
-      (mock/header :accept "text/html")))
-
-(defn html-req
-  [method url]
-  ((handler) (html-request method url)))
 
 (defn contains-entity?
   "Request's response data creates entity of type `ent-type` that has
