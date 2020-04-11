@@ -20,11 +20,11 @@
   (doseq [mocked-key (disj (reduce into #{} st-mock-keypairs) :st/mock)]
     (let [mk (mock-key mocked-key)]
       (derive mk mocked-key)
-      (derive mk ::mock/mock-component))))
+      (derive mk ::mock/mock-component)
+      (prefer-method ig/init-key ::mock/mock-component mocked-key))))
 
 (defmethod ig/init-key :sweet-tooth.endpoint.module/mock [_ _]
   (fn [config]
-    (prn "CONFIG" config)
     (let [st-mock-keypairs (->> (ig/find-derived config :st/mock)
                                 (map first))]
       (derive-mock-keys st-mock-keypairs)

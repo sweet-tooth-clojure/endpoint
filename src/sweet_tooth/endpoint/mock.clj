@@ -11,15 +11,15 @@
 
 (defmulti object
   "Return a object and optional impls used to introspect for mocking"
-  (fn [k proto-impls] k))
+  (fn [k _proto-impls] k))
 
 (defmethod object :default [_ _] nil)
 
 (defn object->proto-impls
-  [obj]
+  [obj maybe-impls]
   (when obj
     (let [the-obj   (if (sequential? obj) (first obj) obj)
-          impls     (if (sequential? obj) (second obj) {})
+          impls     (if (sequential? obj) (second obj) (or maybe-impls {}))
           protocols (shrub/protocols the-obj)]
       (reduce (fn [proto->impls protocol]
                 (assoc proto->impls protocol (get impls protocol {})))
@@ -28,16 +28,17 @@
 
 (defmethod ig/init-key ::mock-component [k config]
   (let [mock-map (or (protocol-mocks k config)
-                     (object->proto-impls (object k config))
+                     (object->proto-impls (object k config) config)
 
                      ;; default to using the original init-key, under
                      ;; the assumption it will return an object that
                      ;; implements protocols that we want to mock
-                     (object->proto-impls [(ig/init-key (-> (str k)
-                                                            (str/replace #"-mock$" "")
-                                                            (keyword))
-                                                        {})
-                                           ;; config should be proto-impls
-                                           config]))]
+                     (object->proto-impls (ig/init-key (-> (str k)
+                                                           (str/replace #"-mock$" "")
+                                                           (subs 1)
+                                                           (keyword))
+                                                       {})
+                                          ;; config should be proto-impls
+                                          config))]
     ;; TODO validation
     (apply shrub/mock (->> mock-map (into []) flatten))))
