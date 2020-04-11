@@ -17,6 +17,7 @@
                  [duct/module.web       "0.7.0"]
 
                  [sweet-tooth/describe "0.3.0"]
+                 [com.gearswithingears/shrubbery "0.4.1"]
 
                  ;; server
                  [com.flyingmachine/liberator-unbound "0.2.0"]
