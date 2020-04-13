@@ -1,0 +1,6 @@
+{:duct.profile/base
+ {:sweet-tooth.endpoint.validate-config-test/simple-component #duct/env ["SIMPLE_COMPONENT" Str]
+  :sweet-tooth.endpoint.validate-config-test/map-component    {:string #duct/env ["STRING" Str]
+                                                               :int    #duct/env ["INT" Int]}}
+
+ :duct.profile/dev #duct/include "validate-config/dev.edn"}
