@@ -1,9 +1,10 @@
 (ns sweet-tooth.endpoint.validate-config
-  (:require [duct.core :as duct]
-            [duct.core.env :as env]
+  (:require [clojure.pprint :as pprint]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [com.rpl.specter :as specter]))
+            [com.rpl.specter :as specter]
+            [duct.core :as duct]
+            [duct.core.env :as env]))
 
 ;;------
 ;; env vars
@@ -30,8 +31,7 @@
                           (specter/cond-path #(and (map %) (:duct/env %)) specter/STAY
                                              map? [(specter/compact specter/MAP-VALS) p]
                                              coll? [(specter/compact specter/ALL) p]
-                                             specter/STAY specter/STAY
-                                             )))
+                                             specter/STAY specter/STAY)))
 
 (defn missing-env-var?
   [x]
@@ -41,13 +41,30 @@
 
 (defn missing-env-vars
   [config]
-  (->> (specter/select [(specter/walker missing-env-var?) :duct/env] config)
-       (sort)
-       (into [])))
+  (let [vars (specter/select [(specter/walker missing-env-var?) :duct/env] config)]
+    (when (not= vars :com.rpl.specter.impl/NONE)
+      (->> vars sort (into [])))))
 
 (defn missing-env-var-config
   [config]
   (specter/setval [COMPACTING-WALKER (complement missing-env-var?)] specter/NONE config))
+
+(defn missing-env-var-suggested-config
+  [config]
+  (some->> (missing-env-var-config config)
+           (specter/setval [(specter/walker missing-env-var?)] "SET VALUE HERE")))
+
+(defn missing-env-var-report
+  [config]
+  (when-let [vars (missing-env-vars config)]
+    (let [suggested-config (missing-env-var-suggested-config config)]
+      (format (str "Your config defines these env vars but they have no value:\n"
+                   "%s\n\n"
+                   "You can hard-code these in your config with the following:\n"
+                   "%s")
+              (str/join " " vars)
+              (binding [*print-namespace-maps* false]
+                (with-out-str (pprint/pprint suggested-config)))))))
 
 ;;------
 ;; generic validation -- experimental!

@@ -59,6 +59,27 @@
                                       :val      nil}}}
          (sut/missing-env-var-config (prep-env-config)))))
 
+(deftest missing-env-var-suggested-config
+  (is (= '{::simple-component   "SET VALUE HERE"
+           ::map-component      {:string "SET VALUE HERE"
+                                 :int    "SET VALUE HERE"}
+           ::included-component {:k1 "SET VALUE HERE"}}
+         (sut/missing-env-var-suggested-config (prep-env-config)))))
+
+(deftest missing-env-var-report
+  (is (= "Your config defines these env vars but they have no value:
+[\"INCLUDED_INT\" Int] [\"INT\" Int] [\"SIMPLE_COMPONENT\" Str] [\"STRING\" Str]
+
+You can hard-code these in your config with the following:
+{:sweet-tooth.endpoint.validate-config-test/simple-component
+ \"SET VALUE HERE\",
+ :sweet-tooth.endpoint.validate-config-test/map-component
+ {:string \"SET VALUE HERE\", :int \"SET VALUE HERE\"},
+ :sweet-tooth.endpoint.validate-config-test/included-component
+ {:k1 \"SET VALUE HERE\"}}
+"
+         (sut/missing-env-var-report (prep-env-config)))))
+
 ;;-----
 ;; generic validation
 ;;-----
