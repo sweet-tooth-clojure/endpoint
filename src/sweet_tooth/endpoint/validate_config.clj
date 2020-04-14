@@ -29,6 +29,7 @@
   @nathanmarz for the help."
   (specter/recursive-path [] p
                           (specter/cond-path #(and (map %) (:duct/env %)) specter/STAY
+                                             #(= (type %) integrant.core.Ref) specter/STAY
                                              map? [(specter/compact specter/MAP-VALS) p]
                                              coll? [(specter/compact specter/ALL) p]
                                              specter/STAY specter/STAY)))
@@ -37,7 +38,8 @@
   [x]
   (and (map? x)
        (:duct/env x)
-       (empty? (:val x))))
+       (or (nil? (:val x))
+           (and (string? x) (str/blank? x)))))
 
 (defn missing-env-vars
   [config]
