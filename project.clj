@@ -18,6 +18,7 @@
 
                  [sweet-tooth/describe "0.3.0"]
                  [com.gearswithingears/shrubbery "0.4.1"]
+                 [com.rpl/specter "1.1.3"]
 
                  ;; server
                  [com.flyingmachine/liberator-unbound "0.2.0"]

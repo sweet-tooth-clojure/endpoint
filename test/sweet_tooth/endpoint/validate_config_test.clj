@@ -19,6 +19,50 @@
       sut/read-config
       (duct/prep-config [:duct.profile/dev])))
 
+(defn prep-env-config []
+  (-> "validate-config/config.edn"
+      io/resource
+      sut/read-config-with-env-vars
+      (duct/prep-config [:duct.profile/dev])))
+
+;;-----
+;; env vars
+;;-----
+
+(deftest read-config-with-env-vars
+  (is (= '{::simple-component     {:duct/env ["SIMPLE_COMPONENT" Str]
+                                   :val      nil}
+           ::map-component        {:string {:duct/env ["STRING" Str]
+                                            :val      nil}
+                                   :int    {:duct/env ["INT" Int]
+                                            :val      nil}}
+           ::included-component   {:k1 {:duct/env ["INCLUDED_INT" Int]
+                                        :val      nil}}
+           :duct.core/environment :development}
+         (prep-env-config))))
+
+(deftest missing-env-vars
+  (is (= '[["INCLUDED_INT" Int]
+           ["INT" Int]
+           ["SIMPLE_COMPONENT" Str]
+           ["STRING" Str]]
+         (sut/missing-env-vars (prep-env-config)))))
+
+(deftest missing-env-var-config
+  (is (= '{::simple-component   {:duct/env ["SIMPLE_COMPONENT" Str]
+                                 :val      nil}
+           ::map-component      {:string {:duct/env ["STRING" Str]
+                                          :val      nil}
+                                 :int    {:duct/env ["INT" Int]
+                                          :val      nil}}
+           ::included-component {:k1 {:duct/env ["INCLUDED_INT" Int]
+                                      :val      nil}}}
+         (sut/missing-env-var-config (prep-env-config)))))
+
+;;-----
+;; generic validation
+;;-----
+
 (deftest read-config
   (testing "reads the configs without evaling env vars"
     (is (= '{:duct.core/environment :development
@@ -27,10 +71,6 @@
                                      :int    [env-var "INT" Int]}
              ::included-component   {:k1 [env-var "INCLUDED_INT" Int]}}
            (prep-raw-config)))))
-
-;;-----
-;; validations
-;;-----
 
 (s/def ::simple-component some?)
 

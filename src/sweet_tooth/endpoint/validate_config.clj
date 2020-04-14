@@ -1,7 +1,57 @@
 (ns sweet-tooth.endpoint.validate-config
   (:require [duct.core :as duct]
+            [duct.core.env :as env]
             [clojure.spec.alpha :as s]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [com.rpl.specter :as specter]))
+
+;;------
+;; env vars
+;;------
+
+(defn duct-env-reader
+  [spec]
+  {:duct/env spec
+   :val      (env/env spec)})
+
+(defn read-config-with-env-vars
+  "Reads the config leaving duct/env values intact in order to report
+  the original config"
+  ([source]
+   (read-config-with-env-vars source {}))
+  ([source readers]
+   (duct/read-config source (merge {'duct/env duct-env-reader}
+                                   readers))))
+
+(def COMPACTING-WALKER
+  "Used to prune all paths that don't terminate in :duct/env. Thanks to
+  @nathanmarz for the help."
+  (specter/recursive-path [] p
+                          (specter/cond-path #(and (map %) (:duct/env %)) specter/STAY
+                                             map? [(specter/compact specter/MAP-VALS) p]
+                                             coll? [(specter/compact specter/ALL) p]
+                                             specter/STAY specter/STAY
+                                             )))
+
+(defn missing-env-var?
+  [x]
+  (and (map? x)
+       (:duct/env x)
+       (empty? (:val x))))
+
+(defn missing-env-vars
+  [config]
+  (->> (specter/select [(specter/walker missing-env-var?) :duct/env] config)
+       (sort)
+       (into [])))
+
+(defn missing-env-var-config
+  [config]
+  (specter/setval [COMPACTING-WALKER (complement missing-env-var?)] specter/NONE config))
+
+;;------
+;; generic validation -- experimental!
+;;------
 
 (s/def ::raw-config any?)
 (s/def ::actual-config any?)
@@ -44,12 +94,6 @@
                    errors))
              []
              config))
-
-;;------
-;; env vars
-;;------
-
-
 
 ;;------
 ;; reporting validation
