@@ -49,11 +49,13 @@
 
 (defn coll-route
   [name ns opts]
-  (let [coll-opts    (::coll opts)
+  (let [coll-opts      (::coll opts)
+        {:keys [path]} coll-opts
         {:keys [path-prefix]
          :or   {path-prefix ""}
-         :as   opts} (dissoc opts ::coll ::unary)]
-    [(format-str "%s/%s" path-prefix (slash name))
+         :as   opts}   (dissoc opts ::coll ::unary)]
+    [(or path
+         (format-str "%s/%s" path-prefix (slash name)))
      (merge {:name  (keyword (str name "s"))
              ::ns   ns
              ::type ::coll}
@@ -62,14 +64,16 @@
 
 (defn unary-route
   [name ns opts]
-  (let [unary-opts   (::unary opts)
-        {:keys [path-prefix]
+  (let [unary-opts     (::unary opts)
+        {:keys [path]} unary-opts
+        {:keys [path-prefix path]
          :or   {path-prefix ""}
-         :as   opts} (dissoc opts ::coll ::unary)
-        id-key       (or (:id-key unary-opts)
-                         (:id-key opts)
-                         :id)]
-    [(format-str "%s/%s/{%s}" path-prefix (slash name) (subs (str id-key) 1))
+         :as   opts}   (dissoc opts ::coll ::unary)
+        id-key         (or (:id-key unary-opts)
+                           (:id-key opts)
+                           :id)]
+    [(or path
+         (format-str "%s/%s/{%s}" path-prefix (slash name) (subs (str id-key) 1)))
      (merge {:name  (keyword name)
              ::ns   ns
              ::type ::unary}
