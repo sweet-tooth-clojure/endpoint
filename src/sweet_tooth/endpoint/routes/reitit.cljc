@@ -33,68 +33,91 @@
 (s/def ::name-route (s/cat :name ::name
                            :route-opts  (s/? ::route-opts)))
 
-(def ^:private format-str  #?(:clj format :cljs gstr/format))
+(def format-str  #?(:clj format :cljs gstr/format))
 
-(defn- include-route?
-  "all route types are included unless otherwise specified"
-  [pair-opts route-type]
-  (or (not (contains? pair-opts route-type))
-      (route-type pair-opts)))
-
-(defn- ksubs
+(defn ksubs
   [k]
   (if (keyword? k)
     (-> k str (subs 1))
     k))
 
-(defn- slash
+(defn slash
   "replace dots with slashes in domain name to create a string that's
   route-friendly"
   [name]
   (str/replace (ksubs name) #"\." "/"))
 
-(defn- path
-  [{:keys [full-path path path-prefix path-suffix]}]
+(defn path
+  [{:keys [full-path path path-prefix path-suffix] :as opts}]
   (or full-path
       (->> [path-prefix path path-suffix]
+           (map (fn [s] (if (fn? s) (s opts) s)))
            (remove empty?)
            (str/join ""))))
 
 (defn- dissoc-opts
   [opts]
-  (dissoc opts ::coll ::unary :full-path :path :path-prefix :path-suffix))
+  (dissoc opts :coll :ent ::base-name
+          :full-path :path :path-prefix :path-suffix
+          :route-types))
 
-(defn- build-opts
-  [name ns opts type]
-  (merge {:name  (keyword (str name (if (= ::coll type) "s")))
-          ::ns   ns
-          ::type type}
-         opts
-         (type opts)))
+(defn route-opts
+  [nsk type defaults opts]
+  (let [ro (merge {::ns   nsk
+                   ::type type}
+                  defaults
+                  opts
+                  (type opts))]
+    [(path ro) (dissoc-opts ro)]))
 
-(defn coll-route
-  [name ns opts]
-  (let [final-opts (build-opts name ns opts ::coll)]
-    [(path (update final-opts :path #(or % (str "/" (slash name)))))
-     (dissoc-opts final-opts)]))
+(defmulti expand-route-type (fn [_nsk route-type _opts] route-type))
 
-(defn unary-route
-  [name ns opts]
-  (let [final-opts (build-opts name ns opts ::unary)
-        id-key     (:id-key final-opts :id)]
-    [(path (update final-opts :path
-                   #(or % (format-str "/%s/{%s}" (slash name) (ksubs id-key)))))
-     (dissoc-opts final-opts)]))
+(defmethod expand-route-type
+  :coll
+  [nsk route-type {:keys [::base-name] :as opts}]
+  (route-opts nsk
+              route-type
+              {:name (keyword (str base-name "s"))
+               :path (str "/" (slash base-name))}
+              opts))
 
-(defn transform-singleton
-  "Handles cases where the route corresponds to a 'singleton' resource,
-  like a user session"
-  [single-name opts]
-  (if (::singleton? opts)
-    (-> opts
-        (assoc ::unary false)
-        (update-in [::coll :name] #(or % (keyword single-name))))
-    opts))
+(defmethod expand-route-type
+  :ent
+  [nsk route-type opts]
+  (route-opts nsk
+              route-type
+              {:name   (keyword (::base-name opts))
+               :id-key :id
+               :path   (fn [{:keys [id-key] :as o}]
+                         (format-str "/%s/{%s}"
+                                     (slash (::base-name o))
+                                     (ksubs id-key)))}
+              opts))
+
+(defmethod expand-route-type
+  :singleton
+  [nsk route-type {:keys [::base-name] :as opts}]
+  (route-opts nsk
+              route-type
+              {:name  (keyword base-name)
+               :path  (str "/" (slash base-name))}
+              opts))
+
+;; By default unrecognized keys are treated as
+;; ["/ent-type/{id}/unrecognized-key" {:name :ent-type.unrecognized-key}]
+(defmethod expand-route-type
+  :default
+  [nsk route-type {:keys [::base-name] :as opts}]
+  (route-opts nsk
+              route-type
+              {:name   (keyword (str base-name "." (ksubs route-type)))
+               :id-key :id
+               :path   (fn [{:keys [id-key] :as o}]
+                         (format-str "/%s/{%s}/%s"
+                                     (slash (::base-name o))
+                                     (ksubs id-key)
+                                     (ksubs route-type)))}
+              opts))
 
 (defn expand-route
   "In a pair of [n m], if n is a keyword then the pair is treated as a
@@ -108,13 +131,15 @@
   ([pair] (expand-route pair #"endpoint\."))
   ([[ns opts :as pair] delimiter]
    (if (s/valid? ::name-route pair)
-     (let [name (-> (str ns)
-                    (str/split delimiter)
-                    (second))
-           opts (transform-singleton name opts)]
-       (cond-> []
-         (include-route? opts ::coll)  (conj (coll-route name ns opts))
-         (include-route? opts ::unary) (conj (unary-route name ns opts))))
+     (let [base-name (-> (str ns)
+                         (str/split delimiter)
+                         (second))
+           types     (:route-types opts [:coll :ent])
+           opts      (assoc opts ::base-name base-name)]
+       (reduce (fn [routes type]
+                 (conj routes (expand-route-type ns type opts)))
+               []
+               types))
      [pair])))
 
 (defn expand-routes
