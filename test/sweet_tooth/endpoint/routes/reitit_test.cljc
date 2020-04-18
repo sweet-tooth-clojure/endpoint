@@ -56,6 +56,36 @@
                                [:ex.endpoint.user {::sut/unary {:id-key :weird/id}}]
                                [:ex.endpoint.topic]])))))
 
+(deftest shared-opts
+  (testing "opts are shared across unary and coll"
+    (is (= [["/user" {:name      :users
+                      ::sut/ns   :ex.endpoint.user
+                      ::sut/type ::sut/coll
+                      :a         :b}]
+            ["/user/{id}" {:name      :user
+                           ::sut/ns   :ex.endpoint.user
+                           ::sut/type ::sut/unary
+                           :a         :b}]]
+           (sut/expand-routes [[:ex.endpoint.user {:a :b}]])))))
+
+(deftest paths
+  (testing "custom path construction"
+    (is (= [["/boop" {:name      :users
+                      ::sut/ns   :ex.endpoint.user
+                      ::sut/type ::sut/coll}]
+            ["/boop" {:name      :user
+                      ::sut/ns   :ex.endpoint.user
+                      ::sut/type ::sut/unary}]]
+           (sut/expand-routes [[:ex.endpoint.user {:path "/boop"}]])))
+
+    (is (= [["/user/x" {:name    :users
+                        ::sut/ns   :ex.endpoint.user
+                        ::sut/type ::sut/coll}]
+            ["/user/{id}/x" {:name :user
+                             ::sut/ns     :ex.endpoint.user
+                             ::sut/type   ::sut/unary}]]
+           (sut/expand-routes [[:ex.endpoint.user {:path-suffix "/x"}]])))))
+
 (deftest singleton?
   (testing "singleton? as a shorthand for singleton resources"
     (is (= [["/user" {:name            :user

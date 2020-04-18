@@ -41,44 +41,50 @@
   (or (not (contains? pair-opts route-type))
       (route-type pair-opts)))
 
+(defn- ksubs
+  [k]
+  (if (keyword? k)
+    (-> k str (subs 1))
+    k))
+
 (defn- slash
   "replace dots with slashes in domain name to create a string that's
   route-friendly"
   [name]
-  (str/replace name #"\." "/"))
+  (str/replace (ksubs name) #"\." "/"))
+
+(defn- path
+  [{:keys [full-path path path-prefix path-suffix]}]
+  (or full-path
+      (->> [path-prefix path path-suffix]
+           (remove empty?)
+           (str/join ""))))
+
+(defn- dissoc-opts
+  [opts]
+  (dissoc opts ::coll ::unary :full-path :path :path-prefix :path-suffix))
+
+(defn- build-opts
+  [name ns opts type]
+  (merge {:name  (keyword (str name (if (= ::coll type) "s")))
+          ::ns   ns
+          ::type type}
+         opts
+         (type opts)))
 
 (defn coll-route
   [name ns opts]
-  (let [coll-opts      (::coll opts)
-        {:keys [path]} coll-opts
-        {:keys [path-prefix]
-         :or   {path-prefix ""}
-         :as   opts}   (dissoc opts ::coll ::unary)]
-    [(or path
-         (format-str "%s/%s" path-prefix (slash name)))
-     (merge {:name  (keyword (str name "s"))
-             ::ns   ns
-             ::type ::coll}
-            opts
-            coll-opts)]))
+  (let [final-opts (build-opts name ns opts ::coll)]
+    [(path (update final-opts :path #(or % (str "/" (slash name)))))
+     (dissoc-opts final-opts)]))
 
 (defn unary-route
   [name ns opts]
-  (let [unary-opts     (::unary opts)
-        {:keys [path]} unary-opts
-        {:keys [path-prefix path]
-         :or   {path-prefix ""}
-         :as   opts}   (dissoc opts ::coll ::unary)
-        id-key         (or (:id-key unary-opts)
-                           (:id-key opts)
-                           :id)]
-    [(or path
-         (format-str "%s/%s/{%s}" path-prefix (slash name) (subs (str id-key) 1)))
-     (merge {:name  (keyword name)
-             ::ns   ns
-             ::type ::unary}
-            opts
-            unary-opts)]))
+  (let [final-opts (build-opts name ns opts ::unary)
+        id-key     (:id-key final-opts :id)]
+    [(path (update final-opts :path
+                   #(or % (format-str "/%s/{%s}" (slash name) (ksubs id-key)))))
+     (dissoc-opts final-opts)]))
 
 (defn transform-singleton
   "Handles cases where the route corresponds to a 'singleton' resource,
