@@ -1,6 +1,5 @@
 (ns sweet-tooth.endpoint.routes.reitit-test
   (:require [sweet-tooth.endpoint.routes.reitit :as sut]
-
             #?(:clj [clojure.test :refer :all]
                :cljs [cljs.test :refer :all :include-macros true])))
 

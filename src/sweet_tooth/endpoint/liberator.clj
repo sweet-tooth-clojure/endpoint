@@ -142,12 +142,11 @@
                        :handle-malformed      errors-in-ctx
                        :respond-with-entity?  true
                        :new?                  false}]
-    {:list   base
-     :create (merge base {:allowed-methods [:post]
+    {:get    base
+     :post   (merge base {:allowed-methods [:post]
                           :new?            true
                           :handle-created  record})
-     :show   base
-     :update (merge base {:allowed-methods [:put]})
+     :put    (merge base {:allowed-methods [:put]})
      :delete (merge base {:allowed-methods      [:delete]
                           :respond-with-entity? false})}))
 

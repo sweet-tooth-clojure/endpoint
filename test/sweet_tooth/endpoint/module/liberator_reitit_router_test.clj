@@ -13,7 +13,7 @@
 (duct/load-hierarchy)
 
 (def decisions
-  {:list {:handle-ok ["YAY"]}})
+  {:coll {:get {:handle-ok ["YAY"]}}})
 
 (def ns-routes
   (err/expand-routes [[:sweet-tooth.endpoint.module.liberator-reitit-router-test]
@@ -32,60 +32,70 @@
    :sweet-tooth.endpoint.module/middleware {}})
 
 (deftest builds-duct-config
-  (is (= {::sut/reitit-router [["/module/liberator-reitit-router-test"
-                                {:name        :module.liberator-reitit-router-tests
-                                 :id-key      :id
-                                 :auth-id-key :id
-                                 :ent-type    :liberator-reitit-router-test
-                                 :middleware  [em/wrap-merge-params]
-                                 :handler     (ig/ref ::coll-handler)
-                                 ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                 ::err/type   ::err/coll}]
-                               ["/module/liberator-reitit-router-test/{id}"
-                                {:name        :module.liberator-reitit-router-test
-                                 :id-key      :id
-                                 :auth-id-key :id
-                                 :ent-type    :liberator-reitit-router-test
-                                 :middleware  [em/wrap-merge-params]
-                                 :handler     (ig/ref ::unary-handler)
-                                 ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                 ::err/type   ::err/unary}]
-                               ["/" {:woo        :yeah
-                                     :handler    "x"
-                                     :middleware [em/wrap-merge-params]}]]
+  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::coll-handler ::ent-handler])
+                        ;; TODO figure out how to not have to do these
+                        ;; shenanigans
 
-          ::coll-handler {:name        :module.liberator-reitit-router-tests
-                          :id-key      :id
-                          :auth-id-key :id
-                          :ctx         {:id-key                         :id
-                                        :auth-id-key                    :id
-                                        :logger                         (ig/ref :duct/logger)
-                                        :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
-                          :decisions   'decisions
-                          :ent-type    :liberator-reitit-router-test
-                          ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                          ::err/type   ::err/coll}
+                        ;; dropping the first middleware because it's
+                        ;; an anonymous function so I can't really test for that
+                        (update ::sut/reitit-router #(mapv (fn [route]
+                                                             (update-in route [1 :middleware] (fn [x] (drop 1 x))))
+                                                           %)))]
 
-          ::unary-handler {:name        :module.liberator-reitit-router-test
-                           :id-key      :id
-                           :auth-id-key :id
-                           :ctx         {:id-key                         :id
-                                         :auth-id-key                    :id
-                                         :logger                         (ig/ref :duct/logger)
-                                         :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
-                           :decisions   'decisions
-                           :ent-type    :liberator-reitit-router-test
-                           ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                           ::err/type   ::err/unary}}
-         (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::coll-handler ::unary-handler])
-             ;; TODO figure out how to not have to do these
-             ;; shenanigans
+    (is (= #{::coll-handler ::ent-handler ::sut/reitit-router}
+           (set (keys duct-config))))
 
-             ;; dropping the first middleware because it's
-             ;; an anonymous function so I can't really test for that
-             (update ::sut/reitit-router #(mapv (fn [route]
-                                                  (update-in route [1 :middleware] (fn [x] (drop 1 x))))
-                                                %))))))
+    (testing "router"
+      (is (= {::sut/reitit-router [["/module/liberator-reitit-router-test"
+                                    {:name        :module.liberator-reitit-router-tests
+                                     :id-key      :id
+                                     :auth-id-key :id
+                                     :ent-type    :liberator-reitit-router-test
+                                     :middleware  [em/wrap-merge-params]
+                                     :handler     (ig/ref ::coll-handler)
+                                     ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                     ::err/type   :coll}]
+                                   ["/module/liberator-reitit-router-test/{id}"
+                                    {:name        :module.liberator-reitit-router-test
+                                     :id-key      :id
+                                     :auth-id-key :id
+                                     :ent-type    :liberator-reitit-router-test
+                                     :middleware  [em/wrap-merge-params]
+                                     :handler     (ig/ref ::ent-handler)
+                                     ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                     ::err/type   :ent}]
+                                   ["/" {:woo        :yeah
+                                         :handler    "x"
+                                         :middleware [em/wrap-merge-params]}]]}
+             (select-keys duct-config [::sut/reitit-router]))))
+
+    (testing "coll handler"
+      (is (= {::coll-handler {:name        :module.liberator-reitit-router-tests
+                              :id-key      :id
+                              :auth-id-key :id
+                              :ctx         {:id-key                         :id
+                                            :auth-id-key                    :id
+                                            :logger                         (ig/ref :duct/logger)
+                                            :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
+                              :decisions   'decisions
+                              :ent-type    :liberator-reitit-router-test
+                              ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                              ::err/type   :coll}}
+             (select-keys duct-config [::coll-handler]))))
+
+    (testing "ent handler"
+      (is (= {::ent-handler {:name        :module.liberator-reitit-router-test
+                             :id-key      :id
+                             :auth-id-key :id
+                             :ctx         {:id-key                         :id
+                                           :auth-id-key                    :id
+                                           :logger                         (ig/ref :duct/logger)
+                                           :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
+                             :decisions   'decisions
+                             :ent-type    :liberator-reitit-router-test
+                             ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                             ::err/type   :ent}}
+             (select-keys duct-config [::ent-handler]))))))
 
 (defmethod es/config ::test [_]
   (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))
