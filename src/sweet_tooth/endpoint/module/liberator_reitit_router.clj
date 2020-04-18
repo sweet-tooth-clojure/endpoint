@@ -61,11 +61,10 @@
                            (symbol? decisions) (resolve-decisions endpoint-opts))]
 
     (medley/map-vals (fn [ds]
-                       (-> ds
-                           (el/initialize-decisions ctx)
-                           (lu/merge-decisions el/decision-defaults)
-                           ((partial lu/resources {:all (keys el/decision-defaults)}))
-                           :all))
+                       (->> (el/initialize-decisions ds ctx)
+                            (lu/merge-decisions el/decision-defaults)
+                            (lu/resources {:all (keys el/decision-defaults)})
+                            :all))
                      decision-map)))
 
 ;; Individual route handlers are derived from these handlers

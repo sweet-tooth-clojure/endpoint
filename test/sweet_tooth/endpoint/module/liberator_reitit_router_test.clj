@@ -13,7 +13,16 @@
 (duct/load-hierarchy)
 
 (def decisions
-  {:coll {:get {:handle-ok ["YAY"]}}})
+  {:coll {:get    {:handle-ok ["COLL GET"]}
+          :post   {:handle-created ["COLL POST"]}
+          :put    {:handle-ok ["COLL PUT"]}
+          :delete {:respond-with-entity? true
+                   :handle-ok            ["COLL DELETE"]}}
+   :ent  {:get    {:handle-ok ["ENT GET"]}
+          :post   {:handle-created ["ENT POST"]}
+          :put    {:handle-ok ["ENT PUT"]}
+          :delete {:respond-with-entity? true
+                   :handle-ok            ["ENT DELETE"]}}})
 
 (def ns-routes
   (err/expand-routes [[:sweet-tooth.endpoint.module.liberator-reitit-router-test]
@@ -25,9 +34,8 @@
 
    :sweet-tooth.endpoint.module/liberator-reitit-router {:routes ::ns-routes}
 
-   :duct.module/logging  {}
-   :duct.module.web/api  {}
-   :duct.module.web/site {}
+   :duct.module/logging {}
+   :duct.module.web/api {}
 
    :sweet-tooth.endpoint.module/middleware {}})
 
@@ -104,16 +112,30 @@
 ;; this test also tests other layers in the system, like gzip
 ;; middleware
 (deftest handler-works
-  (let [url "/module/liberator-reitit-router-test"]
+  (let [url "/module/liberator-reitit-router-test"
+        ent-url (str url "/1")]
     (eth/with-system ::test
-      (is (= ["YAY"]
+      (is (= ["COLL GET"]
              (eth/read-body (eth/req :get url))))
+      (is (= ["COLL POST"]
+             (eth/read-body (eth/req :post url))))
+      (is (= ["COLL PUT"]
+             (eth/read-body (eth/req :put url))))
+      (is (= ["COLL DELETE"]
+             (eth/read-body (eth/req :delete url))))
+
+      (is (= ["ENT GET"]
+             (eth/read-body (eth/req :get ent-url))))
+      (is (= ["ENT POST"]
+             (eth/read-body (eth/req :post ent-url))))
+      (is (= ["ENT PUT"]
+             (eth/read-body (eth/req :put ent-url))))
+      (is (= ["ENT DELETE"]
+             (eth/read-body (eth/req :delete ent-url))))
+
       (is (= {"Content-Type"           "application/transit+json"
               "Content-Encoding"       "gzip"
-              "Vary"                   "Accept, Accept-Encoding"
-              "X-XSS-Protection"       "1; mode=block"
-              "X-Frame-Options"        "SAMEORIGIN"
-              "X-Content-Type-Options" "nosniff"}
+              "Vary"                   "Accept, Accept-Encoding"}
              (-> (eth/base-request :get "/module/liberator-reitit-router-test" {})
                  (mock/header "accept-encoding" "gzip")
                  ((eth/handler))
