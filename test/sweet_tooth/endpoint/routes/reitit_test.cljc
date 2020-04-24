@@ -97,27 +97,40 @@
                     ::sut/type :singleton}]]
          (sut/expand-routes [[:ex.endpoint.user {::sut/expand-with [:singleton]}]]))))
 
-
-(deftest expand-route
+(deftest ent-children
   (testing "default handling of unknown route types"
-    (is (= [["/user/{id}/boop" {:name      :user.boop
+    (is (= [["/user/{id}/boop" {:name      :user/boop
                                 ::sut/ns   :ex.endpoint.user
-                                ::sut/type :boop
+                                ::sut/type :ent/boop
                                 :id-key    :id}]
-            ["/user/{id}/moop" {:name      :user.moop
+            ["/user/{id}/moop" {:name      :user/moop
                                 ::sut/ns   :ex.endpoint.user
-                                ::sut/type :moop
+                                ::sut/type :ent/moop
                                 :id-key    :id}]]
-           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:boop :moop]}]))))
+           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:ent/boop :ent/moop]}]))))
 
   (testing "respects id key for unknown route types"
-    (is (= [["/user/{oop/id}/boop" {:name  :user.boop
+    (is (= [["/user/{oop/id}/boop" {:name  :user/boop
                                     ::sut/ns   :ex.endpoint.user
-                                    ::sut/type :boop
+                                    ::sut/type :ent/boop
                                     :id-key    :oop/id}]
-            ["/user/{oop/id}/moop" {:name  :user.moop
+            ["/user/{oop/id}/moop" {:name  :user/moop
                                     ::sut/ns   :ex.endpoint.user
-                                    ::sut/type :moop
+                                    ::sut/type :ent/moop
                                     :id-key    :oop/id}]]
-           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:boop :moop]
+           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:ent/boop :ent/moop]
                                                  :id-key      :oop/id}])))))
+
+(deftest custom-expand-with
+  (testing "you can customize expanders in expand-with"
+    (is (= [["/user/{oop/id}/boop" {:name      :user/boop
+                                    ::sut/ns   :ex.endpoint.user
+                                    ::sut/type :ent/boop
+                                    :id-key    :oop/id}]
+            ["/user/{id}/moop" {:name      :user/moop
+                                ::sut/ns   :ex.endpoint.user
+                                ::sut/type :ent/moop
+                                :id-key    :id}]]
+           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:ent/boop
+                                                                    [:ent/moop {:id-key :id}]]
+                                                 :id-key           :oop/id}])))))
