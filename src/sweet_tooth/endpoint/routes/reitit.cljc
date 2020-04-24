@@ -48,7 +48,7 @@
   (str/replace (ksubs name) #"\." "/"))
 
 (defn path
-  [{:keys [full-path path path-prefix path-suffix] :as opts}]
+  [{:keys [::full-path ::path ::path-prefix ::path-suffix] :as opts}]
   (or full-path
       (->> [path-prefix path path-suffix]
            (map (fn [s] (if (fn? s) (s opts) s)))
@@ -57,9 +57,13 @@
 
 (defn- dissoc-opts
   [opts]
-  (dissoc opts :coll :ent ::base-name
-          :full-path :path :path-prefix :path-suffix
-          :route-types))
+  (dissoc opts
+          ::base-name
+          ::full-path
+          ::path
+          ::path-prefix
+          ::path-suffix
+          ::expand-with))
 
 (defn route-opts
   [nsk type defaults opts]
@@ -70,49 +74,49 @@
                   (type opts))]
     [(path ro) (dissoc-opts ro)]))
 
-(defmulti expand-route-type (fn [_nsk route-type _opts] route-type))
+(defmulti expand-with (fn [_nsk route-type _opts] route-type))
 
-(defmethod expand-route-type
+(defmethod expand-with
   :coll
   [nsk route-type {:keys [::base-name] :as opts}]
   (route-opts nsk
               route-type
-              {:name (keyword (str base-name "s"))
-               :path (str "/" (slash base-name))}
+              {:name  (keyword (str base-name "s"))
+               ::path (str "/" (slash base-name))}
               opts))
 
-(defmethod expand-route-type
+(defmethod expand-with
   :ent
   [nsk route-type opts]
   (route-opts nsk
               route-type
               {:name   (keyword (::base-name opts))
                :id-key :id
-               :path   (fn [{:keys [id-key] :as o}]
+               ::path  (fn [{:keys [id-key] :as o}]
                          (format-str "/%s/{%s}"
                                      (slash (::base-name o))
                                      (ksubs id-key)))}
               opts))
 
-(defmethod expand-route-type
+(defmethod expand-with
   :singleton
   [nsk route-type {:keys [::base-name] :as opts}]
   (route-opts nsk
               route-type
               {:name  (keyword base-name)
-               :path  (str "/" (slash base-name))}
+               ::path (str "/" (slash base-name))}
               opts))
 
 ;; By default unrecognized keys are treated as
 ;; ["/ent-type/{id}/unrecognized-key" {:name :ent-type.unrecognized-key}]
-(defmethod expand-route-type
+(defmethod expand-with
   :default
   [nsk route-type {:keys [::base-name] :as opts}]
   (route-opts nsk
               route-type
               {:name   (keyword (str base-name "." (ksubs route-type)))
                :id-key :id
-               :path   (fn [{:keys [id-key] :as o}]
+               ::path  (fn [{:keys [id-key] :as o}]
                          (format-str "/%s/{%s}/%s"
                                      (slash (::base-name o))
                                      (ksubs id-key)
@@ -134,12 +138,12 @@
      (let [base-name (-> (str ns)
                          (str/split delimiter)
                          (second))
-           types     (:route-types opts [:coll :ent])
+           expanders (::expand-with opts [:coll :ent])
            opts      (assoc opts ::base-name base-name)]
        (reduce (fn [routes type]
-                 (conj routes (expand-route-type ns type opts)))
+                 (conj routes (expand-with ns type opts)))
                []
-               types))
+               expanders))
      [pair])))
 
 (defn expand-routes
