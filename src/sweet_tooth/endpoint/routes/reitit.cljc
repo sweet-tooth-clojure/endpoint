@@ -29,8 +29,8 @@
 
 (s/def ::name keyword?)
 (s/def ::route-opts map?)
-(s/def ::name-route (s/cat :name ::name
-                           :route-opts  (s/? ::route-opts)))
+(s/def ::name-route (s/cat :name       ::name
+                           :route-opts (s/? ::route-opts)))
 
 (def format-str  #?(:clj format :cljs gstr/format))
 

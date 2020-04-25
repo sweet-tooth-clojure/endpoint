@@ -14,9 +14,9 @@
   configuration to the system's integrant configuration, reducing
   boilerplate for the developer.
 
-  We derive handler keys from `::unary-handler` or
-  `::coll-handler`. We then define `ig/init-key` methods for those
-  keywords, where the method returns a handler function.
+  We derive handler keys from `::handler`. We then define
+  `ig/init-key` methods for those keywords, where the method returns a
+  handler function.
 
   This module serves Sweet Tooth's goal of reducing the boilerplate
   required to get a system running, reducing the potential for errors
@@ -81,9 +81,12 @@
   "keyword used to define an integrant component for an endpoint
   handler"
   [endpoint-opts]
-  (let [ns   (::err/ns endpoint-opts)
-        type (::err/type endpoint-opts)]
-    (keyword (name ns) (str (name type) "-handler"))))
+  (let [ns     (::err/ns endpoint-opts)
+        type   (::err/type endpoint-opts)
+        prefix (if-let [n (namespace type)]
+                 (str n "-" (name type))
+                 (name type))]
+    (keyword (name ns) (str prefix "-handler"))))
 
 (defn- update-route-opts
   [route f & args]

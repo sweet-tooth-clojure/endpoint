@@ -18,14 +18,23 @@
           :put    {:handle-ok ["COLL PUT"]}
           :delete {:respond-with-entity? true
                    :handle-ok            ["COLL DELETE"]}}
+
    :ent  {:get    {:handle-ok ["ENT GET"]}
           :post   {:handle-created ["ENT POST"]}
           :put    {:handle-ok ["ENT PUT"]}
           :delete {:respond-with-entity? true
-                   :handle-ok            ["ENT DELETE"]}}})
+                   :handle-ok            ["ENT DELETE"]}}
+
+   :ent/history {:get    {:handle-ok ["ENT HISTORY GET"]}
+                 :post   {:handle-created ["ENT HISTORY POST"]}
+                 :put    {:handle-ok ["ENT HISTORY PUT"]}
+                 :delete {:respond-with-entity? true
+                          :handle-ok            ["ENT HISTORY DELETE"]}}})
 
 (def ns-routes
-  (err/expand-routes [[:sweet-tooth.endpoint.module.liberator-reitit-router-test]
+  (err/expand-routes [[:sweet-tooth.endpoint.module.liberator-reitit-router-test
+                       {::err/expand-with [:coll :ent :ent/history
+                                           ["/custom/path" {:name :custom-path}]]}]
                       ["/" {:woo :yeah :handler "x"}]]))
 
 (def duct-config
@@ -40,7 +49,8 @@
    :sweet-tooth.endpoint.module/middleware {}})
 
 (deftest builds-duct-config
-  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::coll-handler ::ent-handler])
+  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::coll-handler ::ent-handler
+                                                                     ::ent-history-handler ::custom-path-handler])
                         ;; TODO figure out how to not have to do these
                         ;; shenanigans
 
@@ -50,7 +60,7 @@
                                                              (update-in route [1 :middleware] (fn [x] (drop 1 x))))
                                                            %)))]
 
-    (is (= #{::coll-handler ::ent-handler ::sut/reitit-router}
+    (is (= #{::coll-handler ::ent-handler ::sut/reitit-router ::ent-history-handler ::custom-path-handler}
            (set (keys duct-config))))
 
     (testing "router"
@@ -72,6 +82,24 @@
                                      :handler     (ig/ref ::ent-handler)
                                      ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
                                      ::err/type   :ent}]
+                                   ["/module/liberator-reitit-router-test/{id}/history"
+                                    {:name        :module.liberator-reitit-router-test/history
+                                     :id-key      :id
+                                     :auth-id-key :id
+                                     :ent-type    :liberator-reitit-router-test
+                                     :middleware  [em/wrap-merge-params]
+                                     :handler     (ig/ref ::ent-history-handler)
+                                     ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                     ::err/type   :ent/history}]
+                                   ["/module/liberator-reitit-router-test/custom/path"
+                                    {:name        :custom-path
+                                     :handler     (ig/ref ::custom-path-handler)
+                                     :ent-type    :liberator-reitit-router-test
+                                     :middleware  [em/wrap-merge-params]
+                                     :id-key      :id
+                                     :auth-id-key :id
+                                     ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                     ::err/type   :custom-path}]
                                    ["/" {:woo        :yeah
                                          :handler    "x"
                                          :middleware [em/wrap-merge-params]}]]}
@@ -113,7 +141,8 @@
 ;; middleware
 (deftest handler-works
   (let [url "/module/liberator-reitit-router-test"
-        ent-url (str url "/1")]
+        ent-url (str url "/1")
+        ent-history-url (str ent-url "/history")]
     (eth/with-system ::test
       (is (= ["COLL GET"]
              (eth/read-body (eth/req :get url))))
@@ -132,6 +161,15 @@
              (eth/read-body (eth/req :put ent-url))))
       (is (= ["ENT DELETE"]
              (eth/read-body (eth/req :delete ent-url))))
+
+      (is (= ["ENT HISTORY GET"]
+             (eth/read-body (eth/req :get ent-history-url))))
+      (is (= ["ENT HISTORY POST"]
+             (eth/read-body (eth/req :post ent-history-url))))
+      (is (= ["ENT HISTORY PUT"]
+             (eth/read-body (eth/req :put ent-history-url))))
+      (is (= ["ENT HISTORY DELETE"]
+             (eth/read-body (eth/req :delete ent-history-url))))
 
       (is (= {"Content-Type"           "application/transit+json"
               "Content-Encoding"       "gzip"
