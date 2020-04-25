@@ -76,11 +76,25 @@
     [(path ro) (dissoc-opts ro)]))
 
 (defmulti expand-with (fn [_nsk expander _opts]
-                        (let [ns (keyword (namespace expander))
-                              n  (keyword (name expander))]
-                          (cond (and (= ns :coll) (some? n)) ::coll-child
-                                (and (= ns :ent) (some? n))  ::ent-child
-                                :else                        expander))))
+                        (if (string? expander)
+                          ::path
+                          (let [ns (keyword (namespace expander))
+                                n  (keyword (name expander))]
+                            (cond (and (= ns :coll) (some? n)) ::coll-child
+                                  (and (= ns :ent) (some? n))  ::ent-child
+                                  :else                        expander)))))
+
+(defmethod expand-with
+  ::path
+  [nsk path {:keys [::base-name ::expander-opts] :as opts}]
+  (let [{:keys [name]} expander-opts]
+    (route-opts nsk
+                name
+                {:name         name
+                 ::type        name
+                 ::path-prefix (str "/" (slash base-name))
+                 ::path        path}
+                opts)))
 
 (defmethod expand-with
   :coll

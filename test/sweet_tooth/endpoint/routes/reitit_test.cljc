@@ -130,7 +130,12 @@
             ["/user/{id}/moop" {:name      :user/moop
                                 ::sut/ns   :ex.endpoint.user
                                 ::sut/type :ent/moop
-                                :id-key    :id}]]
+                                :id-key    :id}]
+            ["/user/abc/bpp" {:name      :user/abc-bpp
+                              ::sut/ns   :ex.endpoint.user
+                              ::sut/type :user/abc-bpp
+                              :id-key    :oop/id}]]
            (sut/expand-route [:ex.endpoint.user {::sut/expand-with [:ent/boop
-                                                                    [:ent/moop {:id-key :id}]]
+                                                                    [:ent/moop {:id-key :id}]
+                                                                    ["/abc/bpp" {:name :user/abc-bpp}]]
                                                  :id-key           :oop/id}])))))
