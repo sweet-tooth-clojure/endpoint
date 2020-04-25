@@ -67,26 +67,6 @@
   #(wrap-print %))
 
 ;;---
-;; dev CORS
-;;---
-
-(defn wrap-dev-cors
-  "Configures CORS for sweet tooth's default shadow-cljs setup"
-  [handler]
-  (fn [req]
-    (let [headers {"Access-Control-Allow-Origin"      "http://localhost:3000"
-                   "Access-Control-Allow-Methods"     "GET, PUT, POST, DELETE, OPTIONS"
-                   "Access-Control-Allow-Headers"     "Content-Type, *"
-                   "Access-Control-Allow-Credentials" "true"}]
-      (if (= (:request-method req) :options)
-        {:status 200 :headers headers :body "preflight complete"}
-        (some-> (handler req)
-                (update :headers merge headers))))))
-
-(defmethod ig/init-key ::dev-cors [_ _]
-  #(wrap-dev-cors %))
-
-;;---
 ;; add some latency hey
 ;;---
 
