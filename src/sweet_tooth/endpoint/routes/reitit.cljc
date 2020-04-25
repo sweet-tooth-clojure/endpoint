@@ -90,10 +90,9 @@
   (let [{:keys [name]} expander-opts]
     (route-opts nsk
                 name
-                {:name         name
-                 ::type        name
-                 ::path-prefix (str "/" (slash base-name))
-                 ::path        path}
+                {:name  name
+                 ::type name
+                 ::path (format-str "/%s%s" (slash base-name) path)}
                 opts)))
 
 (defmethod expand-with
@@ -107,14 +106,14 @@
 
 (defmethod expand-with
   :ent
-  [nsk expander opts]
+  [nsk expander {:keys [::base-name] :as opts}]
   (route-opts nsk
               expander
-              {:name   (keyword (::base-name opts))
+              {:name   (keyword base-name)
                :id-key :id
                ::path  (fn [{:keys [id-key] :as o}]
                          (format-str "/%s/{%s}"
-                                     (slash (::base-name o))
+                                     (slash base-name)
                                      (ksubs id-key)))}
               opts))
 
