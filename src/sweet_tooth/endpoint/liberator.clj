@@ -147,6 +147,8 @@
                           :new?            true
                           :handle-created  record})
      :put    (merge base {:allowed-methods [:put]})
+     :patch  (merge base {:allowed-methods [:patch]})
+     :head   (merge base {:allowed-methods [:head]})
      :delete (merge base {:allowed-methods      [:delete]
                           :respond-with-entity? false})}))
 

@@ -62,6 +62,7 @@
 
     (medley/map-vals (fn [ds]
                        (->> (el/initialize-decisions ds ctx)
+                            ;; TODO make this configurable?
                             (lu/merge-decisions el/decision-defaults)
                             (lu/resources {:all (keys el/decision-defaults)})
                             :all))
