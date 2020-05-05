@@ -93,7 +93,7 @@
   [ctx & [id-key]]
   (-> ctx
       el/params
-      (->> (medley/filter-vals identity))
+      (->> (medley/filter-vals some?))
       (dissoc (req-id-key ctx id-key))
       (assoc :db/id (ctx-id ctx id-key))))
 

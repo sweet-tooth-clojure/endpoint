@@ -42,6 +42,7 @@
            (and (string? x) (str/blank? x)))))
 
 (defn missing-env-vars
+  "get all missing env vars"
   [config]
   (let [vars (specter/select [(specter/walker missing-env-var?) :duct/env] config)]
     (when (and (not= vars :com.rpl.specter.impl/NONE)

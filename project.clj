@@ -1,4 +1,4 @@
-(defproject sweet-tooth/sweet-tooth-endpoint "0.8.0"
+(defproject sweet-tooth/sweet-tooth-endpoint "0.8.1"
   :description "Utilities for working with liberator-based endpoints"
   :url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"
   :scm {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"}
@@ -8,8 +8,8 @@
   :dependencies [[org.clojure/clojure   "1.10.0" :scope "provided"]
                  [medley                "0.7.1"]
                  [meta-merge            "1.0.0"]
-                 [metosin/reitit-core   "0.3.9"]
-                 [metosin/reitit-ring   "0.3.9"]
+                 [metosin/reitit-core   "0.4.2"]
+                 [metosin/reitit-ring   "0.4.2"]
 
                  [duct/core             "0.7.0"]
                  [duct/middleware.buddy "0.1.0"]
