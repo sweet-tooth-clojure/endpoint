@@ -59,7 +59,7 @@
   [ctx]
   (->> ctx
        el/params
-       (medley/filter-vals identity)
+       (medley/filter-vals some?)
        assoc-tempid))
 
 (defn create
