@@ -2,9 +2,8 @@
   (:require [integrant.core :as ig]
             [meta-merge.core :as mm]))
 
-;; User
 (defmulti config
-  "Provides a way for client application to name different duct configs,
+  "Provides a way for client application to name different integrant configs,
   e.g. :test, :dev, :prod, etc"
   identity)
 

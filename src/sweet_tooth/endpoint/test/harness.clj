@@ -7,6 +7,10 @@
 
 (def ^:dynamic *system* nil)
 
+;;-----
+;; system wrapper macros
+;;-----
+
 (defmacro with-system
   "Bind dynamic system var to a test system."
   [config-name & body]
@@ -29,6 +33,10 @@
   (fn [f]
     (with-system config-name
       (f))))
+
+;;-----
+;; compose and dispatch reqeusts
+;;-----
 
 (defn handler
   "The root handler for the system. Used to perform requests."
@@ -85,8 +93,13 @@
    (base-request* method url params content-type)))
 
 (defn req
+  "Perform a request with the system's root handler"
   [& args]
   ((handler) (apply base-request args)))
+
+;;-----
+;; read responses
+;;-----
 
 (defmulti read-body "Read body according to content type"
   (fn [{:keys [headers]}]
@@ -112,6 +125,10 @@
   (if (string? body)
     body
     (slurp body)))
+
+;;-----
+;; assertions
+;;-----
 
 (defn contains-entity?
   "Request's response data creates entity of type `ent-type` that has
