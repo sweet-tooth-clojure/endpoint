@@ -65,6 +65,8 @@
                     :id-key :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
+            [clojure.walk :as walk]
+            [integrant.core]
             [meta-merge.core :as mm]
             #?@(:cljs [[goog.string :as gstr]
                        [goog.string.format]])))
@@ -275,16 +277,30 @@
      [pair])))
 
 (defn expand-routes
-  "Returns vector of reitit-compatible routes from compact route syntax"
+  "Returns vector of reitit-compatible routes from compact route syntax
+
+  `delimiter` is a regex used to split the namespace \"base\" from its
+  domain component: `foo.endpoint.user` -> `user`
+
+
+  `replace-refs-cljs` will replace all integrant refs with simple
+  keywords in the cljs output. this is so that the frontend won't try
+  to resolve the refs."
   ([pairs]
-   (expand-routes pairs #"endpoint\."))
-  ([pairs delimiter]
-   (loop [common                {}
-          [current & remaining] pairs
-          routes                []]
-     (cond (not current)  routes
-           (map? current) (recur current remaining routes)
-           :else          (recur common
-                                 remaining
-                                 (into routes (expand-route (update current 1 #(mm/meta-merge common %))
-                                                            delimiter)))))))
+   (expand-routes pairs #"endpoint\." true))
+  ([pairs delimiter replace-refs-cljs]
+   (let [expanded-routes (loop [common                {}
+                                [current & remaining] pairs
+                                routes                []]
+                           (cond (not current)  routes
+                                 (map? current) (recur current remaining routes)
+                                 :else          (recur common
+                                                       remaining
+                                                       (into routes (expand-route (update current 1 #(mm/meta-merge common %))
+                                                                                  delimiter)))))]
+     #?(:clj expanded-routes
+        :cljs (cond->> expanded-routes
+                replace-refs-cljs (walk/postwalk (fn [x]
+                                                   (if (= (type x) integrant.core.Ref)
+                                                     (:key x)
+                                                     x))))))))
