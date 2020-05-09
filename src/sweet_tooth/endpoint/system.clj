@@ -2,17 +2,23 @@
   (:require [integrant.core :as ig]
             [meta-merge.core :as mm]))
 
+
 (defmulti config
   "Provides a way for client application to name different integrant configs,
   e.g. :test, :dev, :prod, etc"
   identity)
 
+
+(defrecord Replacement [component])
+(defn replacement [component]
+  (Replacement. component))
+
 (defn init-key
-  "If a component config is tagged with `^:component` metadata, then use
-  the config value instead of initializing it with `ig/init-key`"
+  "If a component config is a Replacement, then use the replacement
+  component instead of initializing it with `ig/init-key`"
   [k v]
-  (if (:component (meta v))
-    v
+  (if (= Replacement (type v))
+    (:component v)
     (ig/init-key k v)))
 
 (defn init

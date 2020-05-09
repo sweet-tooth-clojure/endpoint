@@ -36,7 +36,7 @@
          (es/system ::replace-test)))
 
   (is (= {::b {:replacement :component}}
-         (es/system ::replace-test {::b ^:replace ^:component {:replacement :component}})))
+         (es/system ::replace-test {::b (es/replacement {:replacement :component})})))
 
-  (let [system (es/system ::replace-test {::b (with-meta (shrub/stub Stubby {:blurm "blurmed!"}) {:component true})})]
+  (let [system (es/system ::replace-test {::b (es/replacement (shrub/stub Stubby {:blurm "blurmed!"}))})]
     (is (= "blurmed!" (blurm (::b system))))))
