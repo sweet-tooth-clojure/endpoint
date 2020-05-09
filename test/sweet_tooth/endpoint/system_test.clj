@@ -1,7 +1,8 @@
 (ns sweet-tooth.endpoint.system-test
   (:require [clojure.test :refer [deftest is]]
             [sweet-tooth.endpoint.system :as es]
-            [integrant.core :as ig]))
+            [integrant.core :as ig]
+            [shrubbery.core :as shrub]))
 
 (defmethod ig/init-key ::a [_ opts]
   opts)
@@ -27,9 +28,15 @@
 (defmethod es/config ::replace-test [_]
   {::b :foo})
 
+(defprotocol Stubby
+  (blurm [_]))
+
 (deftest replace-component
   (is (= {::b {:opts :foo}}
          (es/system ::replace-test)))
 
   (is (= {::b {:replacement :component}}
-         (es/system ::replace-test {::b ^:replace ^:component {:replacement :component}}))))
+         (es/system ::replace-test {::b ^:replace ^:component {:replacement :component}})))
+
+  (let [system (es/system ::replace-test {::b (with-meta (shrub/stub Stubby {:blurm "blurmed!"}) {:component true})})]
+    (is (= "blurmed!" (blurm (::b system))))))
