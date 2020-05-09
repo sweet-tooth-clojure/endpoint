@@ -19,3 +19,17 @@
 
   (is (= {::a :c}
          (es/system ::test (fn [cfg] (assoc cfg ::a :c))))))
+
+
+(defmethod ig/init-key ::b [_ opts]
+  {:opts opts})
+
+(defmethod es/config ::replace-test [_]
+  {::b :foo})
+
+(deftest replace-component
+  (is (= {::b {:opts :foo}}
+         (es/system ::replace-test)))
+
+  (is (= {::b {:replacement :component}}
+         (es/system ::replace-test {::b ^:replace ^:component {:replacement :component}}))))

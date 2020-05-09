@@ -11,7 +11,8 @@
                  [metosin/reitit-core   "0.4.2"]
                  [metosin/reitit-ring   "0.4.2"]
 
-                 [duct/core             "0.7.0"]
+                 [integrant             "0.8.0"]
+                 [duct/core             "0.8.0"]
                  [duct/middleware.buddy "0.1.0"]
                  [duct/module.logging   "0.4.0"]
                  [duct/module.web       "0.7.0"]
