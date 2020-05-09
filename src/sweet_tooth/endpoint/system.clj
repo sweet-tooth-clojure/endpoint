@@ -8,7 +8,6 @@
   e.g. :test, :dev, :prod, etc"
   identity)
 
-
 (defrecord Replacement [component])
 (defn replacement [component]
   (with-meta (Replacement. component) {:replace true}))
