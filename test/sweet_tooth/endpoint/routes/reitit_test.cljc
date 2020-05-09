@@ -1,7 +1,10 @@
 (ns sweet-tooth.endpoint.routes.reitit-test
-  (:require [sweet-tooth.endpoint.routes.reitit :as sut]
+  (:require [clojure.spec.alpha :as s]
+            [sweet-tooth.endpoint.routes.reitit :as sut]
             #?(:clj [clojure.test :refer :all]
                :cljs [cljs.test :refer :all :include-macros true])))
+
+(s/check-asserts true)
 
 (deftest makes-routes
   (is (= [["/user"      {:name      :users

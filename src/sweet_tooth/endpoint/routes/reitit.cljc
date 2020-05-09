@@ -7,6 +7,9 @@
      2a. a collection routes, e.g. `/users`
      2b. a unary route, e.g. `/user/{id}`
 
+
+  ## Basic expansion
+
   A sugared route definition might be:
 
   [[:my-app.endpoint.user]]
@@ -21,6 +24,8 @@
                     ::ns    :my-app.endpoint.user
                     ::type  :ent
                     :id-key :id}]]
+
+  ## Common option map
 
   Here's how you'd apply a map of options to many routes:
 
@@ -104,12 +109,24 @@
 (s/def ::name-route (s/cat :name       ::name
                            :generate-route (s/? ::generate-route)))
 
-(def format-str  #?(:clj format :cljs gstr/format))
+;; plain ol' path route
+(s/def ::handler any?)
+(s/def ::path-route-opts (s/keys :req-un [::handler]))
+(s/def ::path-route (s/cat :path            ::path
+                           :path-route-opts ::path-route-opts))
+
+(s/def ::sugared-routes
+  (s/coll-of (s/or :expander-opts ::expander-opts
+                   :name-route    ::name-route
+                   :path-route    ::path-route)))
 
 
 ;;------
 ;; utils
 ;;------
+
+(def format-str
+  #?(:clj format :cljs gstr/format))
 
 (defn ksubs
   "full string representation of a keyword:
@@ -283,12 +300,15 @@
   domain component: `foo.endpoint.user` -> `user`
 
 
-  `replace-refs-cljs` will replace all integrant refs with simple
+  `keywordize-ig-refs-cljs` will replace all integrant refs with simple
   keywords in the cljs output. this is so that the frontend won't try
   to resolve the refs."
   ([pairs]
    (expand-routes pairs #"endpoint\." true))
-  ([pairs delimiter replace-refs-cljs]
+  ([pairs delimiter]
+   (expand-routes pairs delimiter true))
+  ([pairs delimiter keywordize-ig-refs-cljs]
+   (s/assert ::sugared-routes pairs)
    (let [expanded-routes (loop [common                {}
                                 [current & remaining] pairs
                                 routes                []]
@@ -300,7 +320,7 @@
                                                                                   delimiter)))))]
      #?(:clj expanded-routes
         :cljs (cond->> expanded-routes
-                replace-refs-cljs (walk/postwalk (fn [x]
-                                                   (if (= (type x) integrant.core.Ref)
-                                                     (:key x)
-                                                     x))))))))
+                keywordize-ig-refs-cljs (walk/postwalk (fn [x]
+                                                         (if (= (type x) integrant.core.Ref)
+                                                           (:key x)
+                                                           x))))))))
