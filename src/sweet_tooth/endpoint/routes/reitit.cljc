@@ -17,10 +17,52 @@
                ::ns    :my-app.endpoint.user
                ::type  :coll
                :id-key :id}]
-  [\"/user/{id}\" {:name   :user
-                   ::ns    :my-app.endpoint.user
-                   ::type  :ent
-                   :id-key :id}]]"
+   [\"/user/{id}\" {:name   :user
+                    ::ns    :my-app.endpoint.user
+                    ::type  :ent
+                    :id-key :id}]]
+
+  Here's how you'd apply a map of options to many routes:
+
+  [{:ctx {:foo :bar}}
+   [:my-app.endpoint.user]
+   [:my-app.endpoint.post]
+
+   {} ;; resets \"shared\" options to an empty ma
+   [:my-app.endpoint.vote]]
+
+  This would expand to:
+
+  [[\"/user\" {:name   :users
+               ::ns    :my-app.endpoint.user
+               ::type  :coll
+               :ctx    {:foo :bar}
+               :id-key :id}]
+   [\"/user/{id}\" {:name   :user
+                    ::ns    :my-app.endpoint.user
+                    ::type  :ent
+                    :ctx    {:foo :bar}
+                    :id-key :id}]
+   [\"/post\" {:name   :posts
+               ::ns    :my-app.endpoint.post
+               ::type  :coll
+               :ctx    {:foo :bar}
+               :id-key :id}]
+   [\"/post/{id}\" {:name   :post
+                    ::ns    :my-app.endpoint.post
+                    ::type  :ent
+                    :ctx    {:foo :bar}
+                    :id-key :id}]
+
+   ;; vote routes do not include the :ctx key
+   [\"/vote\" {:name   :votes
+               ::ns    :my-app.endpoint.vote
+               ::type  :coll
+               :id-key :id}]
+   [\"/vote/{id}\" {:name   :vote
+                    ::ns    :my-app.endpoint.vote
+                    ::type  :ent
+                    :id-key :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [meta-merge.core :as mm]
@@ -56,9 +98,9 @@
 
 ;; namespace-route
 (s/def ::name keyword?)
-(s/def ::route-opts map?)
+(s/def ::generate-route map?)
 (s/def ::name-route (s/cat :name       ::name
-                           :route-opts (s/? ::route-opts)))
+                           :generate-route (s/? ::generate-route)))
 
 (def format-str  #?(:clj format :cljs gstr/format))
 
@@ -68,7 +110,7 @@
 ;;------
 
 (defn ksubs
-  "full string representation of a keyword: 
+  "full string representation of a keyword:
   :x/y => \"x/y\"
   :y => \"y\""
   [k]
@@ -87,7 +129,7 @@
 ;; utils
 ;;------
 
-(defn path
+(defn- path
   [{:keys [::full-path ::path ::path-prefix ::path-suffix] :as opts}]
   (or full-path
       (->> [path-prefix path path-suffix]
@@ -111,98 +153,111 @@
           ::expand-with
           ::expander-opts))
 
-(defn route-opts
+(defn- generate-route
+  "generates a route for an expander"
   [nsk expander defaults opts]
-  (let [ro (merge {::ns   nsk
-                   ::type expander}
-                  defaults
-                  opts
-                  (::expander-opts opts))]
-    [(path ro) (dissoc-opts ro)]))
+  (let [route-opts (merge {::ns   nsk
+                           ::type expander}
+                          defaults
+                          opts
+                          (::expander-opts opts))]
+    [(path route-opts) (dissoc-opts route-opts)]))
 
+(s/fdef generate-route
+  :args (s/cat :nsk keyword?
+               :expander keyword?
+               :defaults map?
+               :opts map?)
+  :ret (s/tuple ::path-fragment? map?))
 
 ;;------
 ;; expansion
 ;;------
 
-(defmulti expand-with (fn [_nsk expander _opts]
-                        (if (string? expander)
-                          ::path
-                          (let [ns (keyword (namespace expander))
-                                n  (keyword (name expander))]
-                            (cond (and (= ns :coll) (some? n)) ::coll-child
-                                  (and (= ns :ent) (some? n))  ::ent-child
-                                  :else                        expander)))))
+(defmulti expand-with
+  (fn [_nsk expander _opts]
+    (if (string? expander)
+      ::path
+      (let [ns (keyword (namespace expander))
+            n  (keyword (name expander))]
+        (cond (and (= ns :coll) (some? n)) ::coll-child
+              (and (= ns :ent) (some? n))  ::ent-child
+              :else                        expander)))))
 
+;; handles expanders like ["/some/path" {:name :xyz}]
 (defmethod expand-with
   ::path
-  [nsk path {:keys [::base-name]
+  [nsk path {:keys           [::base-name]
              {:keys [:name]} ::expander-opts
-             :as opts}]
-  {:pre (some? name)}
-  (route-opts nsk
-              name
-              {:name  name
-               ::type name
-               ::path (format-str "/%s%s" (slash base-name) path)}
-              opts))
+             :as             opts}]
+  (when-not (keyword? name)
+    (throw (ex-info "You must supply a :name for paths in :expand-with e.g. [\"/foo\" {:name :foo}]"
+                    {:path            path
+                     :route-namespace nsk})))
+  (generate-route nsk
+                  name
+                  {:name  name
+                   ::type name
+                   ::path (format-str "/%s%s" (slash base-name) path)}
+                  opts))
 
 ;; keys like :ent/some-key are treated like
 ;; ["/ent-type/{id}/some-key" {:name :ent-type/some-key}]
 (defmethod expand-with
   ::ent-child
   [nsk expander {:keys [::base-name] :as opts}]
-  (route-opts nsk
-              expander
-              {:name   (keyword base-name (name expander))
-               :id-key :id
-               ::path  (fn [{:keys [id-key] :as o}]
-                         (format-str "/%s/{%s}/%s"
-                                     (slash (::base-name o))
-                                     (ksubs id-key)
-                                     (name expander)))}
-              opts))
+  (generate-route nsk
+                  expander
+                  {:name   (keyword base-name (name expander))
+                   :id-key :id
+                   ::path  (fn [{:keys [id-key] :as o}]
+                             (format-str "/%s/{%s}/%s"
+                                         (slash (::base-name o))
+                                         (ksubs id-key)
+                                         (name expander)))}
+                  opts))
 
 (defmethod expand-with
   :coll
   [nsk expander {:keys [::base-name] :as opts}]
-  (route-opts nsk
-              expander
-              {:name  (keyword (str base-name "s"))
-               ::path (str "/" (slash base-name))}
-              opts))
+  (generate-route nsk
+                  expander
+                  {:name  (keyword (str base-name "s"))
+                   ::path (str "/" (slash base-name))}
+                  opts))
 
 (defmethod expand-with
   :ent
   [nsk expander {:keys [::base-name] :as opts}]
-  (route-opts nsk
-              expander
-              {:name   (keyword base-name)
-               :id-key :id
-               ::path  (fn [{:keys [id-key] :as o}]
-                         (format-str "/%s/{%s}"
-                                     (slash base-name)
-                                     (ksubs id-key)))}
-              opts))
+  (generate-route nsk
+                  expander
+                  {:name   (keyword base-name)
+                   :id-key :id
+                   ::path  (fn [{:keys [id-key] :as o}]
+                             (format-str "/%s/{%s}"
+                                         (slash base-name)
+                                         (ksubs id-key)))}
+                  opts))
 
+;; singletons use the :coll path and the :ent name
 (defmethod expand-with
   :singleton
   [nsk expander {:keys [::base-name] :as opts}]
-  (route-opts nsk
-              expander
-              {:name  (keyword base-name)
-               ::path (str "/" (slash base-name))}
-              opts))
+  (generate-route nsk
+                  expander
+                  {:name  (keyword base-name)
+                   ::path (str "/" (slash base-name))}
+                  opts))
 
 (defn expand-route
   "In a pair of [n m], if n is a keyword then the pair is treated as a
-  name route and is expanded. Otherwise the pair returned as-is (it's
-  probably a regular reitit route).
+  name route and is expanded. Otherwise the pair is returned
+  as-is (it's probably a regular reitit route).
 
   `delimiter` is a regex used to specify what part of the name to
   ignore. By convention Sweet Tooth expects you to use names like
-  `:my-app.backend.endpoint.user`, but you want to just use `user` -
-  that's what the delimiter is for."
+  `:my-app.backend.endpoint.user`, but you want to just use `user` to
+  generate paths and route names - that's what the delimiter is for."
   ([pair] (expand-route pair #"endpoint\."))
   ([[ns opts :as pair] delimiter]
    (if (s/valid? ::name-route pair)
