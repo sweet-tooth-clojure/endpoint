@@ -21,10 +21,11 @@
     (ig/init-key k v)))
 
 (defn init
-  "Like integrant.core/init but, allows config values to get tagged with
-  `^:component` metadata. This makes it much easier to use an
-  alternative implementation for a component, for instance when
-  mocking them."
+  "Like integrant.core/init but allows config values be
+  `Replacement`s. The replacements will be used instead of whatever
+  would have gotten returned by `ig/init-key`. This makes it much
+  easier to use an alternative implementation for a component, for
+  instance when mocking them."
   ([config]
    (init config (keys config)))
   ([config keys]
