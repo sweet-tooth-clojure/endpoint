@@ -26,13 +26,13 @@
   {:opts opts})
 
 (defmethod es/config ::replace-test [_]
-  {::b :foo})
+  {::b {:foo :bar}})
 
 (defprotocol Stubby
   (blurm [_]))
 
 (deftest replace-component
-  (is (= {::b {:opts :foo}}
+  (is (= {::b {:opts {:foo :bar}}}
          (es/system ::replace-test)))
 
   (is (= {::b {:replacement :component}}

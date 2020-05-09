@@ -11,7 +11,7 @@
 
 (defrecord Replacement [component])
 (defn replacement [component]
-  (Replacement. component))
+  (with-meta (Replacement. component) {:replace true}))
 
 (defn init-key
   "If a component config is a Replacement, then use the replacement
