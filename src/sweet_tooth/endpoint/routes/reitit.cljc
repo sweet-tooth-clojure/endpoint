@@ -44,11 +44,11 @@
 
 ;; expanders
 (s/def ::expander-name keyword?)
-(s/def ::route-opts map?)
+(s/def ::expander-opts map?)
 (s/def ::expander-with-opts (s/cat :expander-name ::expander-name
-                                   :route-opts    (s/? ::route-opts)))
-(s/def ::path-expander (s/cat :path       ::path-fragment
-                              :route-opts (s/? ::route-opts)))
+                                   :expander-opts (s/? ::expander-opts)))
+(s/def ::path-expander (s/cat :path          ::path-fragment
+                              :expander-opts (s/? ::expander-opts)))
 (s/def ::expander (s/or :expander-name      ::expander-name
                         :expander-with-opts ::expander-with-opts
                         :path-expander      ::path-expander))
@@ -56,6 +56,7 @@
 
 ;; namespace-route
 (s/def ::name keyword?)
+(s/def ::route-opts map?)
 (s/def ::name-route (s/cat :name       ::name
                            :route-opts (s/? ::route-opts)))
 
@@ -208,10 +209,10 @@
      (let [base-name (-> (str ns)
                          (str/split delimiter)
                          (second))
-           expanders (s/assert ::expanders (::expand-with opts [:coll :ent]))
+           expanders (s/assert ::expand-with (::expand-with opts [:coll :ent]))
            opts      (assoc opts ::base-name base-name)]
        (reduce (fn [routes expander]
-                 (let [expander-opts (if (sequential? expander) (second expander) {})
+                 (let [expander-opts (s/assert ::expander-opts (if (sequential? expander) (second expander) {}))
                        expander      (if (sequential? expander) (first expander) expander)]
                    (conj routes (expand-with ns expander (assoc opts ::expander-opts expander-opts)))))
                []
