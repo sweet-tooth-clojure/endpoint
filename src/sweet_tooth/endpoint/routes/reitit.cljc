@@ -13,38 +13,78 @@
 
   This would expand to:
 
-  [[\"/user\" {:name        :users
-               ::sterr/ns   :my-app.endpoint.user
-               ::sterr/type :coll
-               :id-key      :id}]
-  [\"/user/{id}\" {:name        :user
-                   ::sterr/ns   :my-app.endpoint.user
-                   ::sterr/type :ent
-                   :id-key      :id}]]"
+  [[\"/user\" {:name   :users
+               ::ns    :my-app.endpoint.user
+               ::type  :coll
+               :id-key :id}]
+  [\"/user/{id}\" {:name   :user
+                   ::ns    :my-app.endpoint.user
+                   ::type  :ent
+                   :id-key :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
             [meta-merge.core :as mm]
             #?@(:cljs [[goog.string :as gstr]
                        [goog.string.format]])))
 
-(s/def ::name keyword?)
+;;------
+;; specs
+;;------
+
+;; paths
+(s/def ::path-fragment (s/and string? not-empty))
+(s/def ::full-path ::path-fragment)
+(s/def ::path ::path-fragment)
+(s/def ::path-prefix ::path-fragment)
+(s/def ::path-suffix ::path-fragment)
+(s/def ::path-opts (s/keys :opt-un [::full-path
+                                    ::path
+                                    ::path-prefix
+                                    ::path-suffix]))
+
+;; expanders
+(s/def ::expander-name keyword?)
 (s/def ::route-opts map?)
+(s/def ::expander-with-opts (s/cat :expander-name ::expander-name
+                                   :route-opts    (s/? ::route-opts)))
+(s/def ::path-expander (s/cat :path       ::path-fragment
+                              :route-opts (s/? ::route-opts)))
+(s/def ::expander (s/or :expander-name      ::expander-name
+                        :expander-with-opts ::expander-with-opts
+                        :path-expander      ::path-expander))
+(s/def ::expand-with (s/coll-of ::expander))
+
+;; namespace-route
+(s/def ::name keyword?)
 (s/def ::name-route (s/cat :name       ::name
                            :route-opts (s/? ::route-opts)))
 
 (def format-str  #?(:clj format :cljs gstr/format))
 
+
+;;------
+;; utils
+;;------
+
 (defn ksubs
+  "full string representation of a keyword: 
+  :x/y => \"x/y\"
+  :y => \"y\""
   [k]
   (if (keyword? k)
     (-> k str (subs 1))
     k))
 
 (defn slash
-  "replace dots with slashes in domain name to create a string that's
+  "replace dots with slashes in namespace to create a string that's
   route-friendly"
   [name]
   (str/replace (ksubs name) #"\." "/"))
+
+
+;;------
+;; utils
+;;------
 
 (defn path
   [{:keys [::full-path ::path ::path-prefix ::path-suffix] :as opts}]
@@ -54,8 +94,12 @@
            (remove empty?)
            (str/join ""))))
 
+(s/fdef path
+  :args (s/cat :path-opts ::path-opts)
+  :ret ::path-fragment)
+
 (defn- dissoc-opts
-  "the final routes don't need to be cluttered with options specific to this namespace"
+  "the final routes don't need to be cluttered with options specific to route expansion"
   [opts]
   (dissoc opts
           ::base-name
@@ -75,6 +119,11 @@
                   (::expander-opts opts))]
     [(path ro) (dissoc-opts ro)]))
 
+
+;;------
+;; expansion
+;;------
+
 (defmulti expand-with (fn [_nsk expander _opts]
                         (if (string? expander)
                           ::path
@@ -86,14 +135,32 @@
 
 (defmethod expand-with
   ::path
-  [nsk path {:keys [::base-name ::expander-opts] :as opts}]
-  (let [{:keys [name]} expander-opts]
-    (route-opts nsk
-                name
-                {:name  name
-                 ::type name
-                 ::path (format-str "/%s%s" (slash base-name) path)}
-                opts)))
+  [nsk path {:keys [::base-name]
+             {:keys [:name]} ::expander-opts
+             :as opts}]
+  {:pre (some? name)}
+  (route-opts nsk
+              name
+              {:name  name
+               ::type name
+               ::path (format-str "/%s%s" (slash base-name) path)}
+              opts))
+
+;; keys like :ent/some-key are treated like
+;; ["/ent-type/{id}/some-key" {:name :ent-type/some-key}]
+(defmethod expand-with
+  ::ent-child
+  [nsk expander {:keys [::base-name] :as opts}]
+  (route-opts nsk
+              expander
+              {:name   (keyword base-name (name expander))
+               :id-key :id
+               ::path  (fn [{:keys [id-key] :as o}]
+                         (format-str "/%s/{%s}/%s"
+                                     (slash (::base-name o))
+                                     (ksubs id-key)
+                                     (name expander)))}
+              opts))
 
 (defmethod expand-with
   :coll
@@ -115,22 +182,6 @@
                          (format-str "/%s/{%s}"
                                      (slash base-name)
                                      (ksubs id-key)))}
-              opts))
-
-;; keys like :ent/some-key are treated like
-;; ["/ent-type/{id}/some-key" {:name :ent-type/some-key}]
-(defmethod expand-with
-  ::ent-child
-  [nsk expander {:keys [::base-name] :as opts}]
-  (route-opts nsk
-              expander
-              {:name   (keyword base-name (name expander))
-               :id-key :id
-               ::path  (fn [{:keys [id-key] :as o}]
-                         (format-str "/%s/{%s}/%s"
-                                     (slash (::base-name o))
-                                     (ksubs id-key)
-                                     (name expander)))}
               opts))
 
 (defmethod expand-with
@@ -157,7 +208,7 @@
      (let [base-name (-> (str ns)
                          (str/split delimiter)
                          (second))
-           expanders (::expand-with opts [:coll :ent])
+           expanders (s/assert ::expanders (::expand-with opts [:coll :ent]))
            opts      (assoc opts ::base-name base-name)]
        (reduce (fn [routes expander]
                  (let [expander-opts (if (sequential? expander) (second expander) {})
