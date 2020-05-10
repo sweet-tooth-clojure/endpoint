@@ -1,6 +1,8 @@
 (ns sweet-tooth.endpoint.test.harness
   (:require [cheshire.core :as json]
+            [clojure.test :as test]
             [cognitect.transit :as transit]
+            [com.rpl.specter :as specter]
             [integrant.core :as ig]
             [ring.mock.request :as mock]
             [sweet-tooth.endpoint.system :as es]))
@@ -34,6 +36,12 @@
     (with-system config-name
       (f))))
 
+(defn component
+  "Look up component in current test system"
+  [component-key]
+  (or (component-key *system*)
+      (throw (ex-info "Could not find component" {:component-key component-key}))))
+
 ;;-----
 ;; compose and dispatch reqeusts
 ;;-----
@@ -45,7 +53,7 @@
       (throw (ex-info "No request handler for *system*. Try adding (use-fixtures :each (system-fixture :test-system-name)) to your test namespace." {}))))
 
 (defn transit-in
-  "An input stream of json-enccoded transit. For request bodies."
+  "An input stream of json-encoded transit. For request bodies."
   [data]
   (let [out (java.io.ByteArrayOutputStream. 4096)]
     (transit/write (transit/writer out :json) data)
@@ -129,15 +137,38 @@
 ;;-----
 ;; assertions
 ;;-----
+(defn entity-segment? [segment]
+  (= (first segment) :entity))
 
-(defn contains-entity?
-  "Request's response data creates entity of type `ent-type` that has
-  key/value pairs identical to `test-ent-attrs`"
-  [resp-data ent-type test-ent-attrs]
-  (let [ent-keys (keys test-ent-attrs)]
-    ((->> resp-data
-          (filter #(= (first %) :entity))
-          (mapcat (comp vals ent-type second))
-          (map #(select-keys % ent-keys))
-          (set))
-     test-ent-attrs)))
+(defn response-entities
+  [resp-data & [ent-type]]
+  (->> resp-data
+       (filter entity-segment?)
+       (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS])))
+
+(defn- prep-comparison
+  [resp-entity test-ent-attrs]
+  (into {} (select-keys resp-entity (keys test-ent-attrs))))
+
+(defn response-contains-one-entity-like
+  "Request's response contains only one entity, and that entity is like
+  `test-ent-attrs`. Advantage of using this function is it
+  uses `(is (= ...))`, so in test reports you get the diff between
+  expected and actual."
+  [resp-data test-ent-attrs]
+  (let [entities (response-entities resp-data)
+        c        (count entities)]
+    (when (not= 1 c)
+      (throw (ex-info (str "Response should contain 1 entity. It had " c ". Consider using `response-contains-entity-like?`")
+                      {:entities entities})))
+    (test/is (= (prep-comparison (first entities) test-ent-attrs)
+                (into {} test-ent-attrs)))))
+
+(defn response-contains-entity-like
+  "Request's response data creates entity of type `ent-type` (optional)
+  that has key/value pairs identical to `test-ent-attrs`"
+  [resp-data test-ent-attrs & [ent-type]]
+  (let [entities (->> (response-entities resp-data ent-type)
+                      (map #(prep-comparison % test-ent-attrs))
+                      (set))]
+    (test/is (contains? entities (into {} test-ent-attrs)))))

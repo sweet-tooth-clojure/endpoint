@@ -90,7 +90,7 @@
            (eth/read-body req)))))
 
 
-(deftest base-request-transit
+(deftest base-request-json
   (let [req (eth/base-request :get "/" :json)]
     (is (= {:remote-addr    "localhost"
             :headers        {"host"         "localhost"
@@ -120,3 +120,26 @@
            (dissoc req :body)))
     (is (= {:x "y"}
            (eth/read-body req)))))
+
+
+(deftest response-contains-one-entity-like-test
+  (eth/response-contains-one-entity-like
+   [[:entity {:foo {1 {:gurp :lurp
+                       :dump :mump}}}]]
+   {:gurp :lurp})
+
+  (is (not (eth/response-contains-one-entity-like
+            [[:entity {:foo {1 {:gurp :lurp
+                                :dump :mump}}}]]
+            {:nope :nope}))))
+
+(deftest response-contains-entity-like-test
+  (eth/response-contains-entity-like
+   [[:entity {:foo {1 {:gurp :lurp
+                       :dump :mump}}}]]
+   {:gurp :lurp})
+
+  (is (not (eth/response-contains-entity-like
+            [[:entity {:foo {1 {:gurp :lurp
+                                :dump :mump}}}]]
+            {:nope :nope}))))
