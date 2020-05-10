@@ -155,7 +155,9 @@
 
 (defn ^:deprecated contains-entity?
   "Request's response data creates entity of type `ent-type` that has
-  key/value pairs identical to `test-ent-attrs`"
+  key/value pairs identical to `test-ent-attrs`.
+
+  Deprecated 0.8.2, prefer `assert-response-contains-*` macros."
   [resp-data ent-type test-ent-attrs]
   ((->> resp-data
         (response-entities ent-type)
@@ -168,14 +170,14 @@
   `assert-response-contains-entity-like` is it uses `(is (= ...))`, so
   in test reports you get the diff between expected and actual."
   [resp-data test-ent-attrs]
-  `(let [test-ent-attrs#      ~test-ent-attrs
+  `(let [test-ent-attrs#      (into {} ~test-ent-attrs)
          [ent# :as entities#] (response-entities ~resp-data)
          c#                   (count entities#)]
      (when (not= 1 c#)
        (throw (ex-info (str "Response should contain 1 entity. It had " c# ". Consider using `response-contains-entity-like?`")
                        {:entities entities#})))
      (test/is (= (prep-comparison ent# test-ent-attrs#)
-                 (into {} test-ent-attrs#))
+                 test-ent-attrs#)
               (str "Response entity:\n"
                    (with-out-str (pprint/pprint ent#))))))
 

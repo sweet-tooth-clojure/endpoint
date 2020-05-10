@@ -30,4 +30,6 @@
   
 ### Deprecated
 
-- `sweet-tooth.endpoint.test.harness/contains-entity?`
+- `sweet-tooth.endpoint.test.harness/contains-entity?` - use
+  `sweet-tooth.endpoint.test.harness/assert-response-contains-*`
+  macros instead
