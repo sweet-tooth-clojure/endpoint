@@ -1,6 +1,13 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.3] 2020-05-10
+
+### Changed
+
+- Added missing `ent-type` argument to
+  `sweet-tooth.endpoint.test.harness/assert-response-contains-one-entity`
+
+## [0.8.2] 2020-05-10
 
 ### Added
 
@@ -13,7 +20,7 @@
   similar to above. assert that one entity among _all_ returned
   contains specified k/v pairs
 
-### Chaanged
+### Changed
 
 - `sweet-tooth.endpoint.routes.reitit/expand-routes` added a third
   argument, `keywordize-ig-refs-cljs`, a boolean defaulting to true
