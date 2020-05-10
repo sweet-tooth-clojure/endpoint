@@ -130,7 +130,7 @@
 
   (comment
     ;; don't know of a good way to test test helper failures yet :(
-    (eth/response-contains-one-entity-like
+    (eth/assert-response-contains-one-entity-like
      [[:entity {:foo {1 {:gurp :lurp
                          :dump :mump}}}]]
      {:boop :doop})))
@@ -143,7 +143,7 @@
 
   (comment
     ;; don't know of a good way to test test helper failures yet :(
-    (eth/response-contains-entity-like
+    (eth/assert-response-contains-entity-like
      [[:entity {:foo {1 {:gurp :lurp
                          :dump :mump}}}]]
      {:nope :nope})))

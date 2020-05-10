@@ -149,7 +149,7 @@
         (filter entity-segment?)
         (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS]))))
 
-(defn- prep-comparison
+(defn prep-comparison
   [resp-entity test-ent-attrs]
   (into {} (select-keys resp-entity (keys test-ent-attrs))))
 
@@ -162,28 +162,30 @@
         (set))
    test-ent-attrs))
 
-(defn assert-response-contains-one-entity-like
+(defmacro assert-response-contains-one-entity-like
   "Request's response contains only one entity, and that entity is like
-  `test-ent-attrs`. Advantage of using this function is it
-  uses `(is (= ...))`, so in test reports you get the diff between
-  expected and actual."
+  `test-ent-attrs`. Advantage of using this over
+  `assert-response-contains-entity-like` is it uses `(is (= ...))`, so
+  in test reports you get the diff between expected and actual."
   [resp-data test-ent-attrs]
-  (let [[ent :as entities] (response-entities resp-data)
-        c                  (count entities)]
-    (when (not= 1 c)
-      (throw (ex-info (str "Response should contain 1 entity. It had " c ". Consider using `response-contains-entity-like?`")
-                      {:entities entities})))
-    (test/is (= (prep-comparison ent test-ent-attrs)
-                (into {} test-ent-attrs))
-             (str "Response entity:\n"
-                  (with-out-str (pprint/pprint ent))))))
+  `(let [test-ent-attrs#      ~test-ent-attrs
+         [ent# :as entities#] (response-entities ~resp-data)
+         c#                   (count entities#)]
+     (when (not= 1 c#)
+       (throw (ex-info (str "Response should contain 1 entity. It had " c# ". Consider using `response-contains-entity-like?`")
+                       {:entities entities#})))
+     (test/is (= (prep-comparison ent# test-ent-attrs#)
+                 (into {} test-ent-attrs#))
+              (str "Response entity:\n"
+                   (with-out-str (pprint/pprint ent#))))))
 
-(defn assert-response-contains-entity-like
+(defmacro assert-response-contains-entity-like
   "Request's response data creates entity of type `ent-type` (optional)
   that has key/value pairs identical to `test-ent-attrs`"
   [resp-data test-ent-attrs & [ent-type]]
-  (let [entities (->> resp-data
-                      (response-entities ent-type)
-                      (map #(prep-comparison % test-ent-attrs))
-                      (set))]
-    (test/is (contains? entities (into {} test-ent-attrs)))))
+  `(let [test-ent-attrs# (into {} ~test-ent-attrs)
+         entities#       (->> ~resp-data
+                              (response-entities ~ent-type)
+                              (map #(prep-comparison % test-ent-attrs#))
+                              (set))]
+     (test/is (contains? entities# test-ent-attrs#))))
