@@ -123,23 +123,27 @@
 
 
 (deftest response-contains-one-entity-like-test
-  (eth/response-contains-one-entity-like
+  (eth/assert-response-contains-one-entity-like
    [[:entity {:foo {1 {:gurp :lurp
                        :dump :mump}}}]]
    {:gurp :lurp})
 
-  (is (not (eth/response-contains-one-entity-like
-            [[:entity {:foo {1 {:gurp :lurp
-                                :dump :mump}}}]]
-            {:nope :nope}))))
+  (comment
+    ;; don't know of a good way to test test helper failures yet :(
+    (eth/response-contains-one-entity-like
+     [[:entity {:foo {1 {:gurp :lurp
+                         :dump :mump}}}]]
+     {:boop :doop})))
 
 (deftest response-contains-entity-like-test
-  (eth/response-contains-entity-like
-   [[:entity {:foo {1 {:gurp :lurp
-                       :dump :mump}}}]]
+  (eth/assert-response-contains-entity-like
+   [[:entity {:bar {1 {:dump :mump}}}]
+    [:entity {:foo {1 {:gurp :lurp}}}]]
    {:gurp :lurp})
 
-  (is (not (eth/response-contains-entity-like
-            [[:entity {:foo {1 {:gurp :lurp
-                                :dump :mump}}}]]
-            {:nope :nope}))))
+  (comment
+    ;; don't know of a good way to test test helper failures yet :(
+    (eth/response-contains-entity-like
+     [[:entity {:foo {1 {:gurp :lurp
+                         :dump :mump}}}]]
+     {:nope :nope})))

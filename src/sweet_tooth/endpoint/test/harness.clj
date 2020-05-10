@@ -5,7 +5,8 @@
             [com.rpl.specter :as specter]
             [integrant.core :as ig]
             [ring.mock.request :as mock]
-            [sweet-tooth.endpoint.system :as es]))
+            [sweet-tooth.endpoint.system :as es]
+            [clojure.pprint :as pprint]))
 
 (def ^:dynamic *system* nil)
 
@@ -141,34 +142,48 @@
   (= (first segment) :entity))
 
 (defn response-entities
-  [resp-data & [ent-type]]
-  (->> resp-data
-       (filter entity-segment?)
-       (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS])))
+  ([resp-data]
+   (response-entities nil resp-data))
+  ([ent-type resp-data]
+   (->> resp-data
+        (filter entity-segment?)
+        (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS]))))
 
 (defn- prep-comparison
   [resp-entity test-ent-attrs]
   (into {} (select-keys resp-entity (keys test-ent-attrs))))
 
-(defn response-contains-one-entity-like
+(defn ^:deprecated contains-entity?
+  "Request's response data creates entity of type `ent-type` that has
+  key/value pairs identical to `test-ent-attrs`"
+  [resp-data ent-type test-ent-attrs]
+  ((->> resp-data
+        (response-entities ent-type)
+        (set))
+   test-ent-attrs))
+
+(defn assert-response-contains-one-entity-like
   "Request's response contains only one entity, and that entity is like
   `test-ent-attrs`. Advantage of using this function is it
   uses `(is (= ...))`, so in test reports you get the diff between
   expected and actual."
   [resp-data test-ent-attrs]
-  (let [entities (response-entities resp-data)
-        c        (count entities)]
+  (let [[ent :as entities] (response-entities resp-data)
+        c                  (count entities)]
     (when (not= 1 c)
       (throw (ex-info (str "Response should contain 1 entity. It had " c ". Consider using `response-contains-entity-like?`")
                       {:entities entities})))
-    (test/is (= (prep-comparison (first entities) test-ent-attrs)
-                (into {} test-ent-attrs)))))
+    (test/is (= (prep-comparison ent test-ent-attrs)
+                (into {} test-ent-attrs))
+             (str "Response entity:\n"
+                  (with-out-str (pprint/pprint ent))))))
 
-(defn response-contains-entity-like
+(defn assert-response-contains-entity-like
   "Request's response data creates entity of type `ent-type` (optional)
   that has key/value pairs identical to `test-ent-attrs`"
   [resp-data test-ent-attrs & [ent-type]]
-  (let [entities (->> (response-entities resp-data ent-type)
+  (let [entities (->> resp-data
+                      (response-entities ent-type)
                       (map #(prep-comparison % test-ent-attrs))
                       (set))]
     (test/is (contains? entities (into {} test-ent-attrs)))))
