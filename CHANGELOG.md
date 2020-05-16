@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.9.0] 2020-05-16
+
+### Added
+
+- An extensible way to provide component alternatives using the
+  component's configuration. Implemented with the
+  `sweet-tooth.endpoint.system/init-key-alternative` multimethod,
+  dispatching on the
+  `:sweet-tooth.endpoint.system/init-key-alternative` key in a
+  component's configuration.
+- A new way to mock components using
+  `sweet-tooth.endpoint.system/shrubbery-mock`
+
+### Removed
+
+- Previous mocking implementations, `sweet-tooth.endpoint.mock` and
+  `sweet-tooth.endpoint.module.mock`. These were OK but the module
+  approach was confusing.
+
 ## [0.8.3] 2020-05-10
 
 ### Changed
