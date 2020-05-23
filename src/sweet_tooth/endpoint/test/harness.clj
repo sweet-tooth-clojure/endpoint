@@ -1,4 +1,10 @@
 (ns sweet-tooth.endpoint.test.harness
+  "Includes:
+
+  * Macros and a fixture for dealing with a system for the duration of a test
+  * Helpers for composing and dispatching requests
+  * `read-body` multimethod for parsing response bodies of different types (transit, json etc)
+  * assertions that work with response segments"
   (:require [cheshire.core :as json]
             [clojure.test :as test]
             [cognitect.transit :as transit]
@@ -10,9 +16,9 @@
 
 (def ^:dynamic *system* nil)
 
-;;-----
+;; -------------------------
 ;; system wrapper macros
-;;-----
+;; -------------------------
 
 (defmacro with-system
   "Bind dynamic system var to a test system."
@@ -43,9 +49,9 @@
   (or (component-key *system*)
       (throw (ex-info "Could not find component" {:component-key component-key}))))
 
-;;-----
+;; -------------------------
 ;; compose and dispatch reqeusts
-;;-----
+;; -------------------------
 
 (defn handler
   "The root handler for the system. Used to perform requests."
@@ -106,9 +112,9 @@
   [& args]
   ((handler) (apply base-request args)))
 
-;;-----
+;; -------------------------
 ;; read responses
-;;-----
+;; -------------------------
 
 (defmulti read-body "Read body according to content type"
   (fn [{:keys [headers]}]
@@ -135,9 +141,10 @@
     body
     (slurp body)))
 
-;;-----
-;; assertions
-;;-----
+;; -------------------------
+;; segment assertions
+;; -------------------------
+
 (defn entity-segment? [segment]
   (= (first segment) :entity))
 

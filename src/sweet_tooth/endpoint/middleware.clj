@@ -24,6 +24,7 @@
 ;;---
 
 (defn wrap-format-response
+  "See `ef/format-response` for an explanation of what this does"
   [f]
   (fn [req]
     (ef/format-response (f req))))
@@ -43,8 +44,8 @@
          (catch Throwable t
            {:status 500
             :body   [[:exception (if include-data
-                                   {:message (.getMessage t)
-                                    :ex-data (ex-data t)
+                                   {:message     (.getMessage t)
+                                    :ex-data     (ex-data t)
                                     :stack-trace (with-out-str (cst/print-stack-trace t))}
                                    {})]]}))))
 
@@ -56,6 +57,7 @@
 ;;---
 
 (defn wrap-print
+  "Print a request and response. For debugging."
   [f]
   (fn [req]
     (prn ::req req)

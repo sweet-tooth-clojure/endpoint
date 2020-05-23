@@ -1,12 +1,20 @@
 (ns sweet-tooth.endpoint.system
+  "Introduces some conveniences for dealing with duct systems:
+
+  * A multimethod `config` for naming integrant configs, like `:dev`,
+  `:test`, etc.
+  * An `ig/init-key` alternative that allows a component's *configuration*
+    to specify an alternative coponent implementation, possibly bypassing
+    the `ig/init-key` implementation entirely
+  * `replacement` and `shrubbery-mock` alternatives"
   (:require [integrant.core :as ig]
             [meta-merge.core :as mm]
             [shrubbery.core :as shrub]
             [medley.core :as medley]))
 
-;;------
+;; -------------------------
 ;; provide alternative component impls inline
-;;------
+;; -------------------------
 
 ;;---
 ;; replacement
@@ -76,9 +84,9 @@
    {:pre [(map? config)]}
    (ig/build config keys init-key #'ig/assert-pre-init-spec ig/resolve-key)))
 
-;;------
+;; -------------------------
 ;; create named configs
-;;------
+;; -------------------------
 
 (defmulti config
   "Provides a way for client application to name different integrant configs,
@@ -92,9 +100,9 @@
                 (map? custom-config) (mm/meta-merge cfg custom-config)
                 (fn? custom-config)  (custom-config cfg)))))
 
-;;------
+;; -------------------------
 ;; readers to use with duct/read-config
-;;------
+;; -------------------------
 
 (def readers
   {'st/replacement    replacement

@@ -6,7 +6,7 @@
             :url  "https://opensource.org/licenses/MIT"}
 
   :dependencies [[org.clojure/clojure   "1.10.0" :scope "provided"]
-                 [medley                "0.7.1"]
+                 [medley                "1.3.0"]
                  [meta-merge            "1.0.0"]
                  [metosin/reitit-core   "0.4.2"]
                  [metosin/reitit-ring   "0.4.2"]
@@ -21,7 +21,6 @@
                  [com.gearswithingears/shrubbery "0.4.1"]
                  [com.rpl/specter "1.1.3"]
 
-                 ;; server
                  [com.flyingmachine/liberator-unbound "0.2.0"]
                  [com.flyingmachine/datomic-booties "0.1.7"]
                  [com.flyingmachine/datomic-junk "0.2.3"]

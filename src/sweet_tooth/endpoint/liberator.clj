@@ -1,12 +1,25 @@
 (ns sweet-tooth.endpoint.liberator
-  (:require [liberator.representation :as lr]
-            [com.flyingmachine.liberator-unbound :as lu]
-            [ring.util.response :as resp]
-            [buddy.auth :as buddy]
-            [medley.core :as medley]
-            [compojure.core :refer [routes]]
+  "Includes:
+
+  * Utility functions for retrieving common values from the
+  context (`record`, `errrors`, `params`)
+  * A template of decision defaults appropriate for an SPA
+  * Utility functions for auth
+
+  Introduces loose convention of putting a record under `:record` in
+  the context
+
+  Extends liberator's representations to handle transit"
+  (:require [buddy.auth :as buddy]
             [flyingmachine.webutils.validation :refer [if-valid]]
+            [liberator.representation :as lr]
+            [medley.core :as medley]
+            [ring.util.response :as resp]
             [sweet-tooth.describe :as d]))
+
+;; -------------------------
+;; returning transit
+;; -------------------------
 
 (defrecord TransitResponse [data]
   liberator.representation.Representation
@@ -30,9 +43,18 @@
   [data _ctx]
   (->TransitResponse data))
 
+(defn transit-response
+  [payload & [opts]]
+  (lr/ring-response
+   payload
+   (merge {:status (get opts :status 200)
+           :headers {"media-type" "application/transit+json"}}
+          opts)))
+
 ;; -------------------------
 ;; Working with liberator context
 ;; -------------------------
+
 (defn get-ctx
   [path]
   (let [path (if (vector? path) path [path])]
@@ -44,14 +66,6 @@
 (def record (get-ctx :record))
 (def errors (get-ctx :errors))
 (def params (get-ctx [:request :params]))
-
-(defn transit-response
-  [payload & [opts]]
-  (lr/ring-response
-    payload
-    (merge {:status (get opts :status 200)
-            :headers {"media-type" "application/transit+json"}}
-           opts)))
 
 (defn errors-map
   "Add errors to context, setting media-type in case liberator doesn't
@@ -78,6 +92,75 @@
     (if-let [ent (ent-fn ctx)]
       {:record ent}
       false)))
+
+;; -------------------------
+;; decisions
+;; -------------------------
+
+;; Generating liberator resources without defresource
+;; TODO check if there's something better than handle-malformed
+(def decision-defaults
+  "A 'base' set of liberator resource decisions"
+  (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
+        base          {:available-media-types ["application/transit+json"
+                                               "application/transit+msgpack"
+                                               "application/json"]
+                       :allowed-methods       [:get]
+                       :authorized?           true
+                       :handle-unauthorized   errors-in-ctx
+                       :handle-malformed      errors-in-ctx
+                       :respond-with-entity?  true
+                       :new?                  false}]
+    {:get    base
+     :post   (merge base {:allowed-methods [:post]
+                          :new?            true
+                          :handle-created  record})
+     :put    (merge base {:allowed-methods [:put]})
+     :patch  (merge base {:allowed-methods [:patch]})
+     :head   (merge base {:allowed-methods [:head]})
+     :delete (merge base {:allowed-methods      [:delete]
+                          :respond-with-entity? false})}))
+
+(defn initialize-decisions
+  "Adds `:initalize` to multiple decisions. Used by
+  `sweet-tooth.endpoint.module.liberator-reitit-router` to inject
+  context values set in routes."
+  [decisions context-initializer]
+  (medley/map-vals
+   (fn [decision]
+     (assoc decision :initialize-context (if (fn? context-initializer)
+                                           context-initializer
+                                           (constantly context-initializer))))
+   decisions))
+
+;; -------------------------
+;; validation
+;; -------------------------
+
+(defmacro validator
+  "Used in invalid? which is why truth values are reversed"
+  ([validation]
+   `(validator ~(gensym) ~validation))
+  ([ctx-sym validation]
+   `(fn [~ctx-sym]
+      (if-valid
+          (params ~ctx-sym) ~validation errors#
+          false
+          [true (errors-map errors#)]))))
+
+(defn validate-describe
+  "Use describe lib to validate a request. Returns a function that's
+  meant to be used with the `:malformed?` liberator decision"
+  [rules & [describe-context]]
+  (fn [ctx]
+    (when-let [descriptions (d/describe (params ctx)
+                                        rules
+                                        (when describe-context (describe-context ctx)))]
+      [true (errors-map (d/map-rollup-descriptions descriptions))])))
+
+;; -------------------------
+;; auth
+;; -------------------------
 
 (def authorization-error
   (errors-map {:authorization "Not authorized."}))
@@ -116,48 +199,9 @@
             [:request :params user-key]
             (auth-id ctx)))
 
-(defmacro validator
-  "Used in invalid? which is why truth values are reversed"
-  ([validation]
-   `(validator ~(gensym) ~validation))
-  ([ctx-sym validation]
-   `(fn [~ctx-sym]
-      (if-valid
-       (params ~ctx-sym) ~validation errors#
-       false
-       [true (errors-map errors#)]))))
-
-;; Generating liberator resources without defresource
-;; TODO check if there's something better than handle-malformed
-(def decision-defaults
-  "A 'base' set of liberator resource decisions for list, create,
-  show, update, and delete"
-  (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
-        base          {:available-media-types ["application/transit+json"
-                                               "application/transit+msgpack"
-                                               "application/json"]
-                       :allowed-methods       [:get]
-                       :authorized?           true
-                       :handle-unauthorized   errors-in-ctx
-                       :handle-malformed      errors-in-ctx
-                       :respond-with-entity?  true
-                       :new?                  false}]
-    {:get    base
-     :post   (merge base {:allowed-methods [:post]
-                          :new?            true
-                          :handle-created  record})
-     :put    (merge base {:allowed-methods [:put]})
-     :patch  (merge base {:allowed-methods [:patch]})
-     :head   (merge base {:allowed-methods [:head]})
-     :delete (merge base {:allowed-methods      [:delete]
-                          :respond-with-entity? false})}))
-
-(def resource-route
-  "A function that takes a path and decision spec and produces
-  compojure endpoint"
-  (lu/bundle {:collection [:list :create]
-              :entry [:show :update :delete]}
-             decision-defaults))
+;; -------------------------
+;; misc
+;; -------------------------
 
 ;; TODO move this somwhere else, it's not really liberator
 (defn html-resource
@@ -165,28 +209,3 @@
   [path]
   (-> (resp/resource-response path)
       (resp/content-type "text/html")))
-
-(defn initialize-decisions
-  [decisions context-initializer]
-  (medley/map-vals
-    (fn [decision]
-      (assoc decision :initialize-context (if (fn? context-initializer)
-                                            context-initializer
-                                            (constantly context-initializer))))
-    decisions))
-
-(defn endpoint
-  [route decisions & [initial-context]]
-  {:pre [(or (map? initial-context) (fn? initial-context) (nil? initial-context))]}
-  (routes (resource-route route (cond-> decisions
-                                  initial-context (initialize-decisions initial-context)))))
-
-(defn validate-describe
-  "Use describe lib to validate a request. Returns a function that's
-  meant to be used with the `:malformed?` liberator decision"
-  [rules & [describe-context]]
-  (fn [ctx]
-    (when-let [descriptions (d/describe (params ctx)
-                                        rules
-                                        (when describe-context (describe-context ctx)))]
-      [true (errors-map (d/map-rollup-descriptions descriptions))])))

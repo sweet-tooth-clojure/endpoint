@@ -1,4 +1,5 @@
 (ns sweet-tooth.endpoint.page
+  "Pagination utilitices"
   (:require [sweet-tooth.endpoint.utils :as eu]
             [sweet-tooth.endpoint.liberator :as el]
             [clojure.string :as str]))
@@ -33,6 +34,7 @@
   ((if (= sort-order :desc) desc asc) val))
 
 (defn paginate
+  "Returns segments of the paginated entities and their pager"
   [p id-key ents]
   (let [{:keys [page per-page sort-order type]} p
         ent-count (count ents)

@@ -10,6 +10,9 @@
 ### Removed
 
 - `sweet-tooth.endpoint.group-routes` the module has proved unnecessary
+- functions for creating compojure routes in
+  `sweet-tooth.endpoint.liberator`. If those get reintroduced they can
+  have their own ns, as reitit does
 
 ## [0.9.0] 2020-05-16
 

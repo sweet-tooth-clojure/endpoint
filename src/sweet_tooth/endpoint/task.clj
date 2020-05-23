@@ -1,4 +1,6 @@
 (ns sweet-tooth.endpoint.task
+  "A way to run integrant components as a task. Maybe not a great idea?
+  Used for things like creating a db or running migrations."
   (:require [integrant.core :as ig]
             [clojure.stacktrace :as stacktrace]))
 
