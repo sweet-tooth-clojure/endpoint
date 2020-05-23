@@ -22,7 +22,7 @@
   (let [body      [^{:ent-type :topic} {:id 3}
                    ^{:ent-type :post}  {:id 4}]
         conformed (s/conform ::sut/raw-response body)]
-    (is (= [:unformatted-vector
+    (is (= [:mixed-vector
             [[:entity {:id 3}]
              [:entity {:id 4}]]]
            conformed))
@@ -53,10 +53,10 @@
                           :topic
                           [:possible-entity]))))
 
-(deftest formats-unformatted-vector
+(deftest formats-mixed-vector
   (let [body      [{:id 3} [:default {:current-user {}}]]
         conformed (s/conform ::sut/raw-response body)]
-    (is (= [:unformatted-vector
+    (is (= [:mixed-vector
             [[:possible-entity {:id 3}]
              [:segment [:default {:current-user {}}]]]]
            conformed))
@@ -73,7 +73,7 @@
                    [{:id 7} {:id 8}]
                    [:page {}]]
         conformed (s/conform ::sut/raw-response body)]
-    (is (= [:unformatted-vector
+    (is (= [:mixed-vector
             [[:possible-entity {:id 3}]
              [:segment [:default {:current-user {}}]]
              [:entities [{:id 5} {:id 6}]]

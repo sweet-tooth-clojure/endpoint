@@ -2,6 +2,10 @@
 
 ## [0.9.1] WIP
 
+### Added
+
+- docs docs docs
+
 ### Fixed
 
 - Fixed formatting bug where mixing ents of different types in the

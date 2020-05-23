@@ -21,6 +21,8 @@
   (:require [clojure.spec.alpha :as s]
             [sweet-tooth.endpoint.utils :as eu]))
 
+(declare format-body)
+
 ;; A segment is a pair of [:segment-type val]. A response consists of
 ;; 0 or more segments.
 (s/def ::segment-key keyword?)
@@ -36,25 +38,25 @@
 (s/def ::possible-entity map?)
 (s/def ::possible-entities (s/coll-of ::possible-entity))
 
-;; A response can be an unformatted vector, allowing a response that
+;; A response can be a mixed vector, allowing a response that
 ;; mixes unformatted maps with segments like:
 ;; [{:id 3}
 ;;  [:default {:current-user {}}]
 ;;  [{:id 5} {:id 6}]
 ;;  [:page {}]]
-(s/def ::unformatted-vector (s/coll-of (s/or :segment           ::segment
-                                             :entity            ::entity
-                                             :entities          ::entities
-                                             :possible-entity   ::possible-entity
-                                             :possible-entities ::possible-entities)
-                                       :kind vector?))
+(s/def ::mixed-vector (s/coll-of (s/or :segment           ::segment
+                                       :entity            ::entity
+                                       :entities          ::entities
+                                       :possible-entity   ::possible-entity
+                                       :possible-entities ::possible-entities)
+                                 :kind vector?))
 
 (s/def ::raw-response (s/or :formatted-response ::formatted-response
                             :segment            ::segment
                             :entity             ::entity
                             :entities           ::entities
                             :possible-entity    ::possible-entity
-                            :unformatted-vector ::unformatted-vector))
+                            :mixed-vector       ::mixed-vector))
 
 (defn- format-entity
   "Entity maps are returned as
@@ -74,6 +76,14 @@
       (with-meta {:ent-type ent-type})
       (format-entity id-key)))
 
+(defn- format-mixed-vector
+  [body id-key ent-type conformed]
+  (mapv (fn [x x-conformed]
+          (when (not-empty x)
+            (first (format-body x id-key ent-type x-conformed))))
+        body
+        (second conformed)))
+
 (defn format-body
   [body id-key ent-type conformed]
   (case (first conformed)
@@ -83,11 +93,7 @@
     :entities           [(format-entity body id-key)]
     :possible-entity    [(format-possible-entity body id-key ent-type)]
     :possible-entities  [(format-possible-entity body id-key ent-type)]
-    :unformatted-vector (mapv (fn [x x-conformed]
-                                (when (not-empty x)
-                                  (first (format-body x id-key ent-type x-conformed))))
-                              body
-                              (second conformed))))
+    :mixed-vector       (format-mixed-vector body id-key ent-type conformed)))
 
 (defn format-response
   "Assumes that the default response from endpoints is a map or vector
