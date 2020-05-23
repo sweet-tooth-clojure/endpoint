@@ -3,6 +3,7 @@
             [integrant.core :as ig]
             [ring.middleware.format :as f]
             [ring.middleware.gzip :as ring-gzip]
+            [ring.middleware.stacktrace :as ring-stacktrace]
             [sweet-tooth.endpoint.format :as ef]))
 
 ;;---
@@ -94,3 +95,6 @@
 
 (defmethod ig/init-key ::gzip [_ _]
   #(ring-gzip/wrap-gzip %))
+
+(defmethod ig/init-key ::stacktrace-log [_ options]
+  #(ring-stacktrace/wrap-stacktrace-log % options))
