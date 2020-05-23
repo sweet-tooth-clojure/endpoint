@@ -2,9 +2,15 @@
 
 ## [0.9.1] WIP
 
+### Changed
+
+- Updated middleware so that responses would both return
+  segment-formatted exceptions and print logs
+
 ### Added
 
 - docs docs docs
+- componentized ring stacktrace log middleware
 
 ### Fixed
 
