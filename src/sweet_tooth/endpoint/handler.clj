@@ -2,6 +2,10 @@
   (:require [ring.util.response :as resp]
             [integrant.core :as ig]))
 
+;; used with duct's error handler. With an SPA, you want to return
+;; index.html for unknown routes because they could correspond to
+;; valid frontend routes, and by loading index.html you give the
+;; frontend app a chance to handle the route.
 (defmethod ig/init-key ::index.html
   [_ {:keys [root exclude]
       :or   {root    "public"

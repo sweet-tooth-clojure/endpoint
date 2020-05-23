@@ -1,4 +1,5 @@
 (ns sweet-tooth.endpoint.validate-config
+  "not production ready"
   (:require [clojure.pprint :as pprint]
             [clojure.spec.alpha :as s]
             [clojure.string :as str]

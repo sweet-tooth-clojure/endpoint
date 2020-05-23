@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.9.1] WIP
+
+### Removed
+
+- `sweet-tooth.endpoint.group-routes` the module has proved unnecessary
+
 ## [0.9.0] 2020-05-16
 
 ### Added
