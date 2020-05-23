@@ -2,6 +2,11 @@
 
 ## [0.9.1] WIP
 
+### Fixed
+
+- Fixed formatting bug where mixing ents of different types in the
+  same vector didn't work
+
 ### Removed
 
 - `sweet-tooth.endpoint.group-routes` the module has proved unnecessary
