@@ -1,15 +1,23 @@
 (ns sweet-tooth.endpoint.page
-  "Pagination utilitices"
+  "Pagination utilities"
   (:require [sweet-tooth.endpoint.utils :as eu]
             [sweet-tooth.endpoint.liberator :as el]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.spec.alpha :as s]))
 
-(defn slice
-  "Get a single page of ents out of a collection"
-  [page per-page ents]
-  (->> ents
-       (drop (* (dec page) per-page))
-       (take per-page)))
+(s/def ::page int?)
+(s/def ::per-page int?)
+(s/def ::sort-order #{:asc :desc})
+(s/def ::sort-by keyword?)
+(s/def ::query-id keyword?)
+(s/def ::type keyword?)
+
+(s/def ::pager (s/keys :req-un [::page
+                                ::per-page
+                                ::sort-order
+                                ::sort-by
+                                ::query-id
+                                ::type]))
 
 (defprotocol PageSortFn
   "Which comparison function to use"
@@ -32,6 +40,13 @@
 (defn sort-fn
   [val sort-order]
   ((if (= sort-order :desc) desc asc) val))
+
+(defn slice
+  "Get a single page of ents out of a collection"
+  [page per-page ents]
+  (->> ents
+       (drop (* (dec page) per-page))
+       (take per-page)))
 
 (defn paginate
   "Returns segments of the paginated entities and their pager"
@@ -70,5 +85,5 @@
       (eu/update-vals {[:page :per-page]
                        (fn [n] (if (string? n) (Integer. n) n))
 
-                       [:sort-by :sort-order :query-id :type]
+                       :sort-by :sort-order :query-id :type
                        #(keyword (str/replace % #"^:" ""))})))
