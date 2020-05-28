@@ -149,6 +149,7 @@
   (= (first segment) :entity))
 
 (defn response-entities
+  "Walk response data and return all entities from entity segments"
   ([resp-data]
    (response-entities nil resp-data))
   ([ent-type resp-data]
@@ -157,44 +158,64 @@
         (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS]))))
 
 (defn prep-comparison
+  "When testing whether a response contains `test-ent-attrs`, we modify
+  a response entity by:
+
+  1. selecting only the keys that are present in
+  `test-ent-attrs`. This allows us to do an `=` comparison that won't
+  fail if the response entity contains attributes we don't want to
+  test.
+
+  2. Putting the result in a map to handle case where `resp-entity` is
+  a map."
   [resp-entity test-ent-attrs]
   (into {} (select-keys resp-entity (keys test-ent-attrs))))
 
-(defn ^:deprecated contains-entity?
-  "Request's response data creates entity of type `ent-type` that has
-  key/value pairs identical to `test-ent-attrs`.
-
-  Deprecated 0.8.2, prefer `assert-response-contains-*` macros."
-  [resp-data ent-type test-ent-attrs]
-  ((->> resp-data
+(defn comparison-entities
+  "Returns a set that can be used to test if `test-ent-attrs` is
+  contained in a response"
+  ([test-ent-attrs resp-data]
+   (comparison-entities test-ent-attrs resp-data))
+  ([test-ent-attrs ent-type resp-data]
+   (->> resp-data
         (response-entities ent-type)
-        (set))
-   test-ent-attrs))
+        (map #(prep-comparison % test-ent-attrs))
+        (set))))
+
+(defn contains-entity?
+  "Request's response data creates entity of type `ent-type` that has
+  key/value pairs identical to `test-ent-attrs`."
+  ([resp-data test-ent-attrs]
+   (contains-entity? resp-data nil test-ent-attrs))
+  ([resp-data ent-type test-ent-attrs]
+   ((comparison-entities test-ent-attrs ent-type resp-data)
+    test-ent-attrs)))
 
 (defmacro assert-response-contains-one-entity-like
   "Request's response contains only one entity, and that entity is like
   `test-ent-attrs`. Advantage of using this over
   `assert-response-contains-entity-like` is it uses `(is (= ...))`, so
   in test reports you get the diff between expected and actual."
-  [resp-data test-ent-attrs & [ent-type]]
-  `(let [test-ent-attrs#      (into {} ~test-ent-attrs)
-         [ent# :as entities#] (response-entities ~ent-type ~resp-data)
-         c#                   (count entities#)]
-     (when (not= 1 c#)
-       (throw (ex-info (str "Response should contain 1 entity. It had " c# ". Consider using `response-contains-entity-like?`")
-                       {:entities entities#})))
-     (test/is (= (prep-comparison ent# test-ent-attrs#)
-                 test-ent-attrs#)
-              (str "Response entity:\n"
-                   (with-out-str (pprint/pprint ent#))))))
+  ([resp-data test-ent-attrs]
+   (assert-response-contains-one-entity-like resp-data nil test-ent-attrs))
+  ([resp-data ent-type test-ent-attrs]
+   `(let [test-ent-attrs#      (into {} ~test-ent-attrs)
+          [ent# :as entities#] (response-entities ~ent-type ~resp-data)
+          c#                   (count entities#)]
+      (when (not= 1 c#)
+        (throw (ex-info (str "Response should contain 1 entity. It had " c# ". Consider using `assert-response-contains-entity-like`")
+                        {:entities entities#})))
+      (test/is (= (prep-comparison ent# test-ent-attrs#)
+                  test-ent-attrs#)
+               (str "Response entity:\n"
+                    (with-out-str (pprint/pprint ent#)))))))
 
 (defmacro assert-response-contains-entity-like
   "Request's response data creates entity of type `ent-type` (optional)
   that has key/value pairs identical to `test-ent-attrs`"
-  [resp-data test-ent-attrs & [ent-type]]
-  `(let [test-ent-attrs# (into {} ~test-ent-attrs)
-         entities#       (->> ~resp-data
-                              (response-entities ~ent-type)
-                              (map #(prep-comparison % test-ent-attrs#))
-                              (set))]
-     (test/is (contains? entities# test-ent-attrs#))))
+  ([resp-data test-ent-attrs]
+   (assert-response-contains-entity-like resp-data nil test-ent-attrs))
+  ([resp-data ent-type test-ent-attrs]
+   `(let [test-ent-attrs# (into {} ~test-ent-attrs)
+          entities#       (comparison-entities test-ent-attrs# ~ent-type ~resp-data)]
+      (test/is (contains? entities# test-ent-attrs#)))))

@@ -121,11 +121,32 @@
     (is (= {:x "y"}
            (eth/read-body req)))))
 
+(deftest contains-entity?
+  (is (eth/contains-entity? [[:entity {:foo {1 {:gurp :lurp
+                                                :dump :mump}}}]]
+                            {:gurp :lurp}))
+  (is (eth/contains-entity? [[:entity {:foo {1 {:gurp :lurp
+                                                :dump :mump}}}]]
+                            :foo
+                            {:gurp :lurp}))
+  (is (not (eth/contains-entity? [[:entity {:foo {1 {:gurp :lurp
+                                                     :dump :mump}}}]]
+                                 {:boop :moop})))
+  (is (not (eth/contains-entity? [[:entity {:foo {1 {:gurp :lurp
+                                                     :dump :mump}}}]]
+                                 :bad-ent-type
+                                 {:gurp :lurp}))))
 
 (deftest response-contains-one-entity-like-test
   (eth/assert-response-contains-one-entity-like
    [[:entity {:foo {1 {:gurp :lurp
                        :dump :mump}}}]]
+   {:gurp :lurp})
+
+  (eth/assert-response-contains-one-entity-like
+   [[:entity {:foo {1 {:gurp :lurp
+                       :dump :mump}}}]]
+   :foo
    {:gurp :lurp})
 
   (comment

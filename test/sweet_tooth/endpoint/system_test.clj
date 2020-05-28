@@ -59,3 +59,7 @@
     (let [{:keys [::b]} (es/system ::alternative-test {::b (es/shrubbery-mock)})]
       (blurm b)
       (is (shrub/received? b blurm [])))))
+
+
+
+(es/system ::alternative-test {::b (es/shrubbery-mock {Stubby {:blurm "blurmed!"}})})

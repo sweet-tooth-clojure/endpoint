@@ -13,6 +13,11 @@
 
 ## format
 
+the backend/frontend language
+
+* entities
+* validation
+
 ## route expansion
 
 - namespaces

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.2] 2020-05-28
+
+### Fixed
+
+- Fixed `sweet-tooth.endpoint.test.harness/contains-entity?` - it
+  wasn't transforming the response data correctly in order to perform
+  the desired comparison.
+
+### Undeprecated
+
+- `sweet-tooth.endpoint.test.harness/contains-entity?`. The assert
+  macros are generally more useful but this function still comes in
+  handy. Maybe show a little more restraint with the deprecation
+  hammer next time, Daniel.
+
 ## [0.9.1] 2020-05-23
 
 ### Changed
