@@ -1,4 +1,4 @@
-(defproject sweet-tooth/sweet-tooth-endpoint "0.9.2"
+(defproject sweet-tooth/sweet-tooth-endpoint "0.9.3-SNAPSHOT"
   :description "Utilities for working with liberator-based endpoints"
   :url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"
   :scm {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"}
@@ -26,7 +26,7 @@
                  [com.flyingmachine/datomic-junk "0.2.3"]
                  [com.flyingmachine/webutils "0.1.6"]
                  [liberator "0.15.3"]
-                 [ring-middleware-format "0.7.0"]
+                 [ring-middleware-format "0.7.4"] ;; transit content negotiation
                  [bk/ring-gzip "0.3.0"]
                  [buddy/buddy-auth "2.1.0"]]
 

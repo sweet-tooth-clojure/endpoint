@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.3] 2020-05-28
+
+### Fixed
+
+- `sweet-tooth.endpoint.test.harness/assert-response-contains-one-entity-like`
+  fixed bug with multiple arities
+- `sweet-tooth.endpoint.test.harness/assert-response-contains-entity-like`
+  fixed bug with multiple arities
+  
+
 ## [0.9.2] 2020-05-28
 
 ### Fixed

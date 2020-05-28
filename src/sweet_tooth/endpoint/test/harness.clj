@@ -197,7 +197,7 @@
   `assert-response-contains-entity-like` is it uses `(is (= ...))`, so
   in test reports you get the diff between expected and actual."
   ([resp-data test-ent-attrs]
-   (assert-response-contains-one-entity-like resp-data nil test-ent-attrs))
+   `(assert-response-contains-one-entity-like ~resp-data nil ~test-ent-attrs))
   ([resp-data ent-type test-ent-attrs]
    `(let [test-ent-attrs#      (into {} ~test-ent-attrs)
           [ent# :as entities#] (response-entities ~ent-type ~resp-data)
@@ -214,7 +214,7 @@
   "Request's response data creates entity of type `ent-type` (optional)
   that has key/value pairs identical to `test-ent-attrs`"
   ([resp-data test-ent-attrs]
-   (assert-response-contains-entity-like resp-data nil test-ent-attrs))
+   `(assert-response-contains-entity-like ~resp-data nil ~test-ent-attrs))
   ([resp-data ent-type test-ent-attrs]
    `(let [test-ent-attrs# (into {} ~test-ent-attrs)
           entities#       (comparison-entities test-ent-attrs# ~ent-type ~resp-data)]

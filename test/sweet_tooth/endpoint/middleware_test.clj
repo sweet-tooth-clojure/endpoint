@@ -8,12 +8,13 @@
 (duct/load-hierarchy)
 
 (deftest meta-merge-with-default-configs
-  (is (= {:duct.handler/root {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/restful-format)]
-                              :router     (ig/ref :duct/router)}
-
+  (is (= {:sweet-tooth.endpoint.middleware/stacktrace-log {}
           :sweet-tooth.endpoint.middleware/restful-format {:formats [:json]}
-          :duct.middleware.web/not-found                  {:error-handler (ig/ref :sweet-tooth.endpoint.handler/index.html)},
-          :sweet-tooth.endpoint.handler/index.html        {}}
+          :duct.middleware.web/not-found                  {:error-handler (ig/ref :sweet-tooth.endpoint.handler/index.html)}
+          :sweet-tooth.endpoint.handler/index.html        {}
+          :duct.handler/root                              {:router     (ig/ref :duct/router)
+                                                           :middleware [(ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
+                                                                        (ig/ref :sweet-tooth.endpoint.middleware/restful-format)]}}
 
          (duct/prep-config {:duct.profile/base                      {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}
                             :sweet-tooth.endpoint.module/middleware {:exclude [::em/gzip

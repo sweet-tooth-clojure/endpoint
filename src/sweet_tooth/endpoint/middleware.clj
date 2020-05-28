@@ -90,6 +90,8 @@
 ;; integrantized external middleware
 ;;---
 
+;; serialization and deserialization, see
+;; https://github.com/ngrunwald/ring-middleware-format#summary
 (defmethod ig/init-key ::restful-format [_ options]
   #(f/wrap-restful-format % options))
 
