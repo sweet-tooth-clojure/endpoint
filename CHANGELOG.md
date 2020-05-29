@@ -2,6 +2,10 @@
 
 ## [0.9.3] 2020-05-28
 
+### Added
+
+- warning logging when liberator decisions aren't configured correctly
+
 ### Fixed
 
 - `sweet-tooth.endpoint.test.harness/assert-response-contains-one-entity-like`

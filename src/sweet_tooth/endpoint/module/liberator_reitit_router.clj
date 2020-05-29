@@ -57,6 +57,9 @@
                           :decisions decisions})))))
 
 (defn- log-decision-problems
+  "Help the dev as much as possible if they've misconfigured something.
+
+  TODO include a link to an explanation of the warning."
   [logger decision-map decision-ns decision-var-name route-type]
   (let [common-log-data      {:decision-ns       decision-ns
                               :decision-var-name decision-var-name
