@@ -56,24 +56,20 @@
 
 (defn liberator-resources
   "Return both unary and collection request handlers"
-  [{:keys [decisions ctx] :as endpoint-opts}]
+  [{:keys [decisions ctx ::err/type] :as endpoint-opts}]
   (let [decision-map (cond (map? decisions)    decisions
                            (symbol? decisions) (resolve-decisions endpoint-opts))]
-
-    (medley/map-vals (fn [ds]
-                       (->> (el/initialize-decisions ds ctx)
-                            ;; TODO make this configurable?
-                            (lu/merge-decisions el/decision-defaults)
-                            (lu/resources {:all (keys el/decision-defaults)})
-                            :all))
-                     decision-map)))
+    (->> (el/initialize-decisions (get decision-map type) ctx)
+         ;; TODO make this configurable?
+         (lu/merge-decisions el/decision-defaults)
+         (lu/resources {:all (keys el/decision-defaults)})
+         :all)))
 
 ;; Individual route handlers are derived from these handlers
 (defmethod ig/init-key ::handler [_ endpoint-opts]
   ;; a :coll route gets looked up under :coll in handlers,
   ;; likewise with :ent or :ent/child
-  (get (liberator-resources endpoint-opts)
-       (::err/type endpoint-opts)))
+  (liberator-resources endpoint-opts))
 
 ;;-----------
 ;; handler component config

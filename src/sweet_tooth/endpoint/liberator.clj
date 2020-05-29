@@ -100,7 +100,7 @@
 ;; Generating liberator resources without defresource
 ;; TODO check if there's something better than handle-malformed
 (def decision-defaults
-  "A 'base' set of liberator resource decisions"
+  "A base set of liberator resource decisions"
   (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
         base          {:available-media-types ["application/transit+json"
                                                "application/transit+msgpack"
