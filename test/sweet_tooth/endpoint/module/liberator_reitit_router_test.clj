@@ -7,8 +7,10 @@
 
             [ring.mock.request :as mock]
             [duct.core :as duct]
+            [duct.logger]
             [integrant.core :as ig]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all]
+            [shrubbery.core :as shrub]))
 
 (duct/load-hierarchy)
 
@@ -19,11 +21,12 @@
           :delete {:respond-with-entity? true
                    :handle-ok            ["COLL DELETE"]}}
 
-   :ent  {:get    {:handle-ok ["ENT GET"]}
-          :post   {:handle-created ["ENT POST"]}
-          :put    {:handle-ok ["ENT PUT"]}
-          :delete {:respond-with-entity? true
-                   :handle-ok            ["ENT DELETE"]}}
+   :ent {:get     {:handle-ok ["ENT GET"]}
+         :post    {:handle-created ["ENT POST"]}
+         :put     {:handle-ok ["ENT PUT"]}
+         :delete  {:respond-with-entity? true
+                   :handle-ok            ["ENT DELETE"]}
+         :unknown {}}
 
    :ent/history {:get    {:handle-ok ["ENT HISTORY GET"]}
                  :post   {:handle-created ["ENT HISTORY POST"]}
@@ -39,7 +42,8 @@
 
 (def duct-config
   {:duct.profile/base {:duct.core/project-ns  'sweet-tooth
-                       :duct.core/environment :production}
+                       :duct.core/environment :production
+                       :duct.logger/timbre    (es/shrubbery-mock {})}
 
    :sweet-tooth.endpoint.module/liberator-reitit-router {:routes ::ns-routes}
 
@@ -190,3 +194,9 @@
   (eth/with-system ::test
     (is (= "hi! i show the fallback route works.\n"
            (slurp (:body ((eth/handler) (mock/request :get "/no-route"))))))))
+
+(deftest warns-unknown-methods
+  (eth/with-system ::test
+    (is (shrub/received? (eth/component :duct.logger/timbre)
+                         duct.logger/-log
+                         [:warn]))))
