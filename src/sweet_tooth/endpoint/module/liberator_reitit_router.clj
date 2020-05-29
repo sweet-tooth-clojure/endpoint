@@ -57,25 +57,37 @@
                           :decisions decisions})))))
 
 (defn- log-decision-problems
-  [logger decision-map decision-ns decision-var-name]
-  (let [valid-methods        #{:get :head :post :put :delete
+  [logger decision-map decision-ns decision-var-name route-type]
+  (let [common-log-data      {:decision-ns       decision-ns
+                              :decision-var-name decision-var-name
+                              :route-type        route-type}
+        valid-methods        #{:get :head :post :put :delete
                                :connect :options :trace :patch}
         unrecognized-methods (set/difference (set (keys decision-map)) valid-methods)]
+    (when (empty? decision-map)
+      (log/warn logger
+                ::no-decisions-defined
+                (assoc common-log-data
+                       :instructions "Add a decision map for this route-type")))
     (when (not-empty unrecognized-methods)
       (log/warn logger
                 ::unrecognized-decision-map-methods
-                {:unrecognized-methods unrecognized-methods
-                 :valid-methods        valid-methods
-                 :decision-ns          decision-ns
-                 :decision-var-name    decision-var-name}))))
+                (assoc common-log-data
+                       :unrecognized-methods unrecognized-methods
+                       :valid-methods        valid-methods
+                       :instructions         "Remove unrecognized methods from the the decision map")))))
 
 (defn liberator-resources
-  "Return both unary and collection request handlers"
+  "Return liberator resource handler for a route type"
   [{:keys [decisions ctx ::err/type] :as endpoint-opts}]
   (let [decision-map (get (cond (map? decisions)    decisions
                                 (symbol? decisions) (resolve-decisions endpoint-opts))
                           type)]
-    (log-decision-problems (:logger ctx) decision-map (::err/ns endpoint-opts) decisions)
+    (log-decision-problems (:logger ctx)
+                           decision-map
+                           (::err/ns endpoint-opts)
+                           decisions
+                           type)
     (->> (el/initialize-decisions decision-map ctx)
          ;; TODO make this configurable?
          (lu/merge-decisions el/decision-defaults)
