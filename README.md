@@ -24,3 +24,9 @@ the backend/frontend language
 - combined options
 - expansion strategies
 - relationship to reitit decisions
+
+## liberator / route relationship
+
+## datomic helpers
+
+## tasks

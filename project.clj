@@ -1,4 +1,4 @@
-(defproject sweet-tooth/sweet-tooth-endpoint "0.9.3"
+(defproject sweet-tooth/sweet-tooth-endpoint "0.9.4-SNAPSHOT"
   :description "Utilities for working with liberator-based endpoints"
   :url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"
   :scm {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"}
@@ -16,6 +16,7 @@
                  [duct/middleware.buddy "0.1.0"]
                  [duct/module.logging   "0.4.0"]
                  [duct/module.web       "0.7.0"]
+                 [hawk                  "0.2.11"] ;; duct system reloading
 
                  [sweet-tooth/describe "0.3.0"]
                  [com.gearswithingears/shrubbery "0.4.1"]
