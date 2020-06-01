@@ -1,13 +1,21 @@
 # Changelog
 
-## [0.9.5] 2020-06-201
+## [0.10.0] 2020-06-01
+
+### Changed
+
+- renamed `:coll` and `:ent` reitit router expanders to `:collection`
+  and `:member`. Less ambiguous, and `:member` is more meaningful,
+  especially when paired with `:collection`.
+
+## [0.9.5] 2020-06-01
 
 ### Added
 
 - added `:sweet-tooth.endpoint.system/mocked-component-opts` option
   for shrubbery mocks to pass through opts to the mocked component
 
-## [0.9.4] 2020-06-201
+## [0.9.4] 2020-06-01
 
 ### Added
 

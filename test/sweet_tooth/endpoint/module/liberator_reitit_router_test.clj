@@ -15,28 +15,28 @@
 (duct/load-hierarchy)
 
 (def decisions
-  {:coll {:get    {:handle-ok ["COLL GET"]}
-          :post   {:handle-created ["COLL POST"]}
-          :put    {:handle-ok ["COLL PUT"]}
-          :delete {:respond-with-entity? true
-                   :handle-ok            ["COLL DELETE"]}}
+  {:collection {:get    {:handle-ok ["COLL GET"]}
+                :post   {:handle-created ["COLL POST"]}
+                :put    {:handle-ok ["COLL PUT"]}
+                :delete {:respond-with-entity? true
+                         :handle-ok            ["COLL DELETE"]}}
 
-   :ent {:get     {:handle-ok ["ENT GET"]}
-         :post    {:handle-created ["ENT POST"]}
-         :put     {:handle-ok ["ENT PUT"]}
-         :delete  {:respond-with-entity? true
-                   :handle-ok            ["ENT DELETE"]}
-         :unknown {}}
+   :member {:get     {:handle-ok ["ENT GET"]}
+            :post    {:handle-created ["ENT POST"]}
+            :put     {:handle-ok ["ENT PUT"]}
+            :delete  {:respond-with-entity? true
+                      :handle-ok            ["ENT DELETE"]}
+            :unknown {}}
 
-   :ent/history {:get    {:handle-ok ["ENT HISTORY GET"]}
-                 :post   {:handle-created ["ENT HISTORY POST"]}
-                 :put    {:handle-ok ["ENT HISTORY PUT"]}
-                 :delete {:respond-with-entity? true
-                          :handle-ok            ["ENT HISTORY DELETE"]}}})
+   :member/history {:get    {:handle-ok ["ENT HISTORY GET"]}
+                    :post   {:handle-created ["ENT HISTORY POST"]}
+                    :put    {:handle-ok ["ENT HISTORY PUT"]}
+                    :delete {:respond-with-entity? true
+                             :handle-ok            ["ENT HISTORY DELETE"]}}})
 
 (def ns-routes
   (err/expand-routes [[:sweet-tooth.endpoint.module.liberator-reitit-router-test
-                       {::err/expand-with [:coll :ent :ent/history
+                       {::err/expand-with [:collection :member :member/history
                                            ["/custom/path" {:name :custom-path}]]}]
                       ["/" {:woo :yeah :handler "x"}]]))
 
@@ -53,8 +53,8 @@
    :sweet-tooth.endpoint.module/middleware {}})
 
 (deftest builds-duct-config
-  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::coll-handler ::ent-handler
-                                                                     ::ent-history-handler ::custom-path-handler])
+  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::collection-handler ::member-handler
+                                                                     ::member-history-handler ::custom-path-handler])
                         ;; TODO figure out how to not have to do these
                         ;; shenanigans
 
@@ -64,7 +64,7 @@
                                                              (update-in route [1 :middleware] (fn [x] (drop 1 x))))
                                                            %)))]
 
-    (is (= #{::coll-handler ::ent-handler ::sut/reitit-router ::ent-history-handler ::custom-path-handler}
+    (is (= #{::collection-handler ::member-handler ::sut/reitit-router ::member-history-handler ::custom-path-handler}
            (set (keys duct-config))))
 
     (testing "router"
@@ -74,27 +74,27 @@
                                      :auth-id-key :id
                                      :ent-type    :liberator-reitit-router-test
                                      :middleware  [em/wrap-merge-params]
-                                     :handler     (ig/ref ::coll-handler)
+                                     :handler     (ig/ref ::collection-handler)
                                      ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type   :coll}]
+                                     ::err/type   :collection}]
                                    ["/module/liberator-reitit-router-test/{id}"
                                     {:name        :module.liberator-reitit-router-test
                                      :id-key      :id
                                      :auth-id-key :id
                                      :ent-type    :liberator-reitit-router-test
                                      :middleware  [em/wrap-merge-params]
-                                     :handler     (ig/ref ::ent-handler)
+                                     :handler     (ig/ref ::member-handler)
                                      ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type   :ent}]
+                                     ::err/type   :member}]
                                    ["/module/liberator-reitit-router-test/{id}/history"
                                     {:name        :module.liberator-reitit-router-test/history
                                      :id-key      :id
                                      :auth-id-key :id
                                      :ent-type    :liberator-reitit-router-test
                                      :middleware  [em/wrap-merge-params]
-                                     :handler     (ig/ref ::ent-history-handler)
+                                     :handler     (ig/ref ::member-history-handler)
                                      ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type   :ent/history}]
+                                     ::err/type   :member/history}]
                                    ["/module/liberator-reitit-router-test/custom/path"
                                     {:name        :custom-path
                                      :handler     (ig/ref ::custom-path-handler)
@@ -110,34 +110,34 @@
              (select-keys duct-config [::sut/reitit-router]))))
 
     (testing "coll handler"
-      (is (= {::coll-handler {:name        :module.liberator-reitit-router-tests
-                              :id-key      :id
-                              :auth-id-key :id
-                              :ctx         {:id-key                         :id
-                                            :auth-id-key                    :id
-                                            :logger                         (ig/ref :duct/logger)
-                                            :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
-                              :decisions   'decisions
-                              :ent-type    :liberator-reitit-router-test
-                              ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                              ::err/type   :coll
-                              ::sut/path   "/module/liberator-reitit-router-test"}}
-             (select-keys duct-config [::coll-handler]))))
+      (is (= {::collection-handler {:name        :module.liberator-reitit-router-tests
+                                    :id-key      :id
+                                    :auth-id-key :id
+                                    :ctx         {:id-key                         :id
+                                                  :auth-id-key                    :id
+                                                  :logger                         (ig/ref :duct/logger)
+                                                  :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
+                                    :decisions   'decisions
+                                    :ent-type    :liberator-reitit-router-test
+                                    ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                    ::err/type   :collection
+                                    ::sut/path   "/module/liberator-reitit-router-test"}}
+             (select-keys duct-config [::collection-handler]))))
 
     (testing "ent handler"
-      (is (= {::ent-handler {:name        :module.liberator-reitit-router-test
-                             :id-key      :id
-                             :auth-id-key :id
-                             :ctx         {:id-key                         :id
-                                           :auth-id-key                    :id
-                                           :logger                         (ig/ref :duct/logger)
-                                           :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
-                             :decisions   'decisions
-                             :ent-type    :liberator-reitit-router-test
-                             ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                             ::err/type   :ent
-                             ::sut/path   "/module/liberator-reitit-router-test/{id}"}}
-             (select-keys duct-config [::ent-handler]))))))
+      (is (= {::member-handler {:name        :module.liberator-reitit-router-test
+                                :id-key      :id
+                                :auth-id-key :id
+                                :ctx         {:id-key                         :id
+                                              :auth-id-key                    :id
+                                              :logger                         (ig/ref :duct/logger)
+                                              :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
+                                :decisions   'decisions
+                                :ent-type    :liberator-reitit-router-test
+                                ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                                ::err/type   :member
+                                ::sut/path   "/module/liberator-reitit-router-test/{id}"}}
+             (select-keys duct-config [::member-handler]))))))
 
 (defmethod es/config ::test [_]
   (dissoc (duct/prep-config duct-config) :duct.server.http/jetty))

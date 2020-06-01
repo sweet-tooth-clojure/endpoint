@@ -99,8 +99,8 @@
 
 ;; Individual route handlers are derived from these handlers
 (defmethod ig/init-key ::handler [_ endpoint-opts]
-  ;; a :coll route gets looked up under :coll in handlers,
-  ;; likewise with :ent or :ent/child
+  ;; a :collection route gets looked up under :collection in handlers,
+  ;; likewise with :member or :member/child
   (liberator-resources endpoint-opts))
 
 ;;-----------

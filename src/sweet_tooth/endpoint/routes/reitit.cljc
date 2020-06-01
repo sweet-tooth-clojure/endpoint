@@ -18,11 +18,11 @@
 
   [[\"/user\" {:name   :users
                ::ns    :my-app.endpoint.user
-               ::type  :coll
+               ::type  :collection
                :id-key :id}]
    [\"/user/{id}\" {:name   :user
                     ::ns    :my-app.endpoint.user
-                    ::type  :ent
+                    ::type  :member
                     :id-key :id}]]
 
   ## Common option map
@@ -40,33 +40,33 @@
 
   [[\"/user\" {:name   :users
                ::ns    :my-app.endpoint.user
-               ::type  :coll
+               ::type  :collection
                :ctx    {:foo :bar}
                :id-key :id}]
    [\"/user/{id}\" {:name   :user
                     ::ns    :my-app.endpoint.user
-                    ::type  :ent
+                    ::type  :member
                     :ctx    {:foo :bar}
                     :id-key :id}]
    [\"/post\" {:name   :posts
                ::ns    :my-app.endpoint.post
-               ::type  :coll
+               ::type  :collection
                :ctx    {:foo :bar}
                :id-key :id}]
    [\"/post/{id}\" {:name   :post
                     ::ns    :my-app.endpoint.post
-                    ::type  :ent
+                    ::type  :member
                     :ctx    {:foo :bar}
                     :id-key :id}]
 
    ;; vote routes do not include the :ctx key
    [\"/vote\" {:name   :votes
                ::ns    :my-app.endpoint.vote
-               ::type  :coll
+               ::type  :collection
                :id-key :id}]
    [\"/vote/{id}\" {:name   :vote
                     ::ns    :my-app.endpoint.vote
-                    ::type  :ent
+                    ::type  :member
                     :id-key :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
@@ -199,9 +199,9 @@
       ::path
       (let [ns (keyword (namespace expander))
             n  (keyword (name expander))]
-        (cond (and (= ns :coll) (some? n)) ::coll-child
-              (and (= ns :ent) (some? n))  ::ent-child
-              :else                        expander)))))
+        (cond (and (= ns :collection) (some? n)) ::collection-child
+              (and (= ns :member) (some? n))     ::member-child
+              :else                              expander)))))
 
 ;; handles expanders like ["/some/path" {:name :xyz}]
 (defmethod expand-with
@@ -220,10 +220,10 @@
                    ::path (format-str "/%s%s" (slash base-name) path)}
                   opts))
 
-;; keys like :ent/some-key are treated like
-;; ["/ent-type/{id}/some-key" {:name :ent-type/some-key}]
+;; keys like :member/some-key are treated like
+;; ["/ent-type/{id}/some-key" {:name :member/some-key}]
 (defmethod expand-with
-  ::ent-child
+  ::member-child
   [nsk expander {:keys [::base-name] :as opts}]
   (generate-route nsk
                   expander
@@ -237,7 +237,7 @@
                   opts))
 
 (defmethod expand-with
-  :coll
+  :collection
   [nsk expander {:keys [::base-name] :as opts}]
   (generate-route nsk
                   expander
@@ -246,7 +246,7 @@
                   opts))
 
 (defmethod expand-with
-  :ent
+  :member
   [nsk expander {:keys [::base-name] :as opts}]
   (generate-route nsk
                   expander
@@ -258,7 +258,7 @@
                                          (ksubs id-key)))}
                   opts))
 
-;; singletons use the :coll path and the :ent name
+;; singletons use the :collection path and the :member name
 (defmethod expand-with
   :singleton
   [nsk expander {:keys [::base-name] :as opts}]
@@ -283,7 +283,7 @@
      (let [base-name (-> (str ns)
                          (str/split delimiter)
                          (second))
-           expanders (s/assert ::expand-with (::expand-with opts [:coll :ent]))
+           expanders (s/assert ::expand-with (::expand-with opts [:collection :member]))
            opts      (assoc opts ::base-name base-name)]
        (reduce (fn [routes expander]
                  (let [expander-opts (s/assert ::expander-opts (if (sequential? expander) (second expander) {}))
