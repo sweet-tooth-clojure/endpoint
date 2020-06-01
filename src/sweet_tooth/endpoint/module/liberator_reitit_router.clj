@@ -32,7 +32,6 @@
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.routes.reitit :as err]
             [clojure.string :as str]
-            [medley.core :as medley]
             [clojure.set :as set]
             [duct.logger :as log]))
 
@@ -82,10 +81,11 @@
 
 (defn liberator-resources
   "Return liberator resource handler for a route type"
-  [{:keys [decisions ctx ::err/type] :as endpoint-opts}]
-  (let [decision-map (get (cond (map? decisions)    decisions
-                                (symbol? decisions) (resolve-decisions endpoint-opts))
-                          type)]
+  [{:keys [decisions ctx ::err/type ::path] :as endpoint-opts}]
+  (let [decision-var (cond (map? decisions)    decisions
+                           (symbol? decisions) (resolve-decisions endpoint-opts))
+        decision-map (or (get decision-var type)
+                         (get decision-var path))]
     (log-decision-problems (:logger ctx)
                            decision-map
                            (::err/ns endpoint-opts)
@@ -153,6 +153,10 @@
                                                            (str/replace #".*\.(?=[^.]+$)" "")
                                                            keyword)}))
 
+(defn- add-path
+  [route]
+  (update-opts-if-ns-route route flip-merge {::path (first route)}))
+
 (defn- add-id-keys
   [route]
   (update-opts-if-ns-route route flip-merge {:id-key :id, :auth-id-key :id}))
@@ -203,6 +207,7 @@
   (-> route
       add-id-keys
       add-ent-type
+      add-path
       add-default-ctx
       add-decisions))
 

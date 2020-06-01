@@ -16,7 +16,6 @@
                  [duct/middleware.buddy "0.1.0"]
                  [duct/module.logging   "0.4.0"]
                  [duct/module.web       "0.7.0"]
-                 [hawk                  "0.2.11"] ;; duct system reloading
 
                  [sweet-tooth/describe "0.3.0"]
                  [com.gearswithingears/shrubbery "0.4.1"]

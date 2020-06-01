@@ -120,7 +120,8 @@
                               :decisions   'decisions
                               :ent-type    :liberator-reitit-router-test
                               ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                              ::err/type   :coll}}
+                              ::err/type   :coll
+                              ::sut/path   "/module/liberator-reitit-router-test"}}
              (select-keys duct-config [::coll-handler]))))
 
     (testing "ent handler"
@@ -134,7 +135,8 @@
                              :decisions   'decisions
                              :ent-type    :liberator-reitit-router-test
                              ::err/ns     :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                             ::err/type   :ent}}
+                             ::err/type   :ent
+                             ::sut/path   "/module/liberator-reitit-router-test/{id}"}}
              (select-keys duct-config [::ent-handler]))))))
 
 (defmethod es/config ::test [_]
