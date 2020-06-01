@@ -40,12 +40,17 @@
 (defn shrubbery-mock
   "Returns a component configuration that will use
   `init-key-alternative`'s `::shrubbery-mock` implementation. Does not
-  replace the original component's config so that the original
-  component can be initialized."
+  replace the original component's config so that the mocked
+  component can be initialized.
+
+  `::mocked-component-opts` defines additional config opts that should
+  get passed to the mocked component. One use for this is to satisfy
+  that component's config spec."
   ([] (shrubbery-mock {}))
-  ([config]
-   {::init-key-alternative ::shrubbery-mock
-    ::shrubbery-mock       config}))
+  ([{:keys [::mocked-component-opts] :as opts}]
+   (merge {::init-key-alternative ::shrubbery-mock
+           ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
+          mocked-component-opts)))
 
 ;; mock a component by initializating the mocked component, returning a
 ;; record that's used to create a mock object

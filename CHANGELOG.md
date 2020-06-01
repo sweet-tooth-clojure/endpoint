@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.5] 2020-06-201
+
+### Added
+
+- added `:sweet-tooth.endpoint.system/mocked-component-opts` option
+  for shrubbery mocks to pass through opts to the mocked component
+
 ## [0.9.4] 2020-06-201
 
 ### Added

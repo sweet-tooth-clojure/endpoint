@@ -61,5 +61,11 @@
       (is (shrub/received? b blurm [])))))
 
 
+(deftest shrubbery-mock
+  (is (= {::es/init-key-alternative :sweet-tooth.endpoint.system/shrubbery-mock
+          ::es/shrubbery-mock       {:foo :bar}
+          :baz                      :boop}
+         (es/shrubbery-mock {:foo                       :bar
+                             ::es/mocked-component-opts {:baz :boop}}))))
 
 (es/system ::alternative-test {::b (es/shrubbery-mock {Stubby {:blurm "blurmed!"}})})
