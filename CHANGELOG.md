@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.9.4] 2020-06-201
+
+### Added
+
+- endpoint decision maps can now be keyed by path instead of by
+  expander type. These both work:
+
+  ```clojure
+  {:coll {:get {:handle-ok [}}}
+  {"/" {:get {:handle-ok [}}}
+  ```
+
 ## [0.9.3] 2020-05-28
 
 ### Added
