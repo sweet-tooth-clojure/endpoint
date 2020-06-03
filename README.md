@@ -9,7 +9,7 @@
 ## systems
 
 * named configs
-* mocking / replacing
+* mocking / replacing / alternative components
 
 ## format
 

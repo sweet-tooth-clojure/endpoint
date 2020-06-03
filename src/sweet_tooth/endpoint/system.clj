@@ -4,7 +4,7 @@
   * A multimethod `config` for naming integrant configs, like `:dev`,
   `:test`, etc.
   * An `ig/init-key` alternative that allows a component's *configuration*
-    to specify an alternative coponent implementation, possibly bypassing
+    to specify an alternative component implementation, possibly bypassing
     the `ig/init-key` implementation entirely
   * `replacement` and `shrubbery-mock` alternatives"
   (:require [integrant.core :as ig]
@@ -17,9 +17,39 @@
 ;; specs
 ;; -------------------------
 
-(s/def ::init-key-alternative keyword?)
-(s/def ::alternative-component (s/keys :req-un [::init-key-alternative]))
+;;---
+;; alternative components
+;;---
 
+(s/def ::init-key-alternative keyword?)
+(s/def ::replacement any?)
+(s/def ::shrubbery-mock map?)
+
+(defmulti replacement-type ::init-key-alternative)
+(defmethod replacement-type ::replacement [_]
+  (s/keys :req [::init-key-alternative ::replacement]))
+(defmethod replacement-type ::shrubbery-mock [_]
+  (s/keys :req [::init-key-alternative ::shrubbery-mock]))
+
+(s/def ::alternative-component (s/multi-spec replacement-type ::init-key-altnernative))
+
+(defn component-spec-with-alternative
+  "Alternative components are likely run in dev and test environments
+  where components are unlikely to take the same arguments as their
+  live counterparts. This helper function capture that notion for
+  component specs."
+  [live-spec]
+  (s/or ::alternative-component ::alternative-component
+        ::live-component        live-spec))
+
+;;---
+;; systems
+;;---
+
+(s/def ::init-keys (s/coll-of keyword? :kind vector?))
+(s/def ::config-name keyword?)
+(s/def ::config map?)
+(s/def ::system map?)
 
 
 ;; -------------------------
@@ -29,6 +59,10 @@
 ;;---
 ;; replacement
 ;;---
+
+(defmulti init-key-alternative (fn [_ {:keys [::init-key-alternative]}]
+                                 init-key-alternative))
+
 (defn replacement
   "Retuns a component config that's used to return the given component
   without initializing the replaced component."
@@ -36,8 +70,8 @@
   {::replacement          component
    ::init-key-alternative ::replacement})
 
-(defmulti init-key-alternative (fn [_ {:keys [::init-key-alternative]}]
-                                 init-key-alternative))
+(s/fdef replacement
+  :ret ::alternative-component)
 
 ;; Simple replacement with an alternative component.
 (defmethod init-key-alternative ::replacement
@@ -47,6 +81,7 @@
 ;;---
 ;; mock components
 ;;---
+
 (defn shrubbery-mock
   "Returns a component configuration that will use
   `init-key-alternative`'s `::shrubbery-mock` implementation. Does not
@@ -61,6 +96,9 @@
    (merge {::init-key-alternative ::shrubbery-mock
            ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
           mocked-component-opts)))
+
+(s/fdef shrubbery-mock
+  :ret ::alternative-component)
 
 ;; mock a component by initializating the mocked component, returning a
 ;; record that's used to create a mock object
@@ -78,6 +116,7 @@
 ;;---
 ;; custom init
 ;;---
+
 (defmethod init-key-alternative :default [_ _] nil)
 
 (defn init-key
@@ -99,6 +138,11 @@
    {:pre [(map? config)]}
    (ig/build config init-keys init-key #'ig/assert-pre-init-spec ig/resolve-key)))
 
+(s/fdef init
+  :args (s/cat :config ::config
+               :init-keys ::init-kes)
+  :ret ::system)
+
 ;; -------------------------
 ;; create named configs
 ;; -------------------------
@@ -108,6 +152,10 @@
   e.g. :test, :dev, :prod, etc"
   identity)
 
+(s/fdef config
+  :args (s/cat :config-name keyword?)
+  :ret ::config)
+
 (defn- system-config
   ([config-name]
    (config config-name))
@@ -116,6 +164,11 @@
      (cond (map? custom-config) (mm/meta-merge cfg custom-config)
            (fn? custom-config)  (custom-config cfg)))))
 
+(s/fdef system-config
+  :args (s/cat :config-name keyword?
+               :custom-config ::config)
+  :ret ::config)
+
 (defn system
   ([config-name]
    (init (system-config config-name)))
@@ -123,6 +176,12 @@
    (init (system-config config-name custom-config)))
   ([config-name custom-config init-keys]
    (init (system-config config-name custom-config) init-keys)))
+
+(s/fdef system
+  :args (s/cat :config-name keyword?
+               :custom-config ::config
+               :init-keys ::init-keys)
+  :ret ::system)
 
 ;; -------------------------
 ;; readers to use with duct/read-config

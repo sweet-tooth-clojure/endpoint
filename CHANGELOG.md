@@ -3,9 +3,14 @@
 
 ## [0.10.1] WIP
 
+### Added
+
+- added MIT license
+
 ### Changed
 
 - specify init-keys in `sweet-tooth.endpoint.system/system`
+- spec out `sweet-tooth.endpoint.system`
 
 ## [0.10.0] 2020-06-01
 

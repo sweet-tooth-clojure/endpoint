@@ -2,7 +2,8 @@
   (:require [clojure.test :refer [deftest is testing]]
             [sweet-tooth.endpoint.system :as es]
             [integrant.core :as ig]
-            [shrubbery.core :as shrub]))
+            [shrubbery.core :as shrub]
+            [clojure.spec.alpha :as s]))
 
 (defmethod ig/init-key ::a [_ opts]
   opts)
@@ -35,11 +36,14 @@
 ;;------
 ;; alternative component impls
 ;;------
+(s/def ::foo map?)
 
-
-;;------
-;; alternative component impls
-;;------
+(deftest component-spec-with-alternative
+  (let [spec (es/component-spec-with-alternative ::foo)]
+    (is (s/valid? spec (es/shrubbery-mock)))
+    (is (s/valid? spec (es/replacement {})))
+    (is (s/valid? spec {}))
+    (is (not (s/valid? spec nil)))))
 
 (defprotocol Stubby
   (blurm [_]))
