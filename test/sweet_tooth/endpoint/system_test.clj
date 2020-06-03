@@ -7,8 +7,15 @@
 (defmethod ig/init-key ::a [_ opts]
   opts)
 
+(defmethod ig/init-key ::boop [_ opts]
+  opts)
+
 (defmethod es/config ::test [_]
   {::a :b})
+
+;;------
+;; system function
+;;------
 
 (deftest system-test
   (is (= {::a :b}
@@ -21,10 +28,18 @@
   (is (= {::a :c}
          (es/system ::test (fn [cfg] (assoc cfg ::a :c))))))
 
+(deftest system-init-keys
+  (is (= {::boop :boop}
+         (es/system ::test {::boop :boop} [::boop]))))
 
 ;;------
 ;; alternative component impls
-;;------s
+;;------
+
+
+;;------
+;; alternative component impls
+;;------
 
 (defprotocol Stubby
   (blurm [_]))

@@ -10,7 +10,17 @@
   (:require [integrant.core :as ig]
             [meta-merge.core :as mm]
             [shrubbery.core :as shrub]
-            [medley.core :as medley]))
+            [medley.core :as medley]
+            [clojure.spec.alpha :as s]))
+
+;; -------------------------
+;; specs
+;; -------------------------
+
+(s/def ::init-key-alternative keyword?)
+(s/def ::alternative-component (s/keys :req-un [::init-key-alternative]))
+
+
 
 ;; -------------------------
 ;; provide alternative component impls inline
@@ -85,9 +95,9 @@
   component."
   ([config]
    (init config (keys config)))
-  ([config keys]
+  ([config init-keys]
    {:pre [(map? config)]}
-   (ig/build config keys init-key #'ig/assert-pre-init-spec ig/resolve-key)))
+   (ig/build config init-keys init-key #'ig/assert-pre-init-spec ig/resolve-key)))
 
 ;; -------------------------
 ;; create named configs
@@ -98,12 +108,21 @@
   e.g. :test, :dev, :prod, etc"
   identity)
 
+(defn- system-config
+  ([config-name]
+   (config config-name))
+  ([config-name custom-config]
+   (let [cfg (config config-name)]
+     (cond (map? custom-config) (mm/meta-merge cfg custom-config)
+           (fn? custom-config)  (custom-config cfg)))))
+
 (defn system
-  [config-name & [custom-config]]
-  (let [cfg (config config-name)]
-    (init (cond (not custom-config)  cfg
-                (map? custom-config) (mm/meta-merge cfg custom-config)
-                (fn? custom-config)  (custom-config cfg)))))
+  ([config-name]
+   (init (system-config config-name)))
+  ([config-name custom-config]
+   (init (system-config config-name custom-config)))
+  ([config-name custom-config init-keys]
+   (init (system-config config-name custom-config) init-keys)))
 
 ;; -------------------------
 ;; readers to use with duct/read-config

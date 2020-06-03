@@ -1,5 +1,12 @@
 # Changelog
 
+
+## [0.10.1] WIP
+
+### Changed
+
+- specify init-keys in `sweet-tooth.endpoint.system/system`
+
 ## [0.10.0] 2020-06-01
 
 ### Changed
