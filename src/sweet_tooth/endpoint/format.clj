@@ -167,5 +167,5 @@
     (format-segments-response response)
     response))
 
-(s/fdef forat-response
+(s/fdef format-response
   :ret ::formatted-response)
