@@ -23,12 +23,16 @@
 
 (declare format-body)
 
+;; -------------------------
+;; specs
+;; -------------------------
+
 ;; A segment is a pair of [:segment-type val]. A response consists of
 ;; 0 or more segments.
 (s/def ::segment-key keyword?)
 (s/def ::segment-val any?)
 (s/def ::segment (s/tuple ::segment-key ::segment-val))
-(s/def ::formatted-response (s/coll-of ::segment :kind vector?))
+(s/def ::segments (s/coll-of ::segment :kind vector?))
 
 ;; Entity segment types get special treatment. They are the most
 ;; common segment type.
@@ -51,16 +55,25 @@
                                        :possible-entities ::possible-entities)
                                  :kind vector?))
 
-(s/def ::raw-response (s/or :formatted-response ::formatted-response
-                            :segment            ::segment
-                            :entity             ::entity
-                            :entities           ::entities
-                            :possible-entity    ::possible-entity
-                            :mixed-vector       ::mixed-vector))
+(s/def ::raw-response (s/or :segments        ::segments
+                            :segment         ::segment
+                            :entity          ::entity
+                            :entities        ::entities
+                            :possible-entity ::possible-entity
+                            :mixed-vector    ::mixed-vector))
+
+;; -------------------------
+;; format
+;; -------------------------
 
 (defn- format-entity
   [entity {:keys [id-key]}]
   {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))})
+
+
+;;---
+;; format segment
+;;---
 
 (defmulti format-segment (fn [segment-type _segment-value _format-opts] segment-type))
 (defmethod format-segment :entity
@@ -73,6 +86,11 @@
 (defmethod format-segment :default
   [segment-type segment-value _]
   [segment-type segment-value])
+
+
+;;---
+;; format other shapes
+;;---
 
 (defn- format-possible-entity
   "Decorates map (or vector of maps) with metadata so that it can get
@@ -88,21 +106,28 @@
         body
         (second conformed)))
 
+;;---
+;; response formatting
+;;---
+
 (defn format-body
   [body conformed format-opts]
   (case (first conformed)
-    :formatted-response body
-    :segment            [body]
-    :entity             [(format-segment :entity body format-opts)]
-    :entities           [(format-segment :entity body format-opts)]
-    :possible-entity    [(format-possible-entity body format-opts)]
-    :possible-entities  [(format-possible-entity body format-opts)]
-    :mixed-vector       (format-mixed-vector body conformed format-opts)))
+    :segments          body
+    :segment           [body]
+    :entity            [(format-segment :entity body format-opts)]
+    :entities          [(format-segment :entity body format-opts)]
+    :possible-entity   [(format-possible-entity body format-opts)]
+    :possible-entities [(format-possible-entity body format-opts)]
+    :mixed-vector      (format-mixed-vector body conformed format-opts)))
+
+(s/fdef format-body
+  :ret ::segments)
 
 (defn format-segments-response
   "Assumes that the default response from endpoints is a map or vector
   of maps of a single ent-type. Formats that so that it conforms to
-  response."
+  ::segments."
   [{:keys [body] :as response}]
   (let [body        (if (sequential? body)
                       (vec (filter #(or (and % (not (coll? %)))
@@ -115,7 +140,10 @@
       response
       (assoc response :body (format-body body conformed format-opts)))))
 
-(defmulti format-response (fn [response] (get-in response [:sweet-tooth.endpoint/format ::formatter])))
+(defmulti format-response
+  "Format a ring reponse."
+  (fn [response] (get-in response [:sweet-tooth.endpoint/format ::formatter])))
+
 (defmethod format-response ::segments
   [response]
   (format-segments-response response))
@@ -123,10 +151,3 @@
 (defmethod format-response ::raw
   [response]
   response)
-
-(defn wrap-skip-format
-  "`skip-format` is a flag read by formatting middleware that indicates
-  that the response should not be formatted."
-  [f]
-  (fn [req]
-    (update (f req) :body with-meta {:sweet-tooth.endpoint.format/skip-format true})))

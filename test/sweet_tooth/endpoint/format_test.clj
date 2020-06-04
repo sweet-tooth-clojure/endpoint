@@ -39,7 +39,7 @@
           [:default {:session {}}]]
          (sut/format-body [[:default {:current-user {}}]
                            [:default {:session {}}]]
-                          [:formatted-response]
+                          [:segments]
                           {:id-key :id}))))
 
 (deftest formats-possible-entity
