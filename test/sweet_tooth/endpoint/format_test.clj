@@ -7,16 +7,14 @@
 (deftest formats-entity
   (is (= [[:entity {:topic {3 {:id 3}}}]]
          (sut/format-body ^{:ent-type :topic} {:id 3}
-                          :id
-                          nil
-                          [:entity]))))
+                          [:entity]
+                          {:id-key :id}))))
 
 (deftest formats-entity-vector
   (is (= [[:entity {:topic {3 {:id 3}}}]]
          (sut/format-body ^{:ent-type :topic} [{:id 3}]
-                          :id
-                          nil
-                          [:entity]))))
+                          [:entity]
+                          {:id-key :id}))))
 
 (deftest formats-mixed-entity-vector
   (let [body      [^{:ent-type :topic} {:id 3}
@@ -28,30 +26,27 @@
            conformed))
     (is (= [[:entity {:topic {3 {:id 3}}}]
             [:entity {:post {4 {:id 4}}}]]
-           (sut/format-body body :id :topic conformed)))))
+           (sut/format-body body conformed {:id-key :id :ent-type :topic})))))
 
 (deftest formats-segment
   (is (= [[:default {:current-user {}}]]
          (sut/format-body [:default {:current-user {}}]
-                          :id
-                          nil
-                          [:segment]))))
+                          [:segment]
+                          {:id-key :id}))))
 
 (deftest returns-formatted-response
   (is (= [[:default {:current-user {}}]
           [:default {:session {}}]]
          (sut/format-body [[:default {:current-user {}}]
                            [:default {:session {}}]]
-                          :id
-                          nil
-                          [:formatted-response]))))
+                          [:formatted-response]
+                          {:id-key :id}))))
 
 (deftest formats-possible-entity
   (is (= [[:entity {:topic {3 {:id 3}}}]]
          (sut/format-body {:id 3}
-                          :id
-                          :topic
-                          [:possible-entity]))))
+                          [:possible-entity]
+                          {:id-key :id :ent-type :topic}))))
 
 (deftest formats-mixed-vector
   (let [body      [{:id 3} [:default {:current-user {}}]]
@@ -63,9 +58,8 @@
     (is (= [[:entity {:topic {3 {:id 3}}}]
             [:default {:current-user {}}]]
            (sut/format-body body
-                            :id
-                            :topic
-                            conformed))))
+                            conformed
+                            {:id-key :id :ent-type :topic}))))
 
   (let [body      [{:id 3}
                    [:default {:current-user {}}]
@@ -86,6 +80,5 @@
             [:entity {:topic {7 {:id 7}, 8 {:id 8}}}]
             [:page {}]]
            (sut/format-body body
-                            :id
-                            :topic
-                            conformed)))))
+                            conformed
+                            {:id-key :id :ent-type :topic})))))

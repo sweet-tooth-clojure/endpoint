@@ -59,59 +59,70 @@
                             :mixed-vector       ::mixed-vector))
 
 (defn- format-entity
-  "Entity maps are returned as
+  [entity {:keys [id-key]}]
+  {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))})
 
-  {:ent-type {ent-id-1 {:ent :mp}
-              ent-id-2 {:ent :mp}}}}}"
-  [e id-key]
-  [:entity (if (empty? e)
-             {}
-             {(:ent-type (meta e)) (eu/key-by id-key (if (map? e) [e] e))})])
+(defmulti format-segment (fn [segment-type _segment-value _format-opts] segment-type))
+(defmethod format-segment :entity
+  [segment-type segment-value format-opts]
+  [segment-type
+   (if (empty? segment-value)
+     {}
+     (format-entity segment-value format-opts))])
+
+(defmethod format-segment :default
+  [segment-type segment-value _]
+  [segment-type segment-value])
 
 (defn- format-possible-entity
   "Decorates map (or vector of maps) with metadata so that it can get
   formatted as an entity segment"
-  [body id-key ent-type]
-  (-> body
-      (with-meta {:ent-type ent-type})
-      (format-entity id-key)))
+  [body {:keys [ent-type] :as format-opts}]
+  (format-segment :entity (with-meta body {:ent-type ent-type}) format-opts))
 
 (defn- format-mixed-vector
-  [body id-key ent-type conformed]
+  [body conformed format-opts]
   (mapv (fn [x x-conformed]
           (when (not-empty x)
-            (first (format-body x id-key ent-type x-conformed))))
+            (first (format-body x x-conformed format-opts))))
         body
         (second conformed)))
 
 (defn format-body
-  [body id-key ent-type conformed]
+  [body conformed format-opts]
   (case (first conformed)
     :formatted-response body
     :segment            [body]
-    :entity             [(format-entity body id-key)]
-    :entities           [(format-entity body id-key)]
-    :possible-entity    [(format-possible-entity body id-key ent-type)]
-    :possible-entities  [(format-possible-entity body id-key ent-type)]
-    :mixed-vector       (format-mixed-vector body id-key ent-type conformed)))
+    :entity             [(format-segment :entity body format-opts)]
+    :entities           [(format-segment :entity body format-opts)]
+    :possible-entity    [(format-possible-entity body format-opts)]
+    :possible-entities  [(format-possible-entity body format-opts)]
+    :mixed-vector       (format-mixed-vector body conformed format-opts)))
 
-(defn format-response
+(defn format-segments-response
   "Assumes that the default response from endpoints is a map or vector
   of maps of a single ent-type. Formats that so that it conforms to
   response."
   [{:keys [body] :as response}]
-  (if (::skip-format (meta body))
-    response
-    (let [body                      (if (sequential? body)
-                                      (vec (filter #(or (and % (not (coll? %)))
-                                                        (not-empty %))
-                                                   body))
-                                      body)
-          {:keys [id-key ent-type]} (:sweet-tooth.endpoint/format response)
-          conformed                 (s/conform ::raw-response body)]
-      (if (= ::s/invalid conformed)
-        response
-        (assoc response :body (format-body body id-key ent-type conformed))))))
+  (let [body        (if (sequential? body)
+                      (vec (filter #(or (and % (not (coll? %)))
+                                        (not-empty %))
+                                   body))
+                      body)
+        format-opts (:sweet-tooth.endpoint/format response)
+        conformed   (s/conform ::raw-response body)]
+    (if (= ::s/invalid conformed)
+      response
+      (assoc response :body (format-body body conformed format-opts)))))
+
+(defmulti format-response (fn [response] (get-in response [:sweet-tooth.endpoint/format ::formatter])))
+(defmethod format-response ::segments
+  [response]
+  (format-segments-response response))
+
+(defmethod format-response ::raw
+  [response]
+  response)
 
 (defn wrap-skip-format
   "`skip-format` is a flag read by formatting middleware that indicates
