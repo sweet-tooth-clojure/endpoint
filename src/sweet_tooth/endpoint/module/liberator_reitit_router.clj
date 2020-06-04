@@ -28,6 +28,7 @@
             [com.flyingmachine.liberator-unbound :as lu]
             [meta-merge.core :as mm]
 
+            [sweet-tooth.endpoint.format :as ef]
             [sweet-tooth.endpoint.liberator :as el]
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.routes.reitit :as err]
@@ -161,13 +162,18 @@
   [route]
   (update-opts-if-ns-route route flip-merge {:id-key :id, :auth-id-key :id}))
 
+(defn- add-formatter
+  [route]
+  (update-opts-if-ns-route route flip-merge {::ef/formatter ::ef/segments}))
+
 (defn- format-middleware-fn
   "Associates opts which are later used by the format middleware to
   format responses."
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]
-      (assoc (f req) :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :ent-type])))))
+      (assoc (f req)
+             :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :ent-type ::ef/formatter])))))
 
 (defn- add-middleware
   "Middleware is added to reitit in order to work on the request map
@@ -197,6 +203,7 @@
   (-> route
       add-id-keys
       add-ent-type
+      add-formatter
       add-handler-ref
       add-middleware))
 

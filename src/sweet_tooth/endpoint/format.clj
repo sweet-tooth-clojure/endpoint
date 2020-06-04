@@ -165,7 +165,8 @@
   [response]
   (case (get-in response [:sweet-tooth.endpoint/format ::formatter])
     ::raw      response
-    ::segments (format-segments-response response)))
+    ::segments (format-segments-response response)
+    nil        response))
 
 (s/fdef forat-response
   :ret ::formatted-response)
