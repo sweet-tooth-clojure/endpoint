@@ -55,12 +55,31 @@
                                        :possible-entities ::possible-entities)
                                  :kind vector?))
 
-(s/def ::raw-response (s/or :segments        ::segments
-                            :segment         ::segment
-                            :entity          ::entity
-                            :entities        ::entities
-                            :possible-entity ::possible-entity
-                            :mixed-vector    ::mixed-vector))
+(s/def ::raw-body (s/or :segments        ::segments
+                        :segment         ::segment
+                        :entity          ::entity
+                        :entities        ::entities
+                        :possible-entity ::possible-entity
+                        :mixed-vector    ::mixed-vector))
+
+;;---
+;; formatted response
+;;---
+
+(defn- get-format-type
+  [response]
+  (get-in response [:sweet-tooth.endpoint/format ::formatter]))
+
+(s/def :sweet-tooth.endpoint.format.raw/body any?)
+(s/def :sweet-tooth.endpoint.format.segments/body ::segments)
+
+(defmulti format-type get-format-type)
+(defmethod format-type ::raw [_]
+  (s/keys :req-un [:sweet-tooth.endpoint.format.raw/body]))
+(defmethod format-type ::segments [_]
+  (s/keys :req-un [:sweet-tooth.endpoint.format.segments/body]))
+
+(s/def ::formatted-response (s/multi-spec format-type get-format-type))
 
 ;; -------------------------
 ;; format
@@ -135,19 +154,18 @@
                                    body))
                       body)
         format-opts (:sweet-tooth.endpoint/format response)
-        conformed   (s/conform ::raw-response body)]
+        conformed   (s/conform ::raw-body body)]
     (if (= ::s/invalid conformed)
       response
       (assoc response :body (format-body body conformed format-opts)))))
 
-(defmulti format-response
-  "Format a ring reponse."
-  (fn [response] (get-in response [:sweet-tooth.endpoint/format ::formatter])))
-
-(defmethod format-response ::segments
+(defn format-response
+  "Formats a response body to consist of segments unless formatter
+  is ::raw."
   [response]
-  (format-segments-response response))
+  (case (get-in response [:sweet-tooth.endpoint/format ::formatter])
+    ::raw      response
+    ::segments (format-segments-response response)))
 
-(defmethod format-response ::raw
-  [response]
-  response)
+(s/fdef forat-response
+  :ret ::formatted-response)

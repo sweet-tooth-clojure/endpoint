@@ -3,6 +3,7 @@
             [clojure.test :refer [deftest is]]
             [clojure.spec.alpha :as s]))
 
+(s/check-asserts true)
 
 (deftest formats-entity
   (is (= [[:entity {:topic {3 {:id 3}}}]]
@@ -19,7 +20,7 @@
 (deftest formats-mixed-entity-vector
   (let [body      [^{:ent-type :topic} {:id 3}
                    ^{:ent-type :post}  {:id 4}]
-        conformed (s/conform ::sut/raw-response body)]
+        conformed (s/conform ::sut/raw-body body)]
     (is (= [:mixed-vector
             [[:entity {:id 3}]
              [:entity {:id 4}]]]
@@ -50,7 +51,7 @@
 
 (deftest formats-mixed-vector
   (let [body      [{:id 3} [:default {:current-user {}}]]
-        conformed (s/conform ::sut/raw-response body)]
+        conformed (s/conform ::sut/raw-body body)]
     (is (= [:mixed-vector
             [[:possible-entity {:id 3}]
              [:segment [:default {:current-user {}}]]]]
@@ -66,7 +67,7 @@
                    ^{:ent-type :post } [{:id 5} {:id 6}]
                    [{:id 7} {:id 8}]
                    [:page {}]]
-        conformed (s/conform ::sut/raw-response body)]
+        conformed (s/conform ::sut/raw-body body)]
     (is (= [:mixed-vector
             [[:possible-entity {:id 3}]
              [:segment [:default {:current-user {}}]]
@@ -82,3 +83,16 @@
            (sut/format-body body
                             conformed
                             {:id-key :id :ent-type :topic})))))
+
+(deftest formats-response
+  (let [response (sut/format-response {:body                        {:id 3}
+                                       :sweet-tooth.endpoint/format {::sut/formatter ::sut/segments
+                                                                     :id-key         :id
+                                                                     :ent-type       :topic}})]
+    (is (= {:body                        [[:entity {:topic {3 {:id 3}}}]]
+            :sweet-tooth.endpoint/format {:sweet-tooth.endpoint.format/formatter :sweet-tooth.endpoint.format/segments
+                                          :id-key                                :id
+                                          :ent-type                              :topic}}
+           response))
+
+    (is (nil? (s/explain-data ::sut/formatted-response response)))))

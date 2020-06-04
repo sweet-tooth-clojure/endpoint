@@ -5,6 +5,8 @@
             [shrubbery.core :as shrub]
             [clojure.spec.alpha :as s]))
 
+(s/check-asserts true)
+
 (defmethod ig/init-key ::a [_ opts]
   opts)
 
