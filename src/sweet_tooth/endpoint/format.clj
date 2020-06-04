@@ -86,30 +86,18 @@
 ;; -------------------------
 
 (defn- format-entity
+  "Index entities by ent-type and id-keys"
   [entity {:keys [id-key]}]
   {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))})
 
-
-;;---
-;; format segment
-;;---
-
-(defmulti format-segment (fn [segment-type _segment-value _format-opts] segment-type))
-(defmethod format-segment :entity
+(defn- format-segment
+  "Give special treatment to entity segments. Sugar!"
   [segment-type segment-value format-opts]
-  [segment-type
-   (if (empty? segment-value)
-     {}
-     (format-entity segment-value format-opts))])
-
-(defmethod format-segment :default
-  [segment-type segment-value _]
-  [segment-type segment-value])
-
-
-;;---
-;; format other shapes
-;;---
+  (if (= :entity segment-type)
+    [segment-type (if (empty? segment-value)
+                    {}
+                    (format-entity segment-value format-opts))]
+    [segment-type segment-value]))
 
 (defn- format-possible-entity
   "Decorates map (or vector of maps) with metadata so that it can get
