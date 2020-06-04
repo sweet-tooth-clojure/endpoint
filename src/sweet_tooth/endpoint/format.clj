@@ -163,10 +163,9 @@
   "Formats a response body to consist of segments unless formatter
   is ::raw."
   [response]
-  (case (get-in response [:sweet-tooth.endpoint/format ::formatter])
-    ::raw      response
-    ::segments (format-segments-response response)
-    nil        response))
+  (if (= ::segments (get-in response [:sweet-tooth.endpoint/format ::formatter]))
+    (format-segments-response response)
+    response))
 
 (s/fdef forat-response
   :ret ::formatted-response)
