@@ -71,7 +71,7 @@
       (log/warn logger
                 ::no-decisions-defined
                 (assoc common-log-data
-                       :instructions "Add a decision map for this route-type")))
+                       :instructions "Add a decision map for this route-type, or exclude the route-type in route definition, e.g. if the route-type is `:member` add [:your.endpoint.entity {::serr/expand-with [:collection]}]")))
     (when (not-empty unrecognized-methods)
       (log/warn logger
                 ::unrecognized-decision-map-methods
