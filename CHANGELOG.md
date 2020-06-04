@@ -1,16 +1,28 @@
 # Changelog
 
+## [0.10.2] WIP
 
-## [0.10.1] WIP
+### Added
+
+- spec out `sweet-tooth.endpoint.format`
+- update `sweet-tooth.endpoint.format` so that it's a little easier to
+  understand and more amenable to extension if it ever comes to that.
+
+### Removed
+
+- `sweet-tooth.endpoint.utils/format-ent`, that responsibility is now
+  handled by `sweet-tooth.endpoint.format/format-entity`
+
+## [0.10.1] 2020-06-03
 
 ### Added
 
 - added MIT license
+- spec out `sweet-tooth.endpoint.system`
 
 ### Changed
 
 - specify init-keys in `sweet-tooth.endpoint.system/system`
-- spec out `sweet-tooth.endpoint.system`
 
 ## [0.10.0] 2020-06-01
 

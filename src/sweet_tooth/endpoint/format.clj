@@ -85,18 +85,18 @@
 ;; format
 ;; -------------------------
 
-(defn- format-entity
+(defn format-entity
   "Index entities by ent-type and id-keys"
   [entity {:keys [id-key]}]
-  {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))})
+  (if (empty? entity)
+    {}
+    {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))}))
 
 (defn- format-segment
   "Give special treatment to entity segments. Sugar!"
   [segment-type segment-value format-opts]
   (if (= :entity segment-type)
-    [segment-type (if (empty? segment-value)
-                    {}
-                    (format-entity segment-value format-opts))]
+    [segment-type (format-entity segment-value format-opts)]
     [segment-type segment-value]))
 
 (defn- format-possible-entity

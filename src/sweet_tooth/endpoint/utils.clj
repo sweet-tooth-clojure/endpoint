@@ -22,16 +22,6 @@
   [k xs]
   (into {} (map (juxt k identity) xs)))
 
-(defn format-ent
-  "Expects `e`, be it map or seq, to have ent-type defined in metadata"
-  [e id-key]
-  ;; TODO `:entity` needs to be configurable and shared between front
-  ;; and backend
-  {:entity
-   (if (empty? e)
-     {}
-     {(:ent-type (meta e)) (key-by id-key (if (map? e) [e] e))})})
-
 (defn ent-type
   "add ent-type metadata to obj. ent-type should be a keyword."
   [x y]
