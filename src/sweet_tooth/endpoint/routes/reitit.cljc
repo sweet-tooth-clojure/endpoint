@@ -70,10 +70,10 @@
                     :id-key :id}]]"
   (:require [clojure.spec.alpha :as s]
             [clojure.string :as str]
-            [clojure.walk :as walk]
             [integrant.core]
             [meta-merge.core :as mm]
-            #?@(:cljs [[goog.string :as gstr]
+            #?@(:cljs [[clojure.walk :as walk]
+                       [goog.string :as gstr]
                        [goog.string.format]])))
 
 ;;------
