@@ -142,3 +142,18 @@
                                                                     [:member/moop {:id-key :id}]
                                                                     ["/abc/bpp" {:name :user/abc-bpp}]]
                                                  :id-key           :oop/id}])))))
+
+(deftest customize-builtin-expander-paths
+  (testing "you can provide options to built-in expanders' paths"
+    (is (= [["/custom-path" {:name      :users
+                             ::sut/ns   :ex.endpoint.user
+                             ::sut/type :collection}]
+            ["/api/v1/user/{id}" {:id-key    :id
+                                  :name      :user
+                                  ::sut/type :member
+                                  ::sut/ns   :ex.endpoint.user}]]
+           (sut/expand-route [:ex.endpoint.user {::sut/expand-with [[:collection {::sut/full-path "/custom-path"}]
+                                                                    [:member     {::sut/path-prefix "/api/v1"}]]}])))))
+
+[:project.backend.endpoint.user {::sut/expand-with [[:collection {::sut/full-path "/custom-path"}]
+                                                    [:member     {::sut/full-path "/another-custom-path"}]]}]
