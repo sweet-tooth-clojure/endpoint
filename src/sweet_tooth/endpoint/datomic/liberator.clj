@@ -18,7 +18,7 @@
   "Get id from the params, try to convert to number"
   [ctx & [id-key]]
   (let [id-key (req-id-key ctx id-key)]
-    (if-let [id (id-key (el/params ctx))]
+    (when-let [id (id-key (el/params ctx))]
       (cond (int? id)    id
             (string? id) (Long/parseLong id)))))
 

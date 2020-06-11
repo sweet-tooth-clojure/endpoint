@@ -15,6 +15,7 @@
 ;;-------
 ;; interactions with actual datomic db
 ;;-------
+
 (def db-config
   {:sweet-tooth.endpoint.datomic/connection
    {:uri      "datomic:mem://st"
@@ -38,6 +39,7 @@
 ;;-----
 ;; get
 ;;-----
+
 (deftest pull-ctx-id
   (with-system system db
     (create-user db)
@@ -53,10 +55,10 @@
                                :id-key  :db/id
                                :request {:params {:db/id db-id}}}))))))
 
-
 ;;-------
 ;; create
 ;;-------
+
 (deftest test-ctx->create-map
   (let [{:keys [title db/id] :as m} (sut/ctx->create-map {:request {:params {:title "boop"
                                                                              :x     nil}}})]
@@ -165,4 +167,3 @@
           result     @(sut/delete {:db      db
                                    :request {:params {:id (str created-id)}}})]
       (is (empty? (into {} (d/entity (:db-after result) created-id)))))))
-
