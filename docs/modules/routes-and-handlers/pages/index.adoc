@@ -66,13 +66,16 @@ to more complex ones:
 ----
 
 The function took a single keyword corresponding to a namespace's name and
-generated two routes for it, one named `:todo-lists` and one named `:todo-list`.
-You'll also see some metadata keys, `::serr/ns`, `::serr/type`, and `:id-key`.
+generated two routes for it, one with the path `"/todo-list"` named
+`:todo-lists` and one with the path `"/todo-list/{id}" `named `:todo-list`.
+These paths and names are derived from the namespace name, with `endpoint.` as
+the default delimiter.
 
+You'll also see some metadata keys, `::serr/ns`, `::serr/type`, and `:id-key`.
 Routes convey a request to the correct handler, and the `:serr/ns` and
-`::serr/type` help do this. The `::serr/ns` is used during system initialization
-to find the the routes' handlers. By default, these are defined in a var named
-`decisions`. If you look at
+`::serr/type` help to do this. The `::serr/ns` is used during system
+initialization to find the the routes' handlers. By default, these are defined
+in a var named `decisions`. If you look at
 `sweet-tooth.todo-example.backend.endpoint.todo-list` namespace you'll see
 something like this (I've elided irrelevant code):
 
@@ -102,18 +105,98 @@ to look up a https://clojure-liberator.github.io/liberator/[liberator] decision 
 probably looks weird as all get out. I'll explain liberator elsewhere, for now
 we're just focusing on the relationship between routes and handlers.
 
-The `"/todo-list"` route's `::serr/type` is `:collection`. Requests matching the
-`"/todo-list"` path
+To summarize:
 
-* generate a path from the route name, using a router
+* There is a relationship between route paths, route names, namespaces, and
+handlers
+* Handlers are defined as liberator decision maps
+* Those decision maps live in a var named `decisions`
+* `decisions` is a map keyed by route type (`:collection`, `:member`) and
+request method (`:get`, `:post` etc)
+* You can generate routes for an endpoint namespace using
+`sweet-tooth.endpoint.routes.reitit/expand-routes`. Route paths and names are
+derived from namespace names.
 
-You'll notice that these routes
 
-* customization
-** custom name
-** custom path
-* uses reitit
-* does not contain the handler yet
+== Route Expanders ==
+What if you only want to generate a `:collection` route or only want to generate
+a `:member` route? Routes can take an option map, and you can specify which
+routes to generate with the key `::serr/expand-with`:
+
+[source,clojure]
+.route generators
+----
+(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [:collection]}]])
+;; =>
+[["/todo-list"
+  {:sweet-tooth.endpoint.routes.reitit/ns :project.endpoint.todo-list,
+   :sweet-tooth.endpoint.routes.reitit/type :collection,
+   :name :todo-lists}]]
+----
+
+Notice that the value of for `::serr/expand-with` is `[:collection]` and only a
+`:collection` route was generated. You can try this with `[:member]` to see what
+happens. The default value for `::serr/expand-with` is `[:collection :member]`.
+
+In this context, `:collection` and `:member` are names of _route types_. Each
+route type has an expansion strategy associated with. The expansion strategy
+includes:
+
+* A rule for deriving the route's name from the namespace's name. The
+`:collection` strategy produces a route named `:todo-lists` when given a
+namespace name `:x.endpoint.todo-list`; `:member` produces a route named
+`:todo-list`.
+* A rule for deriving the route's path from the namespace's name. The
+`:collection` strategy generates the path `/todo-list` and `:member` generates
+`/todo-list/{id}`.
+
+In later sections you'll see how to work with additional kinds of route types,
+include `:singleton`, `:member` children, and arbitrary types.
+
+
+== Custom Route Paths and Names ==
+What if you want to create routes that match paths like the following?
+
+* `/api/v1/todo-list`
+* `/todo-lists`
+* `/todo-list/{id}/todo-items`
+* `/admin/todo-list`
+
+
+=== Custom Route Paths: prefixes and suffixes ===
+You can specify paths with the keys `::serr/path-prefix` and
+`:serr/path-suffix`:
+
+[source,clojure]
+.path prefixes
+----
+(serr/expand-routes [[:project.endpoint.todo-list {::serr/path-prefix "/api/v1"}]])
+;; =>
+[["/api/v1/todo-list"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :collection
+   :name       :todo-lists}]
+ ["/api/v1/todo-list/{id}"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :member
+   :name       :todo-list
+   :id-key     :id}]]
+----
+
+
+
+
+=== Custom Route Paths per route type ===
+
+
+=== Member Routes ===
+
+=== Nested Routes ===
+
+=== Completely Arbitrary Routes ===
+
+
+== Shared Options ==
 
 
 == Defining Handlers ==
