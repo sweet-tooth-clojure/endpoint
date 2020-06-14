@@ -1,0 +1,137 @@
+= Endpoint Routes and Handlers =
+Daniel Higginbotham
+
+
+This doc explains how to write endpoint _routes_ and _handlers_ in a Sweet Tooth
+app.
+
+*Routes* have two main purposes:
+
+* Conveying requests to a handler
+* Generating paths using a route name and parameters
+
+For a more detailed explanation of routes and routing, see
+xref:routes-and-routing-explained.adoc[Routes and Routing Explained].
+
+Sweet Tooth relies on the reitit routing library, which represents routes as
+two-element vectors that associate URL patterns like `/users/{id}` with a map
+containing the route's name, handler, and metadata. For example:
+
+[source,clojure]
+.route example
+----
+["/users/{id}" {:name    :users
+                :handler (fn [req] {:body "response"})}]
+----
+
+*Handlers* are functions that take a request as an argument and return a response.
+
+Sweet Tooth introduces conventions for associating route paths, route names, and
+the namespaces that hold handler definitions. This section is a practical
+tutorial on what steps to take to get things working. Further sections go into
+more detail about the implementation so that you'll understand how to customize
+the system to your particular needs, if you need to.
+
+These docs assume you're working within the https://github.com/sweet-tooth-clojure/todo-example[the Sweet Tooth To-Do List Example]
+project.
+
+
+== Basic Routes and Handlers ==
+Sweet Tooth is oriented around RESTful APIs. You send `GET`, `POST`, `PUT`, and
+`DELETE` requests to paths like `/todo-list` and `/todo-list/1` in order to
+perform CRUD operations. The corresponding request handlers are located in a
+namespace like `sweet-tooth.todo-example.backend.endpoint.todo-list`.
+
+The `sweet-tooth.todo-example.cross.endpoint-routes/expand-routes` function lets
+you specify the names of namespaces that contain handlers and uses those to
+generate routes. Let's generate some simple routes in a REPL and work our way up
+to more complex ones:
+
+[source,clojure]
+.basic namespace route
+----
+(require '[sweet-tooth.endpoint.routes.reitit :as serr])
+(serr/expand-routes [[:sweet-tooth.todo-example.backend.endpoint.todo-list]])
+
+;; =>
+[["/todo-list"
+  {::serr/ns   :sweet-tooth.todo-example.backend.endpoint.todo-list
+   ::serr/type :collection
+   :name       :todo-lists}]
+ ["/todo-list/{id}"
+  {::serr/ns   :sweet-tooth.todo-example.backend.endpoint.todo-list
+   ::serr/type :member
+   :name       :todo-list
+   :id-key     :id}]]
+----
+
+The function took a single keyword corresponding to a namespace's name and
+generated two routes for it, one named `:todo-lists` and one named `:todo-list`.
+You'll also see some metadata keys, `::serr/ns`, `::serr/type`, and `:id-key`.
+
+Routes convey a request to the correct handler, and the `:serr/ns` and
+`::serr/type` help do this. The `::serr/ns` is used during system initialization
+to find the the routes' handlers. By default, these are defined in a var named
+`decisions`. If you look at
+`sweet-tooth.todo-example.backend.endpoint.todo-list` namespace you'll see
+something like this (I've elided irrelevant code):
+
+[source,clojure]
+.decisions
+----
+(def decisions
+  {:collection
+   {:get  {:handle-ok (comp tl/todo-lists ed/db)}
+    :post {:post!          ed/create->:result
+           :handle-created ed/created-pull}}
+
+   :member
+   {:get {:handle-ok (fn [ctx])}
+    :put {:put!      ed/update->:result
+          :handle-ok ed/updated-pull}
+
+    :delete {:delete!   (fn [ctx])
+             :handle-ok []}}})
+----
+
+`decisions` is a map whose keys correspond to `::serr/type` in the routes above:
+if a request for `"/todo-list"` is received, the `::serr/type` value of
+`:collection` is used to look up the map of handlers under `:collection` in the
+`decisions` var. The request method (`:get`, `:post`, `:put` etc) is then used
+to look up a https://clojure-liberator.github.io/liberator/[liberator] decision map. If you're unfamiliar with liberator this
+probably looks weird as all get out. I'll explain liberator elsewhere, for now
+we're just focusing on the relationship between routes and handlers.
+
+The `"/todo-list"` route's `::serr/type` is `:collection`. Requests matching the
+`"/todo-list"` path
+
+* generate a path from the route name, using a router
+
+You'll notice that these routes
+
+* customization
+** custom name
+** custom path
+* uses reitit
+* does not contain the handler yet
+
+
+== Defining Handlers ==
+
+
+
+
+
+== notes to self ==
+* the mechanical process, do this
+* cross-compiled endpoint routes
+* relationships among namespace names, route names, paths, handler
+definitions, and integrant
+* route expansion
+* generating integrant config
+* liberator
+* integrant
+
+=== how to make this interactive? ===
+
+=== what's the flow here? ===
