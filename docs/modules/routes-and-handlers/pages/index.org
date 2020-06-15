@@ -46,7 +46,8 @@ to more complex ones:
 #+CAPTION: basic namespace route
 #+BEGIN_SRC clojure
 (require '[sweet-tooth.endpoint.routes.reitit :as serr])
-(serr/expand-routes [[:sweet-tooth.todo-example.backend.endpoint.todo-list]])
+(serr/expand-routes
+ [[:sweet-tooth.todo-example.backend.endpoint.todo-list]])
 
 ;; =>
 [["/todo-list"
@@ -127,7 +128,8 @@ routes to generate with the key `::serr/expand-with`:
 
 #+CAPTION: route generators
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [:collection]}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/expand-with [:collection]}]])
 ;; =>
 [["/todo-list"
   {::serr/ns   :project.endpoint.todo-list
@@ -175,7 +177,8 @@ You can specify paths with the keys `::serr/path-prefix` and
 
 #+CAPTION: path prefixes
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/path-prefix "/api/v1"}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/path-prefix "/api/v1"}]])
 ;; =>
 [["/api/v1/todo-list"
   {::serr/ns   :project.endpoint.todo-list
@@ -193,10 +196,11 @@ You can specify paths with the keys `::serr/path-prefix` and
 `::serr/path-prefix` was applied to both of the generated routes, but what if
 you need to modify the path for just one route type?
 
-#+CAPTION: path prefixes
+#+CAPTION: custom paths per route type
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path-prefix "/api/v1"}]
-                                                                        :member]}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path-prefix "/api/v1"}]
+                                                    :member]}]])
 ;; =>
 [["/api/v1/todo-list"
   {::serr/ns   :project.endpoint.todo-list
@@ -218,15 +222,17 @@ and `/api/v1/todo-lists`:
 
 #+CAPTION: per-route-type paths
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path "/todos"}]]}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path "/todos"}]]}]])
 ;; =>
 [["/todos"
   {::serr/ns   :project.endpoint.todo-list
    ::serr/type :collection
    :name       :todo-lists}]]
 
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path-prefix "/api/v1"
-                                                                                     ::serr/path "/todos"}]]}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path-prefix "/api/v1"
+                                                                  ::serr/path "/todos"}]]}]])
 ;; =>
 [["/api/v1/todos"
   {::serr/ns   :project.endpoint.todo-list
@@ -247,7 +253,8 @@ What if you wanted to route a path like `"/todo-list/{id}/todo-items"`?
 
 #+CAPTION: member routes
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.todo-list {::serr/expand-with [[:member/todo-items]]}]])
+(serr/expand-routes
+ [[:project.endpoint.todo-list {::serr/expand-with [[:member/todo-items]]}]])
 ;; =>
 [["/todo-list/{id}/todo-items"
   {::serr/ns   :project.endpoint.todo-list,
@@ -279,7 +286,8 @@ separate namespace and to use separate route names. Here's how you'd do it:
 
 #+CAPTION: nested routes
 #+BEGIN_SRC clojure
-(serr/expand-routes [[:project.endpoint.admin.todo-list]])
+(serr/expand-routes
+ [[:project.endpoint.admin.todo-list]])
 ;; =>
 [["/admin/todo-list"
   {::serr/ns   :project.endpoint.admin.todo-list
@@ -300,10 +308,11 @@ vectors where the first element is a keyword, like
 routes, you can also write plain ol' reitit routes. The next example matches a
 regular reitit route with a namespace route:
 
-#+CAPTION: nested routes
+#+CAPTION: arbitrary routes
 #+BEGIN_SRC clojure
-(serr/expand-routes [["/init" {:name :init}]
-                     [:project.endpoint.todo-list]])
+(serr/expand-routes
+ [["/init" {:name :init}]
+  [:project.endpoint.todo-list]])
 ;; =>
 [["/init" {:name :init}]
  ["/todo-list"
@@ -323,31 +332,105 @@ you'll need to supply a `:handler` key yourself; Sweet Tooth uses the
 You can add a handler as an integrant ref or by using the
 `sweet-tooth.endpoint.utils/clj-kvar` function:
 
-#+CAPTION: nested routes
+#+CAPTION: handlers for arbitrary routes
 #+BEGIN_SRC clojure
-(serr/expand-routes [["/init" {:name :init
-                               :handler (ig/ref :project.endpoint.init/handler)}]])
+(serr/expand-routes
+ [["/init" {:name :init
+            :handler (ig/ref :project.endpoint.init/handler)}]])
 
-(serr/expand-routes [["/init" {:name    :init
-                               :handler (sweet-tooth.endpoint.utils/clj-kvar :project.endpoint.init/handler)}]])
+(serr/expand-routes
+ [["/init" {:name    :init
+            :handler (sweet-tooth.endpoint.utils/clj-kvar :project.endpoint.init/handler)}]])
 #+END_SRC
 
 The `clj-kvar` function returns the corresponding var during Clojure compilation
 and returns the keyword during ClojureScript compilation. This makes it easier
 to write routes that can cross-compile.
 
+You should use an integrant ref if the handler needs to participate in
+integrant's configuration system - if you need to initialize the handler with
+environment variables or system components, for example. Using `clj-kvar` would
+let you forego integrant initialization and keep your integrant config a little
+leaner.
+
 * Shared Route Options
 
-* notes to self
-- explain the whole process: create routes, give them to a router, create a
-  handler for that.
-- the mechanical process, do this
-- cross-compiled endpoint routes
-- relationships among namespace names, route names, paths, handler
-  definitions, and integrant
-- route expansion
-- generating integrant config
-- liberator
-- integrant
-** how to make this interactive?
-** what's the flow here?
+What if you want to give multiple routes a prefix or otherwise want to apply
+options to multiple routes?
+
+#+CAPTION: shared route options
+#+BEGIN_SRC clojure
+(serr/expand-routes
+ [{::serr/path-prefix "/api/v1"}
+  [:project.endpoint.todo-list]
+  [:project.endpoint.todo]])
+;; =>
+[["/api/v1/todo-list"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :collection
+   :name       :todo-lists}]
+ ["/api/v1/todo-list/{id}"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :member
+   :name       :todo-list
+   :id-key     :id}]
+ ["/api/v1/todo"
+  {::serr/ns   :project.endpoint.todo
+   ::serr/type :collection
+   :name       :todos}]
+ ["/api/v1/todo/{id}"
+  {::serr/ns   :project.endpoint.todo
+   ::serr/type :member
+   :name       :todo
+   :id-key     :id}]]
+#+END_SRC
+
+`expand-routes` takes a vector as its argument. Whenever it encounters a vector
+in that map, as it does with `{::serr/path-prefix}`, it adds that map as route
+options for all the routes that follow. If one group of routes need a set of
+common options that differs from another group of routes, you could write
+something like this:
+
+#+CAPTION: multiple sets of shared route options
+#+BEGIN_SRC clojure
+(serr/expand-routes
+ [{::serr/path-prefix "/api/v1"}
+  [:project.endpoint.todo-list]
+
+  {:id-key :db/id}
+  [:project.endpoint.todo]])
+;; =>
+[["/api/v1/todo-list"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :collection
+   :name       :todo-lists}]
+ ["/api/v1/todo-list/{id}"
+  {::serr/ns   :project.endpoint.todo-list
+   ::serr/type :member
+   :name       :todo-list
+   :id-key     :id}]
+ ["/todo"
+  {::serr/ns   :project.endpoint.todo
+   ::serr/type :collection
+   :name       :todos
+   :id-key     :db/id}]
+ ["/todo/{db/id}"
+  {::serr/ns   :project.endpoint.todo
+   ::serr/type :member
+   :name       :todo
+   :id-key     :db/id}]]
+#+END_SRC
+
+Notice that `todo` routes have a different `:id-key` and they also don't have
+the `/api/v1` prefix. Whenever a new common options map (`{:id-key :db/id}`) is
+encountered, it replaces the previous map (`{::serr/path-prefix "/api/v1"}`).
+
+* Misc. Notes
+
+I have an aversion to using nested data structures to represent nested
+resources. I've found that it becomes a lot easier to get lost in
+navigating the data structures, and it can get difficult to determine
+what values might be cascading through the nested layers, or what the
+relationships among the layers might be. Ultimately what we're
+producing is a lookup table, and I personally find it much easier to
+reason about such a table if there isn't any nesting.
