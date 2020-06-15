@@ -1,6 +1,13 @@
 # Changelog
 
-## [0.10.2] WIP
+## [0.10.3] 2020-06-15
+
+### Added
+
+- `sweet-tooth.endpoint.utils/clj-kvar` for specifying a var using a keyword.
+  resolves the var in clj, returns the keyword in cljs
+
+## [0.10.2] 2020-06-11
 
 ### Added
 

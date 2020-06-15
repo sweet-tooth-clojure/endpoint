@@ -30,3 +30,13 @@
   (if (keyword? x)
     (with-meta y {:ent-type x})
     (with-meta x {:ent-type y})))
+
+(defn clj-kvar
+  "Given a namespaced keyword, look up the corresponding var in clj compilation or
+  return a keyword in cljs compilation."
+  [var-name]
+  #?(:clj (try @(ns-resolve (symbol (namespace var-name)) (symbol (name var-name)))
+               (catch Throwable _t
+                 (throw (ex-info (format "could not find var %s" var-name)
+                                 {:var-name var-name}))))
+     :cljs var-name))
