@@ -427,10 +427,17 @@ encountered, it replaces the previous map (`{::serr/path-prefix "/api/v1"}`).
 
 * Misc. Notes
 
-I have an aversion to using nested data structures to represent nested
-resources. I've found that it becomes a lot easier to get lost in
-navigating the data structures, and it can get difficult to determine
-what values might be cascading through the nested layers, or what the
-relationships among the layers might be. Ultimately what we're
-producing is a lookup table, and I personally find it much easier to
-reason about such a table if there isn't any nesting.
+Reitit allows you to express path prefixes with data structures like
+
+#+CAPTION: reitit nested routes
+#+BEGIN_SRC clojure
+["/api" ["/todo-list" {:name :todo-list}]]
+#END_SRC
+
+Personally, I have an aversion to using nested data structures to represent
+nested resources. I've found that it becomes a lot easier to get lost in
+navigating the data structures, and it can get difficult to determine what
+values might be cascading through the nested layers, or what the relationships
+among the layers might be. Ultimately what we're producing is a lookup table,
+and I personally find it much easier to reason about such a table if there isn't
+any nesting.

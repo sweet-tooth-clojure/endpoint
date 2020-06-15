@@ -205,11 +205,11 @@ You can specify paths with the keys `::serr/path-prefix` and
 you need to modify the path for just one route type?
 
 [source,clojure]
-.path prefixes
+.custom paths per route type
 ----
 (serr/expand-routes
  [[:project.endpoint.todo-list {::serr/expand-with [[:collection {::serr/path-prefix "/api/v1"}]
-                                                                        :member]}]])
+                                                    :member]}]])
 ;; =>
 [["/api/v1/todo-list"
   {::serr/ns   :project.endpoint.todo-list
@@ -322,7 +322,7 @@ routes, you can also write plain ol' reitit routes. The next example matches a
 regular reitit route with a namespace route:
 
 [source,clojure]
-.nested routes
+.arbitrary routes
 ----
 (serr/expand-routes
  [["/init" {:name :init}]
@@ -347,7 +347,7 @@ You can add a handler as an integrant ref or by using the
 `sweet-tooth.endpoint.utils/clj-kvar` function:
 
 [source,clojure]
-.nested routes
+.handlers for arbitrary routes
 ----
 (serr/expand-routes
  [["/init" {:name :init
@@ -374,7 +374,7 @@ What if you want to give multiple routes a prefix or otherwise want to apply
 options to multiple routes?
 
 [source,clojure]
-.nested routes
+.shared route options
 ----
 (serr/expand-routes
  [{::serr/path-prefix "/api/v1"}
@@ -408,7 +408,7 @@ common options that differs from another group of routes, you could write
 something like this:
 
 [source,clojure]
-.nested routes
+.multiple sets of shared route options
 ----
 (serr/expand-routes
  [{::serr/path-prefix "/api/v1"}
@@ -441,3 +441,19 @@ something like this:
 Notice that `todo` routes have a different `:id-key` and they also don't have
 the `/api/v1` prefix. Whenever a new common options map (`{:id-key :db/id}`) is
 encountered, it replaces the previous map (`{::serr/path-prefix "/api/v1"}`).
+
+
+== Misc. Notes ==
+Reitit allows you to express path prefixes with data structures like
+
+#+BEGIN_SRC clojure
+["/api" ["/todo-list" {:name :todo-list}]]
+#END_SRC
+
+Personally, I have an aversion to using nested data structures to represent
+nested resources. I've found that it becomes a lot easier to get lost in
+navigating the data structures, and it can get difficult to determine what
+values might be cascading through the nested layers, or what the relationships
+among the layers might be. Ultimately what we're producing is a lookup table,
+and I personally find it much easier to reason about such a table if there isn't
+any nesting.
