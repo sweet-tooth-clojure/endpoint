@@ -320,21 +320,21 @@ regular reitit route with a namespace route:
 The regular route isn't touched. One non-obvious consequence of this is that
 you'll need to supply a `:handler` key yourself; Sweet Tooth uses the
 `::serr/ns` and `::serr/type` keys to construct a handler, but those are absent.
-You can add a handler as an integrant ref or directly as a var:
+You can add a handler as an integrant ref or by using the
+`sweet-tooth.endpoint.utils/clj-kvar` function:
 
 #+CAPTION: nested routes
 #+BEGIN_SRC clojure
 (serr/expand-routes [["/init" {:name :init
                                :handler (ig/ref :project.endpoint.init/handler)}]])
 
-(serr/expand-routes [["/init" {:name :init
-                               #?@(:clj [:handler project.endpoint.init/handler])}]])
+(serr/expand-routes [["/init" {:name    :init
+                               :handler (sweet-tooth.endpoint.utils/clj-kvar :project.endpoint.init/handler)}]])
 #+END_SRC
 
-In the second example, you might be wondering why we use the reader conditional.
-It's used because these routes are cross compiled, and we don't want the
-ClojureScript compilation to include references to vars that only exist in the
-Clojure compilation.
+The `clj-kvar` function returns the corresponding var during Clojure compilation
+and returns the keyword during ClojureScript compilation. This makes it easier
+to write routes that can cross-compile.
 
 * Shared Route Options
 
