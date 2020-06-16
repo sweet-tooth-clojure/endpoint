@@ -24,9 +24,10 @@ project.
 == Basic Routes and Handlers ==
 Sweet Tooth introduces conventions for implicitly associating route paths, route
 names, and the namespaces that hold handler definitions. This eliminates
-boilerplate but might cause some to throw their hands up in disgust and shout
-"Magic!". These docs explain how everything works, hopefully to the satisfaction
-of those grumpy individuals who have somehow lost their love of freakin' magic.
+boilerplate but might cause some to shake their heads in disgust with a
+frowning, condemnatory grumble of "Magic!" These docs explain how everything
+works, hopefully to the satisfaction of those grumpy individuals who have
+somehow lost their love of freakin' magic.
 
 Sweet Tooth is oriented around RESTful APIs. You send `GET`, `POST`, `PUT`, and
 `DELETE` requests to paths like `/todo-list` and `/todo-list/1` in order to
@@ -171,11 +172,11 @@ handlers. Routes can also be used to generate paths:
 .decisions
 ----
 (require '[reitit.core :as r])
-(-> [[:project.endpoint.todo-list]]
-    serr/expand-routes
+(-> (serr/expand-routes [[:project.endpoint.todo-list]])
     r/router
     (r/match-by-name :todo-list {:id 1})
     :path)
+
 ;; =>
 "/todo-list/1"
 ----
