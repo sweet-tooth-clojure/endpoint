@@ -1,0 +1,6 @@
+#+TITLE: Intro to Request Handling
+
+*Routes* have two main purposes:
+
+- Conveying requests to a handler
+- Generating paths using a route name and parameters

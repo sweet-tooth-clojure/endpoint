@@ -1,18 +1,33 @@
 #+TITLE: Endpoint Routes and Handlers
 
-This doc explains how to write endpoint /routes/ and /handlers/ in a Sweet Tooth
-app.
+These docs explain how to write endpoint /routes/ and /handlers/ in a Sweet
+Tooth app. If you're unfamiliar with routes or handlers, check out the
+xref:request-handling-intro.adoc[Introduction to Request Handling].
 
-*Routes* have two main purposes:
+This page covers practical basics, just enough for you to get some stuff
+working. xref:routes-in-depth.adoc[Routes in Depth] covers every facet of
+writing routes, and xref:handlers-in-depth.adoc[Handlers in Depth] explains how
+to write Liberator handlers.
 
-- Conveying requests to a handler
-- Generating paths using a route name and parameters
+The above pages take a bottom-up approach, explaining sub-systems in detail
+without regard for the broader request-handling context.
+xref:top-down-request-handling[Top-Down Request Handling] explains how these
+sub-systems are composed using the Duct and Integrant architecture composition
+micro-frameworks.
 
-For a more detailed explanation of routes and routing, see
-xref:routes-and-routing-explained.adoc[Routes and Routing Explained].
+These docs assume you're working within the [[https://github.com/sweet-tooth-clojure/todo-example][the Sweet Tooth To-Do List Example]]
+project.
 
-Sweet Tooth relies on the reitit routing library, which represents routes as
-two-element vectors that associate URL patterns like `/users/{id}` with a map
+* Basic Routes and Handlers
+
+Sweet Tooth introduces conventions for implicitly associating route paths, route
+names, and the namespaces that hold handler definitions. This eliminates
+boilerplates but might cause some to throw their hands up in disgust and shout
+"Magic!". These docs explain how everything works, hopefully to the satisfaction
+of those jaded individuals who have somehow lost their love of freakin' magic.
+
+For routing, Sweet Tooth relies on the [[https://github.com/metosin/reitit][reitit library]], which represents routes
+as two-element vectors that associate URL patterns like `/users/{id}` with a map
 containing the route's name, handler, and metadata. For example:
 
 #+CAPTION: route example
@@ -21,18 +36,6 @@ containing the route's name, handler, and metadata. For example:
                 :handler (fn [req] {:body "response"})}]
 #+END_SRC
 
-*Handlers* are functions that take a request as an argument and return a response.
-
-Sweet Tooth introduces conventions for associating route paths, route names, and
-the namespaces that hold handler definitions. This section is a practical
-tutorial on what steps to take to get things working. Further sections go into
-more detail about the implementation so that you'll understand how to customize
-the system to your particular needs, if you need to.
-
-These docs assume you're working within the [[https://github.com/sweet-tooth-clojure/todo-example][the Sweet Tooth To-Do List Example]]
-project.
-
-* Basic Routes and Handlers
 Sweet Tooth is oriented around RESTful APIs. You send `GET`, `POST`, `PUT`, and
 `DELETE` requests to paths like `/todo-list` and `/todo-list/1` in order to
 perform CRUD operations. The corresponding request handlers are located in a
@@ -119,6 +122,7 @@ To summarize:
 - You can generate routes for an endpoint namespace using
   `sweet-tooth.endpoint.routes.reitit/expand-routes`. Route paths and names are
   derived from namespace names.
+* Cross Compilation
 
 * Route Expanders
 
