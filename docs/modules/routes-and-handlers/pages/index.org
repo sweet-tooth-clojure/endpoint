@@ -154,7 +154,27 @@ To summarize:
 - You can generate routes for an endpoint namespace using
   `sweet-tooth.endpoint.routes.reitit/expand-routes`. Route paths and names are
   derived from namespace names.
+
 * Cross Compilation
+
+So far this doc has focused on how routes are used to convey requests to
+handlers. Routes can also be used to generate paths:
+
+#+CAPTION: decisions
+#+BEGIN_SRC clojure
+(require '[reitit.core :as r])
+(-> [[:project.endpoint.todo-list]]
+    serr/expand-routes
+    r/router
+    (r/match-by-name :todo-list {:id 1})
+    :path)
+;; =>
+"/todo-list/1"
+#+END_SRC
+
+The frontend makes ample use of this capability to generate URLs for API calls.
+Thankfully we can define our routes in one `endpoint_routes.cljc` file and it
+will get cross-compiled to both frontend and backend targets. Pretty sweet!
 
 * What's Next?
 
