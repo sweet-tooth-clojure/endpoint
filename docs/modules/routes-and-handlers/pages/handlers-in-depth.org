@@ -1,0 +1,69 @@
+#+TITLE: Handlers In Depth
+
+This guide explains how [[https://clojure-liberator.github.io/liberator/][Liberator]] works and how Sweet Tooth uses it to
+create request handlers. It explains how to write handlers for your own apps.
+
+* Liberator Basics
+
+TODO contextualize that handlers are functions that take a request and return a response
+
+By default, Sweet Tooth uses Liberator to construct request handlers. Liberator
+is a library that provides an abstraction for the common decisions that a
+request handler has to make, decisions like: Is this data valid? Is the user
+authorized? If not, what status code should I return?
+
+In my experience, Clojure API endpoint handlers handle these decisions in an
+ad-hoc fashion. The following two snippets demonstrate two different approaches
+I've seen to handling a common use-case of creating a new resource:
+
+#+CAPTION: handler that's normal af
+#+BEGIN_SRC clojure
+(defn create-todo
+  [{:keys [params session] :as _req}]
+  (if-not (authorized? session)
+    (throw NotAuthorized "you do not have permission to do that"))
+  (if-let [errors (validation-errors ::create-todo params)]
+    {:status 400
+     :body   {:errors errors}}
+    (create-todo! params)))
+
+(defn create-todo
+  [{:keys [params session] :as _req}]
+  (cond (not (authorized? session))
+        {:status 401
+         :body   {:errors "not authorized"}}
+
+        (not (valid? ::create-todo params))
+        {:status 400
+         :body   {:errors (validation-errors ::create-todo params)}}
+
+        :else
+        (create-todo! params)))
+#+END_SRC
+
+In Sweet Tooth apps, by contrast, you're confronted with code
+that looks like this:
+
+#+CAPTION: Example decisions
+#+BEGIN_SRC clojure
+(def decisions
+  {:collection
+   {:post {:malformed? (el/validate-describe v/user-rules)
+           :post!      ed/create->:result
+           :handle-ok  el/created-pull}}})
+#+END_SRC
+
+
+
+- the core of a decision
+  - what status to return: not authorized
+
+- liberator helpers
+- we saw some decision maps that look like this:
+- include example requests with ring mock
+- function that takes a request and returns a response
+- liberator decisions
+- testing
+- deviations from off-the-shelf liberator
+  - defaults
+  - separating methods

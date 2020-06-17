@@ -1,3 +1,0 @@
-#+TITLE: Liberator
-
-TODO explain liberator

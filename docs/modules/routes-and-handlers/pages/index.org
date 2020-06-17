@@ -5,15 +5,16 @@ Tooth app. If you're unfamiliar with routes or handlers, check out the
 xref:request-handling-intro.adoc[Introduction to Request Handling].
 
 This page covers practical basics, just enough for you to get some stuff
-working. xref:routes-in-depth.adoc[Routes in Depth] covers every facet of
-writing routes, and xref:handlers-in-depth.adoc[Handlers in Depth] explains how
-to write Liberator handlers.
+working. For more practical, bottom-up instruction,
+xref:routes-in-depth.adoc[Routes in Depth] covers every facet of writing routes,
+and xref:handlers-in-depth.adoc[Handlers in Depth] explains how to write
+Liberator handlers.
 
-The above pages take a bottom-up approach, explaining sub-systems in detail
-without regard for the broader request-handling context.
 xref:top-down-request-handling[Top-Down Request Handling] explains how these
-sub-systems are composed using the Duct and Integrant architecture composition
-micro-frameworks.
+sub-systems fit into the larger whole. It describes how they're composed using
+the Duct and Integrant architecture composition micro-frameworks. It's light on
+HOWTO instructions, but the high level perspective it provides should help you
+understand routes and handlers better.
 
 These docs assume you're working within the [[https://github.com/sweet-tooth-clojure/todo-example][the Sweet Tooth To-Do List Example]]
 project.
