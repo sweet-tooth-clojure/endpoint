@@ -5,18 +5,17 @@ create request handlers. It explains how to write handlers for your own apps.
 
 * Liberator Basics
 
-TODO contextualize that handlers are functions that take a request and return a response
+TODO contextualize that handlers are functions that take a request and return a
+response
 
 By default, Sweet Tooth uses Liberator to construct request handlers. Liberator
 is a library that provides an abstraction for the common decisions that a
 request handler has to make, decisions like: Is this data valid? Is the user
-authorized? If not, what status code should I return?
+authorized? If not, what status code should I return? The following two snippets
+demonstrate two different approaches I've seen to handling this kind of logic
+for the common use-case of creating a new resource:
 
-In my experience, Clojure API endpoint handlers handle these decisions in an
-ad-hoc fashion. The following two snippets demonstrate two different approaches
-I've seen to handling a common use-case of creating a new resource:
-
-#+CAPTION: handler that's normal af
+#+CAPTION: typical endpoint code
 #+BEGIN_SRC clojure
 (defn create-todo
   [{:keys [params session] :as _req}]
@@ -41,16 +40,16 @@ I've seen to handling a common use-case of creating a new resource:
         (create-todo! params)))
 #+END_SRC
 
-In Sweet Tooth apps, by contrast, you're confronted with code
-that looks like this:
+Meanwhile, Sweet Tooth apps have code that looks like this:
 
 #+CAPTION: Example decisions
 #+BEGIN_SRC clojure
 (def decisions
   {:collection
-   {:post {:malformed? (el/validate-describe v/user-rules)
-           :post!      ed/create->:result
-           :handle-ok  el/created-pull}}})
+   {:post {:authorized? el/authenticated?
+           :malformed?  (el/validate-describe v/todo-rules)
+           :post!       ed/create->:result
+           :handle-ok   el/created-pull}}})
 #+END_SRC
 
 
