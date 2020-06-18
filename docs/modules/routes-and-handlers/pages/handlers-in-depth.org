@@ -3,6 +3,10 @@
 This guide explains how [[https://clojure-liberator.github.io/liberator/][Liberator]] works and how Sweet Tooth uses it to
 create request handlers. It explains how to write handlers for your own apps.
 
+It begins with a high-level discussion of the core Liberator concepts
+/decisions/ and /context/. It then provides practical guidance on creating
+handlers in Sweet Tooth apps.
+
 * Liberator Basics: Decisions
 
 TODO contextualize that handlers are functions that take a request and return a
@@ -40,17 +44,18 @@ within the common use-case of creating a new resource:
         (create-todo! params)))
 #+END_SRC
 
-This if/then logic to determine which status to return is always ways the same.
-You'll always want to check whether the user is authorized before attempting to
-validate data, and you'll always want to validate data before attempting to
-insert it in a db. You can visualize this logic as a /decision graph/:
+The structure of this if/then logic to determine which status to return is
+always ways the same. You'll always want to check whether the user is authorized
+before attempting to validate data, and you'll always want to validate data
+before attempting to insert it in a db. You can visualize this structure as a
+/decision graph/:
 
 image::decision-graph.png[diagram of a decision graph]
 
-Liberator provides a function that captures the /structure/ of the decision
-graph -- the order that the decisions are traversed and the status codes
-associated with each final state -- so that your code only has to focus on the
-logic specific to each decision.
+Liberator provides a function that captures the the decision graph -- the order
+that the decisions are traversed and the status codes associated with each final
+state -- so that your code only has to focus on the logic specific to each
+decision.
 
 Below is a simplified version of that function. It takes a map of decision
 functions and returns a request handler which can be used to return responses
@@ -99,8 +104,6 @@ Here's how you would call this function to create a handler:
     :post!       ed/create->:result
     :handle-ok   el/created-pull}))
 #+END_SRC
-
-
 
 - the core of a decision
   - what status to return: not authorized
