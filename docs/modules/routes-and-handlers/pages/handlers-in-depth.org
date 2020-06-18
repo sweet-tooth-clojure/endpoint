@@ -9,11 +9,11 @@ TODO contextualize that handlers are functions that take a request and return a
 response
 
 By default, Sweet Tooth uses Liberator to construct request handlers. Liberator
-is a library that provides an abstraction for the common decisions that a
-request handler has to make, decisions like: Is this data valid? Is the user
-authorized? If not, what status code should I return? The following two snippets
+provides an abstraction for the common decisions that a request handler has to
+make, decisions like: Is this data valid? If not, return a 400 status. Is the
+user authorized? If not, return a 401 status. The following two snippets
 demonstrate two different approaches I've seen to handling this kind of logic
-for the common use-case of creating a new resource:
+within the common use-case of creating a new resource:
 
 #+CAPTION: typical endpoint code
 #+BEGIN_SRC clojure
@@ -40,18 +40,19 @@ for the common use-case of creating a new resource:
         (create-todo! params)))
 #+END_SRC
 
-Meanwhile, Sweet Tooth apps have code that looks like this:
 
-#+CAPTION: Example decisions
+
+#+CAPTION: Liberator decisions
 #+BEGIN_SRC clojure
-(def decisions
-  {:collection
-   {:post {:authorized? el/authenticated?
-           :malformed?  (el/validate-describe v/todo-rules)
-           :post!       ed/create->:result
-           :handle-ok   el/created-pull}}})
+(def create-todo
+  (liberator/resource
+   :authorized? el/authenticated?
+   :malformed?  (el/validate-describe v/todo-rules)
+   :post!       ed/create->:result
+   :handle-ok   el/created-pull))
 #+END_SRC
 
+In all of these examples
 
 
 - the core of a decision
