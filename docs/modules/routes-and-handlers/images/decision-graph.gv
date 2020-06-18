@@ -1,6 +1,7 @@
 digraph liberator_decisions {
     rankdir=TB;
     dpi=150;
+    size="3,3";
     node [shape = doublecircle]; 401 400 200;
     node [shape = oval];
     "authorized?" -> 401 [ label = "false" ];
