@@ -10,10 +10,7 @@ _decisions_ and _context_. It then provides practical guidance on creating
 handlers in Sweet Tooth apps.
 
 
-== Liberator Basics: Decisions ==
-TODO contextualize that handlers are functions that take a request and return a
-response
-
+== Liberator Decisions ==
 By default, Sweet Tooth uses Liberator to construct request handlers. Liberator
 provides an abstraction for the common decisions that a request handler has to
 make, decisions like: Is this data valid? If not, return a 400 status. Is the
@@ -50,22 +47,25 @@ within the common use-case of creating a new resource:
 The structure of this if/then logic to determine which status to return is
 always ways the same. You'll always want to check whether the user is authorized
 before attempting to validate data, and you'll always want to validate data
-before attempting to insert it in a db. You can visualize this structure as a
-_decision graph_:
+before attempting to insert it in a db. If the request isn't authorized, you
+should always return a 401 status, and if it's not valid you should return a 400
+status. You can visualize this structure as a _decision graph_:
 
 image::decision-graph.png[diagram of a decision graph]
 
 Liberator provides a function that captures the the decision graph -- the order
 that the decisions are traversed and the status codes associated with each final
-state -- so that your code only has to focus on the logic specific to each
+result -- so that your code only has to focus on the logic specific to each
 decision.
 
 Below is a simplified version of that function. It takes a map of decision
 functions and returns a request handler which can be used to return responses
 for ring requests.
 
-TODO explain why it uses `:malformed?` and `:handle-ok` rather than `:valid?`
-and `:success?`
+NOTE: Liberator uses `:malformed?` instead of `:valid?` and `:handle-ok` instead
+of `:success` because it's actually structuring decisions regarding how to
+return a valid HTTP response, and the language of `malformed` and `ok` hews more
+closely to the HTTP spec.
 
 [source,clojure]
 .simplified decision request generator
@@ -90,14 +90,205 @@ and `:success?`
            :body   result})))))
 ----
 
-The code might be a little dense and I welcome suggestions for something simpler
-or clearer :) `decisions->handler` returns a function that traverses
-`decision-graph`, starting with the `:authorized?` node. As it traverses the
-graph, it looks up decision functions in the `decision-nodes` argument. It uses
-the return value of the decision function to retrieve either the next decision
-node or the response status. If a status is retrieved, the function returns.
+The code might be a little dense and I welcome suggestions clearer :)
+`decisions->handler` returns a function that traverses `decision-graph`,
+starting with the `:authorized?` node. As it traverses the graph, it looks up
+decision functions in `decision-nodes`. It uses the return value of the decision
+function to retrieve either the next decision node or the response status. If a
+status is retrieved, the function returns.
 
 Here's how you would call this function to create a handler:
+
+[source,clojure]
+.create and call a handler
+----
+(def handler (decisions->handler {:authorized? (constantly true)
+                                  :malformed? (constantly false)
+                                  :handle-ok (constantly "hi")}))
+
+(handler {})
+;; =>
+{:status 200, body "hi"}
+----
+
+NOTE: Liberator itself provides sane defaults for `:authorized?`, `:malformed?`
+and all the rest of its decision functions. I didn't include default handling in
+these examples to keep the code more focused.
+
+
+== Liberator Context ==
+The above examples are incomplete: Liberator actually allows you to convey data
+from decision function to the next. For example, in the `:authorized?` decision
+you might look up the identity associated with a request. The `:handle-ok`
+function could use this data; rather than looking it up again, `:authorized?`
+can store it so that `:handle-ok` can access it.
+
+Liberator accomplishes this by passing the request _context_ in to each decision
+function. A Liberator context is just a map. It includes the ring request under
+the key `:request`. Your decision functions can append to the context by
+returning a vector like so:
+
+[source,clojure]
+.append to a context
+----
+(defn authorized?
+  [ctx]
+  (when-let [user (find-user ctx)]
+    [true {:auth-user user}]))
+----
+
+The first element of the vector, `true`, is the decision result, and it
+determines which node of the decision graph to visit next. The second element,
+`{:auth-user user}`, is a map that gets merged into context. The updated context
+is available to downstream decision handlers:
+
+[source,clojure]
+.create and call a handler
+----
+(defn handle-ok
+  [ctx]
+  (create-todo! (merge (get-in ctx [:request :params])
+                       {:user-id (get-in ctx [:auth-user :id])})))
+----
+
+Here's an updated version of the `decisions->handler` function that implements
+this feature, along with a toy handler that makes use of it:
+
+[source,clojure]
+.decisions->handler with context
+----
+(defn conform-decision-result
+  [result]
+  (if (vector? result)
+    result
+    [result {}]))
+
+(defn decisions->handler
+  [decision-nodes]
+  (fn [req]
+    (loop [ctx  {:request req}
+           node :authorized?]
+      (let [[result added-context] (conform-decision-result ((node decision-nodes) ctx))
+            edges-or-status        (node decision-graph)
+            next-node-or-status    (get edges-or-status (boolean result) edges-or-status)]
+        (if (keyword? next-node-or-status)
+          (recur (merge ctx added-context) next-node-or-status) ;; it was a node; on to the next decision!
+          {:status next-node-or-status
+           :body   result})))))
+
+(def handler
+  (decisions->handler
+   {:authorized? (fn [ctx] [true {:auth-user {:user-id 1}}])
+    :malformed?  (constantly false)
+    :handle-ok   (fn [ctx] (str "Logged in as " (get-in ctx [:auth-user :user-id])))}))
+
+(handler {})
+;; =>
+"Logged in as 1"
+----
+
+
+== Liberator Decision Functions vs Status Handlers ==
+So far I've been conflating _decision functions_ and _status handlers_ under the
+perhaps misguided notion that it would allow us to focus on one facet of
+Liberator at a time. Let's correct that now.
+
+While decision functions are used to determine which HTTP status code to return
+for a request, status handlers determine the response body. Status handlers are
+leave nodes in the decision graph. `:handle-ok` is one such function, but
+Liberator also makes use of `:handle-malformed`, `:handle-unauthorized`, and
+http://clojure-liberator.github.io/liberator/doc/handlers.html[dozens more]. A more accurate decision graph would look like this:
+
+image::decision-and-handler-graph.png[more accurate decision graph]
+
+Let's update our example code to capture this distinction and add
+`:handle-malformed` and `:handle-unauthorized` handlers:
+
+[source,clojure]
+.decisions->handler with context
+----
+(def decision-graph
+  {:authorized?         {true  :malformed?
+                         false :handle-unauthorized}
+   :malformed?          {true  :handle-malformed
+                         false :handle-ok}
+   :handle-unauthorized 401
+   :handle-malformed    400
+   :handle-ok           200})
+
+(defn decisions->handler
+  [decision-nodes]
+  (fn [req]
+    (loop [ctx  {:request req}
+           node :authorized?]
+      (let [edges-or-status (node decision-graph)
+            node-type       (if (map? edges-or-status)
+                                  :decision
+                                  :status-handler)]
+        (case node-type
+          :decision (let [[result added-context] (conform-decision-result ((node decision-nodes) ctx))
+                          next-node              (get edges-or-status (boolean result))]
+                      (recur (merge ctx added-context) next-node))
+          :status   {:status edges-or-status
+                     :body   ((node decision-nodes (constantly nil)) ctx)})))))
+----
+
+Here's a more realistic example of how this could all work together. First we
+create a handler, then we call it with a couple different "requests":
+
+[source,clojure]
+.more detailed decisions
+----
+(def create-todo-list-handler
+  (decisions->handler
+   {:authorized?      (fn [ctx]
+                        (when-let [user (get-in ctx [:request :user])]
+                          [true {:user user}]))
+    :malformed?       (fn [ctx]
+                        (if (get-in ctx [:request :params :todo-list/title])
+                          false
+                          [true {:errors ["No to-do list title"]}]))
+    :handle-malformed (fn [ctx] (select-keys ctx [:errors]))
+    :handle-ok        (fn [ctx]
+                        (merge (get-in ctx [:request :params])
+                               {:todo-list/owner (get-in ctx [:user :id])}))}))
+
+(create-todo-list-handler {:user {:id 1}})
+;; =>
+{:status 400, :body {:errors ["No to-do list title"]}}
+
+
+(create-todo-list-handler
+ {:user   {:id 1}
+  :params {:todo-list/title "write some docs this is your life now"}})
+;; =>
+{:status 200
+ :body #:todo-list{:title "write some docs this is your life now"
+                   :owner 1}}
+----
+
+
+== Sweet Tooth handlers ==
+Sweet Tooth uses Liberator to create request handlers from decision maps.
+Sweet Tooth's approach differs from vanilla liberator in a few key ways:
+
+* request method dispatch
+* it provides decision defaults
+* default to transit
+* integrant / adding to the context
+
+
+
+== notes to self ==
+* liberator helpers
+* we saw some decision maps that look like this:
+* include example requests with ring mock
+* function that takes a request and returns a response
+* liberator decisions
+* testing
+* deviations from off-the-shelf liberator
+** defaults
+** separating methods
 
 [source,clojure]
 .Liberator decisions
@@ -110,18 +301,6 @@ Here's how you would call this function to create a handler:
     :handle-ok   el/created-pull}))
 ----
 
-* the core of a decision
-** what status to return: not authorized
+You can
 
-* liberator helpers
-* we saw some decision maps that look like this:
-* include example requests with ring mock
-* function that takes a request and returns a response
-* liberator decisions
-* testing
-* deviations from off-the-shelf liberator
-** defaults
-** separating methods
-
-
-== Liberator Basics: Context ==
+#+BEGIN_SRC clojure

@@ -1,0 +1,14 @@
+digraph liberator_decisions {
+    rankdir=TB;
+    dpi=150;
+    size="4,4";
+    node [shape = doublecircle]; 401 400 200;
+    node [shape = oval];
+    "authorized?" -> "handle-unauthorized" [ label = "false" ];
+    "authorized?" -> "malformed?" [ label = "true" ];
+    "malformed?" -> "handle-malformed" [ label = "false" ];
+    "malformed?" -> "handle-ok" [ label = "true" ];
+    "handle-unauthorized" -> 401 [ label = "status"]
+    "handle-malformed" -> 400 [label = "status"]
+    "handle-ok" -> 200 [label = "status"]
+}
