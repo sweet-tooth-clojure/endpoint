@@ -88,13 +88,13 @@
   replace the original component's config so that the mocked
   component can be initialized.
 
-  `::mocked-component-opts` defines additional config opts that should
+  `:st/mocked-component-opts` defines additional config opts that should
   get passed to the mocked component. One use for this is to satisfy
   that component's config spec."
   ([] (shrubbery-mock {}))
-  ([{:keys [::mocked-component-opts] :as opts}]
+  ([{:keys [:st/mocked-component-opts] :as opts}]
    (merge {::init-key-alternative ::shrubbery-mock
-           ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
+           ::shrubbery-mock       (dissoc opts :st/mocked-component-opts)}
           mocked-component-opts)))
 
 (s/fdef shrubbery-mock
