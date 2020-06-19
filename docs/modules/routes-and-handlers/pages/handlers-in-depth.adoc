@@ -111,9 +111,19 @@ Here's how you would call this function to create a handler:
 {:status 200, body "hi"}
 ----
 
-NOTE: Liberator itself provides sane defaults for `:authorized?`, `:malformed?`
-and all the rest of its decision functions. I didn't include default handling in
-these examples to keep the code more focused.
+[NOTE]
+====
+
+The simplified Liberator re-implementation differs from actual Liberator in a
+couple important ways. First, the real library provides sane defaults for
+`:authorized?`, `:malformed?` and all the rest of its decision functions. I
+didn't include default handling in these examples to keep the code more focused.
+
+Second, Liberator allows you to provide constants, so you can write
+`:authorized? true` instead of `:authorized? (constantly true)` and `:handle-ok
+"hi"` instead of `:handle-ok (constantly "hi"))`.
+
+====
 
 
 == Liberator Context ==
@@ -272,11 +282,112 @@ create a handler, then we call it with a couple different "requests":
 Sweet Tooth uses Liberator to create request handlers from decision maps.
 Sweet Tooth's approach differs from vanilla liberator in a few key ways:
 
-* request method dispatch
-* it provides decision defaults
-* default to transit
-* integrant / adding to the context
+* It simplifies dispatching by request method (:get, :post, etc)
+* It uses an opinionated set of decision functions and status handlers
+* It's meant to be used with Integrant, and it provides tools to make that easy
+* It introduces some automatic formatting
 
+
+=== Simpler HTTP method dispatching ===
+In vanilla Liberator, you typically create a single handler for a given route.
+From http://clojure-liberator.github.io/liberator/tutorial/all-together.html[Liberator's docs]:
+
+[source,clojure]
+.vanilla liberator
+----
+;; create and list entries
+(defresource list-resource
+  :available-media-types ["application/json"]
+  :allowed-methods [:get :post]
+  :known-content-type? #(check-content-type % ["application/json"])
+  :malformed? #(parse-json % ::data)
+  :post! #(let [id (str (inc (rand-int 100000)))]
+            (dosync (alter entries assoc id (::data %)))
+            {::id id})
+  :post-redirect? true
+  :location #(build-entry-url (get % :request) (get % ::id))
+  :handle-ok #(map (fn [id] (str (build-entry-url (get % :request) id)))
+                   (keys @entries)))
+----
+
+In this snippet, `defresource` is a Liberator macro that creates a request
+handler function, `list-resource`, from the given decision key/value pairs. From
+`:allowed-methods`, you can see that it handles both `:get` and `:post`
+requests.
+
+I personally find it confusing to combine two different workflows within the
+same function like this. In Sweet Tooth, the decision maps used to generate
+handlers look like this:
+
+[source,clojure]
+.example Sweet Tooth decisions, taken from https://github.com/sweet-tooth-clojure/todo-example[the To-Do example]
+----
+(def decisions
+  {:collection
+   {:get  {:handle-ok (comp tl/todo-lists ed/db)}
+    :post {:malformed?     (v/validate-describe v/todo-list-rules)
+           :post!          ed/create->:result
+           :handle-created ed/created-pull}}})
+----
+
+Decision maps are keyed first by route type (see
+xref:routes-in-depth.adoc[Routes in Depth] for an explanation of route types),
+then by request method. As developers working on RESTful APIs, we categorize
+units of work by request method, so I think it's useful to unambiguously
+distinguish handlers for different methods.
+
+
+=== Slightly opinionated default decisions ===
+Liberator is very flexible, very cool. You can use it for content negotiation,
+for example, serving different responses based on a request's media type and
+returning the appropriate HTTP status code when a request's media types don't
+match what the server provides. You saw an example of this in the last section:
+
+[source,clojure]
+.media types
+----
+(defresource list-resource
+  :available-media-types ["application/json"]
+  :known-content-type? #(check-content-type % ["application/json"]))
+----
+
+By default, Sweet Tooth endpoints expect to receive and return https://blog.cognitect.com/blog/2014/7/22/transit[Transit]. It also
+has conventions for error handling, expecting errors to be placed under
+`:errors` in the context map. Here are all of Sweet Tooth's https://github.com/sweet-tooth-clojure/endpoint/blob/0f0fa42d17e1aef27e7381c3f99e22a25ec0aade/src/sweet_tooth/endpoint/liberator.clj#L102[defaults]:
+
+[source,clojure]
+.sweet tooth decision defaults
+----
+(def decision-defaults
+  "A base set of liberator resource decisions"
+  (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
+        base          {:available-media-types ["application/transit+json"
+                                               "application/transit+msgpack"
+                                               "application/json"]
+                       :allowed-methods       [:get]
+                       :authorized?           true
+                       :handle-unauthorized   errors-in-ctx
+                       :handle-malformed      errors-in-ctx
+                       :respond-with-entity?  true
+                       :new?                  false}]
+    {:get    base
+     :post   (merge base {:allowed-methods [:post]
+                          :new?            true
+                          :handle-created  record})
+     :put    (merge base {:allowed-methods [:put]})
+     :patch  (merge base {:allowed-methods [:patch]})
+     :head   (merge base {:allowed-methods [:head]})
+     :delete (merge base {:allowed-methods      [:delete]
+                          :respond-with-entity? false})}))
+----
+
+
+=== Integrant integration ===
+
+
+
+
+=== Response formatting ===
 
 
 == notes to self ==
