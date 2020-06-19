@@ -285,7 +285,8 @@ Sweet Tooth's approach differs from vanilla liberator in a few key ways:
 * It simplifies dispatching by request method (:get, :post, etc)
 * It uses an opinionated set of decision functions and status handlers
 * It's meant to be used with Integrant, and it provides tools to make that easy
-* It introduces some automatic formatting
+* It expects responses to conform to a Sweet Tooth-specific response protocol,
+and automatically formats some values so that they'll conform
 
 
 === Simpler HTTP method dispatching ===
@@ -383,35 +384,180 @@ has conventions for error handling, expecting errors to be placed under
 
 
 === Integrant integration ===
+Sweet Tooth is built on top of https://github.com/weavejester/integrant[Integrant], a dependency injection framework. When
+you use Integrant, you create components for interacting with external services
+like databases, then pass in those components in as arguments to the functions
+that need them.
 
-
-
-
-=== Response formatting ===
-
-
-== notes to self ==
-* liberator helpers
-* we saw some decision maps that look like this:
-* include example requests with ring mock
-* function that takes a request and returns a response
-* liberator decisions
-* testing
-* deviations from off-the-shelf liberator
-** defaults
-** separating methods
+So how does one pass in components to handlers in a Sweet Tooth app? One does
+this in the route definition. Here's the route  definition for the to-do example
+app:
 
 [source,clojure]
-.Liberator decisions
+.routes passing in components
 ----
-(def create-todo
-  (decisions->handler
-   {:authorized? el/authenticated?
-    :malformed?  (el/validate-describe v/todo-rules)
-    :post!       ed/create->:result
-    :handle-ok   el/created-pull}))
+(ns sweet-tooth.todo-example.cross.endpoint-routes
+  (:require [sweet-tooth.endpoint.routes.reitit :as serr]
+            [integrant.core :as ig]))
+
+(def routes
+  (serr/expand-routes
+   [{:ctx               {:db (ig/ref :sweet-tooth.endpoint.datomic/connection)}
+     :id-key            :db/id
+     :auth-id-key       :db/id
+     ::serr/path-prefix "/api/v1"}
+    [:sweet-tooth.todo-example.backend.endpoint.todo-list]
+    [:sweet-tooth.todo-example.backend.endpoint.todo]]))
+
+(defmethod ig/init-key ::routes [_ _]
+  routes)
 ----
 
-You can
+(See xref:routes-in-depth.adoc[Routes in Depth] if you're not familiar with `serr/expand-routes`.)
 
-#+BEGIN_SRC clojure
+We pass `expand-routes` a vector where the first element is a map. The map is a
+set of route options that gets applied to every route that follows. The `:ctx`
+key defines a map that should get merged into the context of every liberator
+handler for those routes.
+
+In this case, the map is `{:db (ig/ref
+:sweet-tooth.endpoint.datomic/connection)}`. The function `ig/ref` returns an
+Integrant reference to the specified component. When the system is initialized,
+it will be replaced with the initialized
+`:sweet-tooth.endpoint.datomic/connection` component, and decision functions can
+access the component like so:
+
+[source,clojure]
+.routes passing in components
+----
+(fn [ctx]
+  (d/transact! (:db ctx) [...]))
+----
+
+TODO go into more detail about how this actually works
+
+
+=== Response protocol ===
+The Sweet Tooth frontend expects response bodies to be a vector of _segments_,
+where each segment is a two-element vector of `[segment-type payload]`, like
+this:
+
+
+[source,clojure]
+.response example
+----
+[[:entity {:todo-list {1 {:todo-list/title "blah"}}}]
+ [:page {:paginator-name :todo-lists
+         :page-num       1}]]
+----
+
+The xref:response-protocol.adoc[Response protocol] guide goes into more detail
+about the rationale for this protocol and how to extend it. Right now we're just
+focusing on the practical details of sending typical responses. We'll cover
+_entities_ and _errors_.
+
+
+==== Returning Entities ====
+Most of the time you'll want your endpoints to return either a single entity or
+a collection of entities. The Sweet Tooth frontend expects such response bodies
+to take this form:
+
+[source,clojure]
+.entity response
+----
+[[:entity {:entity-type {entity-id-1 entity-map-1
+                         entity-id-2 entity-map-2
+                         entity-id-3 entity-map-3}}]]
+----
+
+The content of an actual response body might look like this:
+
+[source,clojure]
+.entity response
+----
+[[:entity {:todo-list {1 {:id 1 :todo-list/title "title 1"}
+                       2 {:id 2 :toto-list/title "title 2"}
+                       3 {:id 3 :toto-list/title "title 3"}}}]]
+----
+
+This response body includes an `:entity` segment. The payload for an `:entity`
+segment is a map that's keyed first by the entities' type (`:todo-list`) and then
+by then by the entities' ids.
+
+TODO explain the rationale for this lightly indexed structure
+
+It'd be pretty inconvenient to always have to format your data to fit this
+structure. Thankfully, Sweet Tooth doesn't make you do this. Most of the time,
+you can just return maps or vectors of maps:
+
+[source,clojure]
+.you can usually return maps or vectors of maps
+----
+(def decisions
+  {:collection
+   {:get {:handle-ok (fn [ctx]
+                       [{:id 1 :todo-list/title "title 1"}
+                        {:id 2 :todo-list/title "title 2"}
+                        {:id 1 :todo-list/title "title 3"}])}}
+
+   :member
+   {:get {:handle-ok (fn [ctx] {:id 1 :todo-list/title "title 1"})}}})
+----
+
+The above snippet shows how you would create handlers that respond to GET
+requests at paths like `/todo-list` and `/todo-list/1`. `:handle-ok` is a status
+handler function whose return value will be the body of the response. In the
+case of `:collection` (which would correspond to `/todo-list`), the return value
+is a vector of maps. For `:member` (which would correspond to `/todo-list/1`),
+the return value is a single map.
+
+You can return these values instead of the fully protocol-conformat values
+because Sweet Tooth will format the responses from your handlers. It derives the
+entity type from the endpoint namespace; the entity type for
+`sweet-tooth.todo-example.backend.endpoint.todo-list` is `:todo-list`. It
+formats responses using `sweet-tooth.endpoint.format/format-response`. If a
+response consists of segments, like `[ [:errors ...] ]`, the function will
+leave those segments untouched. Otherwise it will try to convert the data into
+an entity segment.
+
+But what if you want to a mix of entities of different types? Or what if the
+namespace name doesn't match the name of the entity type?
+
+
+==== Returning entities of different types ====
+You can specify entity types in-line as metadata. All of these will work as
+responses:
+
+[source,clojure]
+.you can specify entity type inline
+----
+^{:ent-type :todo-list} {:id 1 :todo-list/title "title 1"}
+
+^{:ent-type :todo-list} [{:id 1 :todo-list/title "title 1"}
+                         {:id 2 :todo-list/title "title 2"}
+                         {:id 1 :todo-list/title "title 3"}]
+
+[^{:ent-type :todo-list} {:id 1 :todo-list/title "title 1"}
+ ^{:ent-type :todo}      {:id 1 :todo/title "todo 1"}]
+
+[^{:ent-type :todo-list} [{:id 1 :todo-list/title "title 1"}
+                          {:id 2 :todo-list/title "title 2"}]
+ ^{:ent-type :todo}      [{:id 1 :todo/title "todo 1"}
+                          {:id 2 :todo/title "todo 2"}]]
+----
+
+
+
+==== Setting a namespace's entity type ====
+If the name of your namespace doesn't match the name of the entity type, you can
+specify the ent-type in that namespace's route:
+
+[source,clojure]
+.you can specify the entity type for a namespace
+----
+(serr/expand-routes
+ [[:sweet-tooth.backend.endpoint.restricted-todo-list {:ent-type :todo-list}]])
+----
+
+
+==== Returning Errors ====
