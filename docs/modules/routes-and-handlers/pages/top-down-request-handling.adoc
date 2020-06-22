@@ -10,48 +10,72 @@ This guide describes:
 * How a request flows through the components
 
 
-== Components ==
-Check out my very beautiful diagram of the components involved in handling an
-API request:
+== Component Decomposition ==
+Handling an HTTP request requires the coordination of multiple components.
+This section breaks down high-level components into their subcomponents and
+describes their relationships.
 
-.wow a very well drawn architectural diagram
+Check out my this diagram of the components involved in handling an API request
+that looks like it was outsourced to a three year old:
+
+.wow a very well-drawn architectural diagram
 image::top-down-handlers.png[top down handlers]
 
-* A request is sent across the internet until it reaches a _machine_ (1).
-* The machine is running a _database_ (2). I drew this to kinda look like home
-base in baseball, but also to kinda look like a house filled with stuff. Data
-stuff.
-* _HTTP server_ (3). An HTTP server is just a process that listens for requests
-on a port (typically 80 or 443) and sends responses. HTTP servers are
-cylinders.
-* The HTTP server contains a _database connection_ (4). I drew that as an arrow
-because it uh points to a database.
-* The HTTP server also contains a _request handler_ (5). In Clojure, this is a
-function. That's why I used a lambda symbol. The lambda is kinda droopy
-because it's sick. Not that kind of sick; I mean _sick_ 😎🏍.
-* The request handler is comprised of a _middleware stack_ (6) and a _router_
-(7).
-* You can think of the router has a lookup table mapping request methods and
-path patterns to _endpoint handlers_. Endpoint handlers are just functions.
-Many endpoint handlers will have references to the database connection (8).
+The highest-level component is the _machine_ (1). When an HTTP request is sent,
+the requestor's only expectation is that some machine - virtual private server
+(VPS), Amazon EC2 instance, a lemon-powered raspberry pi - somewhere receives
+the request and sends a response. It doesn't care about the machine's OS or what
+processes are running.
 
-Some more notes on this setup:
+The machine will be running a _database_ (2). It will also be running an HTTP
+server (3). There's nothing special about HTTP servers; they're just some
+program someone wrote, only they happen to listen for HTTP requests and send
+HTTP responses.
 
-* There are different libraries for creating HTTP request handlers, including
-Pedestal and Ring. Sweet Tooth uses Ring. The HTTP server ultimately doesn't care.
+For Clojure web apps, the HTTP server usually creates a _database connection_
+(4). The HTTP server also contains a _request handler_ (5). In Clojure apps, the
+request handler is just a function which takes a request and returns a response.
 
+NOTE: the next couple paragraphs are a light overview of how a request gets
+transformed at every stage of its journey from machine to HTTP server to Clojure
+request handler. I'd love feedback on it: does it not provide enough detail?
+Does it belong elsewhere?
 
-// ^
+The relationship between machine, HTTP server, and handler, is represented by
+the boxes and lines at (6). The boxes are an interface that communicate with the
+external world via some protocol. A protocol in this context is just some
+agreed-upon format for structuring messages so that sender and receiver can
+understand each other. The machine interface is an open port, typically port 80
+or port 443, and communication happens via TCP/IP.
 
-* a machine has a database
-* a machine has a server, a running process
-* the server has a connection to the database
-* the server has a request handler, a function
-* the request handler has a middleware stack, transforming requests
-* the request handler also has a router, a function. also called a handler
-* the router can be thought of as a table
-* a router routes requests to an endpoint handler, another function
-* endpoint handlers reference the db connection
+The HTTP server is some process running on the machine assigned to listen to
+ports 80 and 443. It receives and sends messages that conform to the HTTP
+protocol. Internally, the HTTP server converts the raw text of an HTTP message
+into data structures that its supported programming languages understand. An
+Apache server has modules for converting a message to PHP or Perl. A Ruby server
+converts the message to some Ruby object.
+
+Clojure is hosted on the JVM, and we use Java HTTP servers, most frequently a
+library called Jetty. Jetty converts a request to a Java object. In Clojure, we
+prefer to work with native Clojure maps and vectors, and developers most
+frequently use the https://github.com/ring-clojure/ring[ring] library to adapt the request for Clojure. It converts
+the Java request object into https://github.com/ring-clojure/ring/wiki/Concepts#requests[a Clojure map] with the keys `:uri`,
+`:query-string`, `:request-method`, `:headers`, and `:body`, plus a few more.
+
+Ring allows you to define a Clojure function to handle requests - we saw that at
+(5). The request function takes a Ring request as an argument and should return
+a response, which is a map with the keys `:status`, `:headers`, and `:body`.
+
+You can write a function to construct a Ring response any way you want to, but
+generally Ring request handlers are structured as a _middleware stack_ (7) and a
+_router_ (8). The Ring request map passes through the middleware stack, which
+transforms the request by adding, modifying, or removing the map's keys. The
+ring request is then passed to the router, which routes the request, passing it
+on to an _endpoint handler_ based on the request's path (e.g. `/topic/1`) and
+method (`:get`, `:post`, etc).
+
+Endpoint handlers typically perform CRUD (create, read, update, delete)
+operations on a database, and have a reference to the database connection (9).
 
 a flat config that composes these relationships
 
