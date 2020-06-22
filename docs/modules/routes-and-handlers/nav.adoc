@@ -1,1 +1,5 @@
 * xref:index.adoc[Routes and Handlers]
+** xref:routes-in-depth.adoc[Routes in Depth]
+** xref:handlers-in-depth.adoc[Handlers in Depth]
+** xref:responses.adoc[Responses]
+** xref:top-down-request-handling.adoc[Request Handling from the Top Down]

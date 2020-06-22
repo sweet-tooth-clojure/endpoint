@@ -1,4 +1,5 @@
 #+TITLE: Endpoint Routes and Handlers
+:page-pagination:
 
 These docs explain how to write endpoint /routes/ and /handlers/ in a Sweet
 Tooth app. If you're unfamiliar with routes or handlers, check out the
@@ -11,11 +12,11 @@ and xref:handlers-in-depth.adoc[Handlers in Depth] explains how to write
 Liberator handlers. xref:responses.adoc[Responses] covers Sweet Tooth's response
 protocol.
 
-xref:top-down-request-handling[Top-Down Request Handling] explains how these
-sub-systems fit into the larger whole. It describes how they're composed using
-the Duct and Integrant architecture composition micro-frameworks. It's light on
-HOWTO instructions, but the high level perspective it provides should help you
-understand routes and handlers better.
+xref:top-down-request-handling.adoc[Request Handling from the Top Down] explains how
+these sub-systems fit into the larger whole. It describes how they're composed
+using the Duct and Integrant architecture composition micro-frameworks. It's
+light on HOWTO instructions, but the high level perspective it provides should
+help you understand routes and handlers better.
 
 These docs assume you're working within the [[https://github.com/sweet-tooth-clojure/todo-example][the Sweet Tooth To-Do List Example]]
 project.
@@ -187,13 +188,15 @@ In following these rules you'll write code that looks like this:
 
 This outline corresponds to CRUD operations:
 
-- `[:collection :get]` READs a collection of entities
-- `[:collection :post]` CREATEs an entity
-- `[:member :get]` READs a single entity using an identifier
-- `[:member :put]` UPDATEs an entity
-- `[:member :delete]` DELETEs an entity
+| handler               | CRUD operation                            |
+|-----------------------+-------------------------------------------|
+| `[:collection :get]`  | READs a collection of entities            |
+| `[:collection :post]` | CREATEs an entity                         |
+| `[:member :get]`      | READs a single entity using an identifier |
+| `[:member :put]`      | UPDATEs an entity                         |
+| `[:member :delete]`   | DELETEs an entity                         |
 
-To summarize:
+** Summary
 
 - There is a relationship between route paths, route names, namespaces, and
   handlers
@@ -233,6 +236,6 @@ writing routes, and xref:handlers-in-depth.adoc[Handlers in Depth] explains how
 to write Liberator handlers. xref:responses.adoc[Responses] discusses Sweet
 Tooth's response protocol.
 
-xref:top-down-request-handling[Top-Down Request Handling] explains how these
-sub-systems are composed using the Duct and Integrant architecture composition
-micro-frameworks.
+xref:top-down-request-handling.adoc[Request Handling from the Top Down] explains
+how these sub-systems are composed using the Duct and Integrant architecture
+composition micro-frameworks.

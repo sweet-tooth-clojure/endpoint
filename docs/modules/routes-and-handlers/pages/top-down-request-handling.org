@@ -1,0 +1,58 @@
+#+TITLE: Request Handling from the Top Down
+
+This guide describes:
+
+- The components involved in handling a requset
+- The relationships between the components
+- How duct composes the components
+- How a request flows through the components
+
+* Components
+
+Check out my this diagram of the components involved in handling an API request
+that looks like it was outsourced to a three year old:
+
+.wow a very well drawn architectural diagram
+image::top-down-handlers.png[top down handlers]
+
+- A request is sent across the internet until it reaches a /machine/ (1).
+- The machine is running a /database/ (2). I drew this to kinda look like home
+  base in baseball, but also to kinda look like a house filled with stuff. Data
+  stuff.
+- The machine is also running an /HTTP server/ (3). An HTTP server is just a
+  process that listens for requests on a port (typically 80 or 443) and sends
+  responses. (HTTP servers are cylinders, I guess?)
+- The HTTP server contains a /database connection/ (4). I drew that as an arrow
+  because it uh points to a database.
+- The HTTP server also contains a /request handler/ (5). In Clojure, this is a
+  function. That's why I used a lambda symbol. The lambda is kinda droopy
+  because it's sick. Not that kind of sick; I mean /sick/ 😎🏍.
+- The request handler is comprised of a /middleware stack/ (6) and a /router/
+  (7).
+- You can think of the router as a lookup table mapping request methods and path
+  patterns to /endpoint handlers/. Endpoint handlers are just functions. Many
+  endpoint handlers will have references to the database connection (8).
+
+Some more notes on this setup:
+
+- There are different libraries for creating HTTP request handlers, including
+  Pedestal and Ring. Sweet Tooth uses Ring. The HTTP server ultimately doesn't care.
+
+
+- a machine has a database
+- a machine has a server, a running process
+- the server has a connection to the database
+- the server has a request handler, a function
+- the request handler has a middleware stack, transforming requests
+- the request handler also has a router, a function. also called a handler
+- the router can be thought of as a table
+- a router routes requests to an endpoint handler, another function
+- endpoint handlers reference the db connection
+
+a flat config that composes these relationships
+
+components mean there's an expected interface
+
+components are interchangeable
+
+you have to include the route table in the configuration
