@@ -1,16 +1,11 @@
-#+TITLE: Request Handling from the Top Down
+#+TITLE: Server Architecture: Components and Beyond
 
-This guide describes the larger context of building an API server. Learning
-about the higher-level pieces involved in handling API requests and how those
-pieces fit together might not solve a specific problem you're facing, but it
-will help you orient yourself as you navigate the programming terrain, so to
-speak. (TODO work on this metaphor)
-
-The guide covers:
+This guide describes the architecture of Sweet Tooth API servers and the tools
+used to implement the architecture. It covers:
 
 - The components involved in handling a request
 - The relationships among the components
-- How duct composes the components
+- How [[https://github.com/duct-framework/core][Duct]] and [[https://github.com/weavejester/integrant][Integrant]] compose and manage the components
 - How a request flows through the components
 
 The term /component/ is super generic! It's siblings with /module/ and
@@ -20,10 +15,29 @@ component is "an instance of a computing thing that complies with an
 messages, including both the transmission mechanism and the message structure.
 
 For example, a /machine/ is a computing thing with a TCP/IP interface. An /HTTP
-server/ is a computing thing with an HTTP interface. These components are
-covered in more detail below.
+server/ is a computing thing with an HTTP interface. Let's look at these
+components more closely.
 
-* Component Decomposition
+[NOTE]
+======
+
+The "and Beyond" part of this guide's title is bs, but it's lovely bs.
+There's a retail chain in America called /Bed Bath and Beyond/ and the "and
+beyond" totally kills me. For some reason it sounds like they could make your
+wildest dreams come true, but no, the "beyond" part is actually useless
+Americana tchotchkes like a Mickey Mouse mini waffle maker.
+
+Related: I once found a blow dryer at Target or whose packaging read something
+like: "Good for drying hair AND SO MUCH MORE" and I sincerely hope the
+copywriter enjoyed writing that. Thank you, noble soul, for reminding me that
+all of life is full of wondrous possibility. Even everyday consumer goods
+hold untold potential.
+
+Sweet Tooth: good for writing single page apps AND SO MUCH MORE
+
+======
+
+* API Server Component Decomposition
 
 Handling an HTTP request requires the coordination of multiple components.
 This section breaks down high-level components into their subcomponents and
@@ -92,17 +106,41 @@ Endpoint handlers typically perform CRUD (create, read, update, delete)
 operations on a database, and therefore they typically have a reference to the
 database connection (9).
 
-* Component Composition with Duct
+* Component Definition, Composition, and Initialization with Integrant and Duct
 
-Building and running an API server requires the construction and composition of
-disparate components. We'll focus only on the HTTP server component and its
-subcomponents.
+Now that we know what components are involved in building an API server and how
+those components are related to each others, let's turn our attention toward the
+work we as developers have to do to /implement/ this architecture. Implementing
+an architecture includes addressing how you /define/, /compose/, and
+/initialize/ a system's components.
+
+To *define* a component is to establish its responsibilities and its interface.
+It also means choosing one or more language constructs to implement the notion
+of "component".
+
+In object-oriented languages this process feels more solid somehow: components
+are defined by classes; the class's public methods are the interface and the
+notion of "component" maps directly to classes. Things feel a bit more
+loosey-goosey in Clojure land -- is a component a function? a namespace? a
+record? -- but I'll introduce you to techniques for defining components shortly.
+
+*Composing components*: how do components reference each other? The two main
+approaches are to create a globally-accessible component that other components
+reference directly from anywhere, or to follow the [[https://en.wikipedia.org/wiki/Dependency_injection#:~:text=In%20software%20engineering%2C%20dependency%20injection,object%20is%20called%20a%20service.][dependency injection pattern.]]
+You'll soon learn about how Sweet Tooth relies on the [[https://github.com/weavejester/integrant][Integrant]] and [[https://github.com/duct-framework/core][Duct]]
+libraries, which implement dependency injection for Clojure apps.
+
+*Initializing components* refers to the process of creating any objects or
+state the component needs, and calling a function or method to start the
+component. To initialize a request handler, you just create a function. To
+initialize a database connection pool you create an instance of a connection
+pool service, which might create some initial threads for db connections.
 
 To get a Clojure API server running, you must first get a JVM process running.
-Within that process, you must:
+Within that process, you must initialize components in dependency order:
 
-- Create a database connection or connection pool
-- Create a request handler that references the database connection
+- Initialize a database connection or connection pool
+- Initialize a request handler that references the database connection
 - Initialize an HTTP server with the request handler
 
 [NOTE]
@@ -130,26 +168,34 @@ method.
 
 ======
 
-To accomplish this, you could easily write something like this pseudocode:
+You could easily write something like this pseudocode to define, compose, and
+initialize your system's components:
 
-#+CAPTION start a server pseudocode
+#+CAPTION: "start a server" pseudocode
 #+BEGIN_SRC clojure
-(start-server (handler (db-connection)))
+(def db-connection (create-connection))
+(defn handler [req] (update-db db-connection)
+(defn start-server [] (run-jetty handler {:port 3000}))
+
+(start-server)
 #+END_SRc
 
-I've seen plenty of Clojure API servers with code that looks like that, and
-that approach works fine.
+I've seen plenty of Clojure API servers with code that looks like that, and that
+approach works fine.
 
-Sweet Tooth takes a different approach. It relies on the [[https://github.com/duct-framework/core][duct]] and [[https://github.com/weavejester/integrant][integrant]]
-libraries to take a structured, methodical approach to initializing and
-composing components.
+As I've mentioned like a billion times now, Sweet Tooth uses Integrant and Duct
+to manage these architectural concerns. We'll first look at Integrant, because
+it provides the foundation. Then we'll look at Duct, a layer on top of Integrant
+that 1) makes it easier to create bundles of components to share and 2) makes it
+easy to configure components for different environments (dev, test, prod, etc).
+
+So let's look at Integrant so that you won't have to listen to me say "In a
+minute we're going to look at Integrant" anymore.
+
+** Integrant Tutorial
 
 
 
-
-Constructing and initializing these components isn't application-specific; it's
-the kind of boilerplate a framework can take care of. Sweet Tooth relies on the
-duct and integrant libraries.
 
 Figuring out the specifics of exactly how to do this is something
 
@@ -169,3 +215,7 @@ components mean there's an expected interface
 components are interchangeable
 
 you have to include the route table in the configuration
+* notes to self
+
+- describe architecture?
+  - the importance of boundaries and purpose in understanding a system

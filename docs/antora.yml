@@ -4,3 +4,4 @@ version: dev
 nav:
   - modules/ROOT/nav.adoc
   - modules/routes-and-handlers/nav.adoc
+  - modules/components/nav.adoc
