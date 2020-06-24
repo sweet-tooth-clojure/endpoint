@@ -1,11 +1,27 @@
 #+TITLE: Request Handling from the Top Down
 
-This guide describes:
+This guide describes the larger context of building an API server. Learning
+about the higher-level pieces involved in handling API requests and how those
+pieces fit together might not solve a specific problem you're facing, but it
+will help you orient yourself as you navigate the programming terrain, so to
+speak. (TODO work on this metaphor)
 
-- The components involved in handling a requset
-- The relationships between the components
+The guide covers:
+
+- The components involved in handling a request
+- The relationships among the components
 - How duct composes the components
 - How a request flows through the components
+
+The term /component/ is super generic! It's siblings with /module/ and
+/sub-system/ in the "nebulous programming terms" family. For our purposes a
+component is "an instance of a computing thing that complies with an
+/interface/." An "interface" is a set of rules for sending and receiving
+messages, including both the transmission mechanism and the message structure.
+
+For example, a /machine/ is a computing thing with a TCP/IP interface. An /HTTP
+server/ is a computing thing with an HTTP interface. These components are
+covered in more detail below.
 
 * Component Decomposition
 
@@ -14,7 +30,7 @@ This section breaks down high-level components into their subcomponents and
 describes their relationships.
 
 Check out my this diagram of the components involved in handling an API request
-that looks like it was outsourced to a three year old:
+which looks like it was outsourced to a three year old:
 
 .wow a very well-drawn architectural diagram
 image::top-down-handlers.png[top down handlers]
@@ -40,11 +56,11 @@ request handler. I'd love feedback on it: does it not provide enough detail?
 Does it belong elsewhere?
 
 The relationship between machine, HTTP server, and handler, is represented by
-the boxes and lines at (6). The boxes are an interface that communicate with the
-external world via some protocol. A protocol in this context is just some
-agreed-upon format for structuring messages so that sender and receiver can
-understand each other. The machine interface is an open port, typically port 80
-or port 443, and communication happens via TCP/IP.
+the boxes and lines at (6). The boxes represent an interface that communicate
+with the external world via some protocol. A protocol in this context is just
+some agreed-upon message structure that allows sender and receiver to understand
+each other. The machine interface is an open port, typically port 80 or port
+443, and communication happens via TCP/IP.
 
 The HTTP server is some process running on the machine assigned to listen to
 ports 80 and 443. It receives and sends messages that conform to the HTTP
@@ -73,7 +89,78 @@ on to an /endpoint handler/ based on the request's path (e.g. `/topic/1`) and
 method (`:get`, `:post`, etc).
 
 Endpoint handlers typically perform CRUD (create, read, update, delete)
-operations on a database, and have a reference to the database connection (9).
+operations on a database, and therefore they typically have a reference to the
+database connection (9).
+
+* Component Composition with Duct
+
+Building and running an API server requires the construction and composition of
+disparate components. We'll focus only on the HTTP server component and its
+subcomponents.
+
+To get a Clojure API server running, you must first get a JVM process running.
+Within that process, you must:
+
+- Create a database connection or connection pool
+- Create a request handler that references the database connection
+- Initialize an HTTP server with the request handler
+
+[NOTE]
+======
+
+What does it mean to "initialize an HTTP server" from within a JVM process? If
+you're familiar with programs like Apache or nginx, you might be used to
+thinking of an HTTP server as a program that you launch from the command line,
+not as something that you start from within the process of a program you're
+writing.
+
+The thing is, anyone can just write a program that starts listening to a port.
+The tools are readily available. If you use your programming language's standard
+libary to start listening for messages on a port and responding,
+congratulations: you've created a server!
+
+Now if you care about things like performance and resilience, you'll have to get
+a bit fancier. That's why we have HTTP server libriaries. In the Java world,
+one of the most popular libraries is Jetty. It adds some structure to how HTTP
+requests are handled, and it takes care of managing resources like threads.
+
+Initializing a Jetty server in your JVM process is basically a matter of
+creating an `org.eclipse.jetty.server.Server` object and calling its `start`
+method.
+
+======
+
+To accomplish this, you could easily write something like this pseudocode:
+
+#+CAPTION start a server pseudocode
+#+BEGIN_SRC clojure
+(start-server (handler (db-connection)))
+#+END_SRc
+
+I've seen plenty of Clojure API servers with code that looks like that, and
+that approach works fine.
+
+Sweet Tooth takes a different approach. It relies on the [[https://github.com/duct-framework/core][duct]] and [[https://github.com/weavejester/integrant][integrant]]
+libraries to take a structured, methodical approach to initializing and
+composing components.
+
+
+
+
+Constructing and initializing these components isn't application-specific; it's
+the kind of boilerplate a framework can take care of. Sweet Tooth relies on the
+duct and integrant libraries.
+
+Figuring out the specifics of exactly how to do this is something
+
+- construct a server with minimal pieces
+- it lives in java process
+- component is an abstraction we impose
+- sweet tooth uses duct because of its modularity
+- what problems does duct solve?
+
+
+The integrant library
 
 a flat config that composes these relationships
 
