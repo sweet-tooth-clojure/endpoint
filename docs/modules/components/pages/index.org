@@ -327,8 +327,10 @@ handler]] as depending on a `:duct/router`. It doesn't provide any components
 named `:duct/router`, but the Duct Ataraxy module will add a component named
 `:duct.router/ataraxy`, which is derived from `:duct/router.` It's possible for
 us to create our own router component and use that instead, as long as the
-component's name is derived from `:duct/router`. In fact, that exactly what
-Sweet Tooth does.
+component's name is derived from `:duct/router`.
+
+In fact, that's exactly what Sweet Tooth does with its
+`:sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router` component.
 
 * notes to self
 
