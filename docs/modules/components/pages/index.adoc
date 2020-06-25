@@ -2,17 +2,12 @@
 Daniel Higginbotham
 
 
-This guide describes the larger context of building an API server. Learning
-about the higher-level pieces involved in handling API requests and how those
-pieces fit together might not solve a specific problem you're facing, but it
-will help you orient yourself as you navigate the programming terrain, so to
-speak. (TODO work on this metaphor)
-
-The guide covers:
+This guide describes the architecture of Sweet Tooth API servers and the tools
+used to implement the architecture. It covers:
 
 * The components involved in handling a request
 * The relationships among the components
-* How https://github.com/duct-framework/core[duct] and https://github.com/weavejester/integrant[integrant] compose the components
+* How https://github.com/duct-framework/core[Duct] and https://github.com/weavejester/integrant[Integrant] compose and manage the components
 * How a request flows through the components
 
 The term _component_ is super generic! It's siblings with _module_ and
@@ -45,7 +40,7 @@ Sweet Tooth: good for writing single page apps AND SO MUCH MORE
 ====
 
 
-== Component Decomposition ==
+== API Server Component Decomposition ==
 Handling an HTTP request requires the coordination of multiple components.
 This section breaks down high-level components into their subcomponents and
 describes their relationships.
@@ -114,16 +109,40 @@ operations on a database, and therefore they typically have a reference to the
 database connection (9).
 
 
-== Component Composition with Duct ==
-Building and running an API server requires the construction and composition of
-disparate components. We'll focus only on the HTTP server component and its
-subcomponents.
+== Component Definition, Composition, and Initialization with Integrant and Duct ==
+Now that we know what components are involved in building an API server and how
+those components are related to each others, let's turn our attention toward the
+work we as developers have to do to _implement_ this architecture. Implementing
+an architecture includes addressing how you _define_, _compose_, and
+_initialize_ a system's components.
+
+To *define* a component is to establish its responsibilities and its interface.
+It also means choosing one or more language constructs to implement the notion
+of "component".
+
+In object-oriented languages this process feels more solid somehow: components
+are defined by classes; the class's public methods are the interface and the
+notion of "component" maps directly to classes. Things feel a bit more
+loosey-goosey in Clojure land -- is a component a function? a namespace? a
+record? -- but I'll introduce you to techniques for defining components shortly.
+
+*Composing components*: how do components reference each other? The two main
+approaches are to create a globally-accessible component that other components
+reference directly from anywhere, or to follow the https://en.wikipedia.org/wiki/Dependency_injection#:~:text=In%20software%20engineering%2C%20dependency%20injection,object%20is%20called%20a%20service.[dependency injection pattern.]
+You'll soon learn about how Sweet Tooth relies on the https://github.com/weavejester/integrant[Integrant] and https://github.com/duct-framework/core[Duct]
+libraries, which implement dependency injection for Clojure apps.
+
+*Initializing components* refers to the process of creating any objects or
+state the component needs, and calling a function or method to start the
+component. To initialize a request handler, you just create a function. To
+initialize a database connection pool you create an instance of a connection
+pool service, which might create some initial threads for db connections.
 
 To get a Clojure API server running, you must first get a JVM process running.
-Within that process, you must:
+Within that process, you must initialize components in dependency order:
 
-* Create a database connection or connection pool
-* Create a request handler that references the database connection
+* Initialize a database connection or connection pool
+* Initialize a request handler that references the database connection
 * Initialize an HTTP server with the request handler
 
 [NOTE]
@@ -151,43 +170,179 @@ method.
 
 ====
 
-To accomplish this, you could easily write something like this pseudocode:
+You could easily write something like this pseudocode to define, compose, and
+initialize your system's components:
 
 [source,clojure]
 ."start a server" pseudocode
 ----
-(start-server (handler (db-connection)))
+(def db-connection (create-connection))
+(defn handler [req] (update-db db-connection))
+(defn start-server [] (run-jetty handler {:port 3000}))
+
+(start-server)
 ----
 
-I've seen plenty of Clojure API servers with code that looks like that, and
-that approach works fine.
+I've seen plenty of Clojure API servers with code that looks like that, and that
+approach works fine.
 
-Sweet Tooth takes a different approach. It relies on the https://github.com/duct-framework/core[duct] and https://github.com/weavejester/integrant[integrant]
-libraries to take a structured, methodical approach to initializing and
-composing components.
+As I've mentioned like a billion times now, Sweet Tooth uses Integrant and Duct
+to manage these architectural concerns. We'll first look at Integrant, because
+it provides the foundation. Then we'll look at Duct, a layer on top of Integrant
+that 1) makes it easier to create bundles of components to share and 2) makes it
+easy to configure components for different environments (dev, test, prod, etc).
 
-
-
-
-Constructing and initializing these components isn't application-specific; it's
-the kind of boilerplate a framework can take care of. Sweet Tooth relies on the
-duct and integrant libraries.
-
-Figuring out the specifics of exactly how to do this is something
-
-* construct a server with minimal pieces
-* it lives in java process
-* component is an abstraction we impose
-* sweet tooth uses duct because of its modularity
-* what problems does duct solve?
+So let's look at Integrant so that you won't have to listen to me say "In a
+minute we're going to look at Integrant" anymore.
 
 
-The integrant library
+== Integrant Tutorial ==
+https://github.com/weavejester/integrant[Integrant] brings order to the practice of defining, composing, and initializing
+components. It introduces two architectural abstractions: _systems_ and
+_components_.
 
-a flat config that composes these relationships
+As defined above, a component is a computing thing that complies with an
+interface. A _system_ is just the composition of all components needed for
+whatever application or service you're trying to build. It's the outermost
+container for all those cute little components.
 
+All of this is a bit abstract; let's get concrete with some code:
+
+[source,clojure]
+.simple integrant example
+----
+(ns integrant-duct-example.basic-components
+  (:require [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer store)))
+
+(ig/init {::message-store {:message "love yourself, homie"}
+          ::printer       {:store   (ig/ref ::message-store)}})
+----
+
+If you evaluate this code in a REPL, it will print the message,
+`":integrant-duct-example.basic-components/printer says: love yourself, homie"`.
+Let's work through it. The code, not loving yourself.
+
+Integrant uses the multimethod `init-key` to initialize components. Components
+are identified by a keyword; this example has components named `::message-store`
+and `::printer`. The first argument to the multimethod is the component's name,
+and the second argument is the component's configuration. The body of the
+multimethod is the code for constructing and "running" a component. The return
+value of `ig/init-key` is whatever construct (atom, object, clojure data
+structure) you want other components to interact with.
+
+For `::message-store` the configuration only includes a `:message`, but in real
+systems configuration would include things like the port for an HTTP server to
+listen to, the max number of threads for a thread pool, or the URI for a
+database connection.
+
+`::printer`'s configuration has the key `:store` and value `(ig/ref
+::message-store)`. `(ig/ref)` produces an _integrant reference_ to the component
+named `::message-store`. This makes it possible to pass the `::printer`
+component the initialized `::message-store component`.
+
+Integrant's `ig/init` function initializes a system. Its argument is a map whose
+keys are component names, and whose values are the configuration for that
+component. `ig/init` uses integrant references to initialize components in
+dependency order. In the configuration above, the presence of `(ig/ref
+::message-store)` in `::printer`'s configuration tells Integrant to initialize
+the `::message-store` component before `::printer`. Then, when initializing
+`::printer`, it replaces the `::message store` reference with the value returned
+by `(ig/init-key ::message-store)`.
+
+NOTE: The term _component_ is getting a little fuzzy here. I've been using it to
+refer to a kind of coneptual entity that can be implemented in terms of a
+definition and initialization process. But I'm also using it to refer to an
+actual language object that is returned by `ig/init-key` and passed as an
+argument to other components. Maybe one day I'll clear up that ambiguity, but
+today is not that day. Sorry.
+
+NOTE: Integrant includes a few other lifecycle methods for components:
+`ig/halt!` and `ig/halt-key!`; `ig/suspend!` and `ig/suspend-key!`; plus a
+couple more. Check out its https://github.com/weavejester/integrant[README] for more details.
+
+We can see how Integrant helps us initialize (`ig/init`, `ig/init-key`) and
+compose (`ig/ref`) components, but what about defining components? Earlier I
+said,
+
+#+begin_quote
+To *define* a component is to establish its responsibilities and its interface.
+It also means choosing one or more language constructs to implement the notion
+of "component".
+#+end_quote
+
+`ig/init-key` does help to define a component in that it gives the component an
+identity and imposes the constraint that a component be implemented as a single
+thing that can get passed as a value to other components (which eliminates some
+possibilities for defining components, like saying that namespace defines a
+component.)
+
+Integrant doesn't really prescribe what Clojure language constructs you use to
+implement a component; the return value of `ig/init-key` can be whatever you
+want.
+
+That being said, it's common to define component interfaces using protocols and
+to have `ig/init-key` return some object that implements the component's
+protocols. There's some debate over whether or not it's a good idea to use
+protocols in this context, and ultimately that choice is up to you. I personally
+prefer protocols because they force me to make good design choices, and as a
+side benefit they make testing easier. As a consequence Sweet Tooth provides
+some useful tools for creating test mocks for components that take the protocol
+approach.
+
+TODO explain component design more.
+
+
+=== Modularity Through Keyword Hierarchies ===
+Integrant has an interesting feature that greatly expands its usefulness in
+building composable systems, especially when it comes to building a framework
+and building an ecosystem of framework components. Clojure allows you to create
+create keyword hierarchies using `derive`, and Integrant takes advantage of this
+when resolving component references created by `ig/ref`. Here's an example:
+
+[source,clojure]
+.using keyword hierarchies
+----
+(ns integrant-duct-example.hierarchy
+  (:require [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer @store)))
+
+(derive ::message-store ::store)
+
+(ig/init {::message-store {:message "love yourself, homie"}
+          ::printer       {:store   (ig/ref ::store)}})
+----
+
+The `::printer` component refers to a `::store` component. There are no
+components named `::store`, but `::message-store` is derived from `::store`, so
+Integrant uses that. This allows components to declare the _kind of_ components
+they need to interact with, which makes it a lot easier to create modular
+component libraries. The https://github.com/duct-framework/module.web[Duct web module], for example, https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54[configures its request
+handler] as depending on a `:duct/router`. It doesn't provide any components
+named `:duct/router`, but the Duct Ataraxy module will add a component named
+`:duct.router/ataraxy`, which is derived from `:duct/router.` It's possible for
+us to create our own router component and use that instead, as long as the
+component's name is derived from `:duct/router`. In fact, that exactly what
+Sweet Tooth does.
+
+
+== notes to self ==
+* describe architecture?
+** the importance of boundaries and purpose in understanding a system
+* component identification vs definition
+* overloading the term "component" as both the concept that has its lifecycle
+implemented, and the return value of one of the lifecycle methods
+* TODO change "computing thing" to "resource" after writing framework notes
 components mean there's an expected interface
-
 components are interchangeable
-
 you have to include the route table in the configuration
