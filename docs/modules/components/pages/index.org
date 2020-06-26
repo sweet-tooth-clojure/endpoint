@@ -11,8 +11,9 @@ used to implement the architecture. It covers:
 The term /component/ is super generic! It's siblings with /module/ and
 /sub-system/ in the "nebulous programming terms" family. For our purposes a
 component is "an instance of a computing thing that complies with an
-/interface/." An "interface" is a set of rules for sending and receiving
-messages, including both the transmission mechanism and the message structure.
+/interface/." An /interface/ is a set of rules for sending and receiving
+messages, including both the transmission mechanism (direct function call,
+network call, etc) and the message structure.
 
 For example, a /machine/ is a computing thing with a TCP/IP interface. An /HTTP
 server/ is a computing thing with an HTTP interface. Let's look at these
@@ -25,13 +26,13 @@ The "and Beyond" part of this guide's title is bs, but it's lovely bs.
 There's a retail chain in America called /Bed Bath and Beyond/ and the "and
 beyond" totally kills me. For some reason it sounds like they could make your
 wildest dreams come true, but no, the "beyond" part is actually useless
-Americana tchotchkes like a Mickey Mouse mini waffle maker.
+Americana tchotchkes like Mickey Mouse mini waffle makers.
 
-Related: I once found a blow dryer at Target or whose packaging read something
+Related: I once found a blow dryer at Target whose packaging read something
 like: "Good for drying hair AND SO MUCH MORE" and I sincerely hope the
 copywriter enjoyed writing that. Thank you, noble soul, for reminding me that
-all of life is full of wondrous possibility. Even everyday consumer goods
-hold untold potential.
+all of life is full of wondrous possibility. Even everyday consumer goods hold
+untold potential.
 
 Sweet Tooth: good for writing single page apps AND SO MUCH MORE
 
@@ -248,15 +249,15 @@ component. `ig/init` uses integrant references to initialize components in
 dependency order. In the configuration above, the presence of `(ig/ref
 ::message-store)` in `::printer`'s configuration tells Integrant to initialize
 the `::message-store` component before `::printer`. Then, when initializing
-`::printer`, it replaces the `::message store` reference with the value returned
+`::printer`, it replaces the `::message-store` reference with the value returned
 by `(ig/init-key ::message-store)`.
 
 NOTE: The term /component/ is getting a little fuzzy here. I've been using it to
 refer to a kind of coneptual entity that can be implemented in terms of a
 definition and initialization process. But I'm also using it to refer to an
-actual language object that is returned by `ig/init-key` and passed as an
-argument to other components. Maybe one day I'll clear up that ambiguity, but
-today is not that day. Sorry.
+instance of a component, an actual language object that is returned by
+`ig/init-key` and passed as an argument to other components. Maybe one day I'll
+clear up that ambiguity, but today is not that day. Sorry.
 
 NOTE: Integrant includes a few other lifecycle methods for components:
 `ig/halt!` and `ig/halt-key!`; `ig/suspend!` and `ig/suspend-key!`; plus a
@@ -291,7 +292,7 @@ side benefit they make testing easier. As a consequence Sweet Tooth provides
 some useful tools for creating test mocks for components that take the protocol
 approach.
 
-TODO explain component design more.
+TODO explain component design more. Link to testing tools.
 
 ** Modularity Through Keyword Hierarchies
 
@@ -321,16 +322,251 @@ when resolving component references created by `ig/ref`. Here's an example:
 The `::printer` component refers to a `::store` component. There are no
 components named `::store`, but `::message-store` is derived from `::store`, so
 Integrant uses that. This allows components to declare the /kind of/ components
-they need to interact with, which makes it a lot easier to create modular
-component libraries. The [[https://github.com/duct-framework/module.web][Duct web module]], for example, [[https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54][configures its request
-handler]] as depending on a `:duct/router`. It doesn't provide any components
-named `:duct/router`, but the Duct Ataraxy module will add a component named
-`:duct.router/ataraxy`, which is derived from `:duct/router.` It's possible for
-us to create our own router component and use that instead, as long as the
-component's name is derived from `:duct/router`.
+they depend on, which makes it a lot easier to create modular component
+libraries. It's another way of declaring a component's interface: Component A
+depends on a component of Type X. As long as Component B is of Type X, Component
+A can use it; it doesn't matter what Component B's implementation is.
+
+The [[https://github.com/duct-framework/module.web][Duct web module]], for example, [[https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54][configures its request handler]] as depending on
+a `:duct/router`. It doesn't provide any components named `:duct/router`, but
+the Duct Ataraxy module will add a component named `:duct.router/ataraxy`, which
+is derived from `:duct/router.` It's possible for us to create our own router
+component and use that instead, as long as the component's name is derived from
+`:duct/router`.
 
 In fact, that's exactly what Sweet Tooth does with its
 `:sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router` component.
+
+** Adding Components
+
+TODO explain how to add components like a queue or cronut
+
+** Systems as Data
+
+A non-obvious benefit of using Integrant is that it provides a layer of
+abstraction between /the process/ and /the system/. We're used to there being a
+one-to-one relationship between a process and an application; a process is your
+application being executed. The entrypoint to your application is `-main`, which
+is responsible for initializing all resources and otherwise just gettin' things
+started.
+
+Integrant introduces a different model for starting your application (system),
+one that's under programmatic control. It's almost like a virtualization layer.
+You can use it to start multiple systems simultaneously, which is extremely
+useful during development because it lets you run and interact with a dev
+system, and at the same time run tests against a test system. The dev and test
+systems can be configured to use different databases, and they're initialized
+with separate component instances. If you follow the dependency injection
+pattern and don't rely on shared global state, your dev and test systems will
+behave as if they're executing in two separate containers. Pretty sweet.
+
+BTW I'm still trying to figure out the best way to articulate this and welcome
+any feedback.
+
+** Architecture as Data
+
+It's worth highlighting the the fact that Integrant takes a data-oriented
+approach to defining a system's architecture. Personally, I think this is an
+innovation on par with Ruby's Rack, which inspired the Ring library. From Ring's
+docs:
+
+#+BEGIN_QUOTE
+Ring is a Clojure web applications library inspired by Python's WSGI and Ruby's
+Rack. By abstracting the details of HTTP into a simple, unified API, Ring allows
+web applications to be constructed of modular components that can be shared
+among a variety of applications, web servers, and web frameworks.
+#+END_QUOTE
+
+The Ring API allows independent library authors to create middleware for
+functionality like [[https://github.com/funcool/buddy-auth][auth management]] or [[https://github.com/sethtrain/raven-clj][exception reporting]]. Developers can easily
+compose this functionality as they see fit, and develop their own.
+
+Integrant does the same thing for architecture: It abstracts the details of
+configuring, composing, and managing the lifecycle of components into a simple,
+unified API, laying the groundwork for modular components that can be shared
+across different applications. It's a powerful new tool in the developer's
+toolkit, and I hope that it gains wide adoption.
+
+Integrant separates /the description of the system to run/ (the system config)
+from /the execution of that system/ (`ig/init`). By encoding the system's
+description as plain ol' Clojure map, system composition becomes data
+composition. Pretty badass.
+
+I think we still have yet to fully explore the implications of this but here are
+some of the consequences I've noticed so far:
+
+- It's easier to inspect the system. You have one source of truth, the system
+  config, to examine to figure out what components are running and how they're
+  related. It would be trivial to generate a diagram of the system dependency
+  graph.
+- You can implement a structured approach to validating a system configuration.
+  Integrant actually provides an `ig/pre-init-spec` multimethod that you can use
+  to define a spec for a component's configuration. In the past I've even rolled
+  my own validation methods that provide advice how to fix a config in addition
+  just alerting that a config is invalid.
+- You can easily transform the system for different contexts. For example, in a
+  testing context you could replace a component that AWS's Simple Queue Service
+  (SQS) with a component that uses core.async.
+* Duct tutorial
+
+[[https://github.com/duct-framework/core][Duct]] builds on Integrant's data-oriented approach to architecture by providing
+tools for bundling and transforming Integrant configs:
+
+- /profiles/ allow you to name integrant configs
+- /modules/ allow you to write functions that transform configs
+
+Duct also adds support for easily adding environment variables to your config.
+
+To support these features, Duct introduces the "Duct config" concept and the
+`prep-config` function. I'll explain those briefly and then dig into profiles
+and modules.
+
+** `duct/load-hierarchy` and `duct/prep-config`
+
+Let's start with an example:
+
+#+CAPTION: basic duct config
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.duct-config
+  (:require [duct.core :as duct]
+            [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer @store)))
+
+(derive ::message-store ::store)
+
+(duct/load-hierarchy)
+(def system-config
+  (duct/prep-config {:duct.profile/base {::message-store {:message "love yourself, homie"}
+                                         ::printer       {:store   (ig/ref ::store)}}}))
+
+(ig/init system-config)
+#+END_SRC
+
+This is almost identical to the Integrant hierarchy code block.
+`(duct/load-hierarchy)` is new, as is the call to `duct/prep-config`.
+
+The function `duct/load-hierarchy` looks for files named `duct_hierarchy.edn` on
+your classpath and uses them to establish keyword hierarchies. These files look
+like this:
+
+#+CAPTION: duct_hierarchy.edn
+#+BEGIN_SRC clojure
+{:sweet-tooth.endpoint.module/middleware                            [:duct/module]
+ :sweet-tooth.endpoint.module/liberator-reitit-router               [:duct/module]
+ :sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router [:duct/router]
+ :sweet-tooth.endpoint.datomic/connection                           [:duct/database]}
+#+END_SRC
+
+Keys are child keywords and values are vectors of parents that the children
+should derive from. It's as if `duct/load-hierarchy` is calling `(derive
+:sweet-tooth.endpoint.module/middleware :duct/module)`.
+
+`duct/prep-config` takes a /duct config/ as its argument and returns an
+/integrant config/. How does a duct config differ from an integrant config?
+
+- The keys for duct configs name either /duct profiles/ or /duct modules/. (I
+  will explain these in the upcoming sections.) The keys for integrant configs
+  name /integrant components/.
+- Duct configs are meant to be passed to `duct/prep-config`, which returns an
+  integrant config. Integrant configs are meant to be passed to `ig/init`, which
+  initializes and returns a system.
+
+In the example above, the duct config
+
+#+BEGIN_SRC clojure
+{:duct.profile/base {::message-store {:message "love yourself, homie"}
+                     ::printer       {:store   (ig/ref ::store)}}}
+#+END_SRC
+
+yields the integrant config
+
+#+BEGIN_SRC clojure
+{::message-store {:message "love yourself, homie"}
+ ::printer       {:store   (ig/ref ::store)}
+
+ :duct.core/environment :production}
+#+END_SRC
+
+This map, where the keys are component names and values are component config,
+can be used to initialize an integrant system.
+
+[NOTE]
+======
+
+The integrant config contains the pair `:duct.core/environment :production`.
+`prep-config` adds this. What does the `:duct.core/environment` "component" do?
+
+`:duct.core/environment` is an example of a /config constant/. It's as if the
+implementation of the `:duct.core/environment` "component" is simply the
+identify function applied to the component's config. If another component
+references `:duct.core/environment`, it will receive the value `:production`. I
+recommend trying this out for yourself.
+
+It's instructive to look at how this is [[https://github.com/duct-framework/core/blob/bcd4aff6700a53e427816f4f47b93cc4ef347538/src/duct/core.clj#L253][implemented]]:
+
+#+BEGIN_SRC clojure
+(derive :duct.core/environment :duct/const)
+(defmethod ig/init-key :duct/const [_ v] v)
+#+END_SRC
+
+`:duct.core/environment` derives from `:duct/const`. Duct implements
+`ig/init-key` for `:duct/const`, simply returning the config value.
+
+This relies on a cool, oft-overlooked feature of Clojure multimethods, `isa?`
+based dispatch, which you can read about in [[https://clojure.org/reference/multimethods][Multimethods and Hierarchies]].
+
+Duct and Integrant make ample use of Clojure's support for hierarchies, so it's
+worth becoming familiar with how it works. If nothing else, it'll make you a
+better Clojure programmer, putting more cools in your developer toolkit.
+
+======
+
+At this point, the introduction of duct config, with its `:duct.profile/base`
+key, and the function `duct/prep-config` kinda seems like a waste of time. It's
+just adding an extra layer that doesn't do anything.
+
+Let's look at actually doing something useful with these new tools.
+
+** Duct Profiles
+
+Duct introduces the idea of /profiles/. A profile is just a named integrant
+config, and `duct/prep-config` handles profiles by merging them into the /base
+profile/ named `:duct.profile/base`. Behold:
+
+#+BEGIN_SRC clojure
+(duct/prep-config
+ {:duct.profile/base {::message-store {:message "love yourself, homie"}
+                      ::printer       {:store   (ig/ref ::store)}}
+  :duct.profile/prod {::message-store {:message "take care of yourself, homie"}}}
+ [:duct.profile/prod])
+;; =>
+{::message-store {:message "take care of yourself, homie"}
+ ::printer       {:store {:key ::store}}}
+#+END_SRC
+
+(I removed `:duct.core/environment` to keep the example focused.)
+
+In this example, we add the profile `:duct.profile/prod` and pass a second
+argument to `prep-config`, the vector `[:duct.profile/prod]`. This tells
+`prep-config` to merge all the profiles in that vector, in the order given.
+Profiles are merged using [[https://github.com/weavejester/meta-merge][meta-merge]], so they're deep merged and you can also
+provide metadata hints for how values should get merged. Check out the
+meta-merge docs for more info.
+
+The result is that the `::message-store` component has the prod configuration of
+`{:message "take care of yourself, homie"}` instead of `{:message "love
+yourself, homie"}`. I don't know why I have such an aversion to using real-life,
+practical examples, but whatever.
+
+One actual honest-to-god real world use of this is creating separate dev and
+test profiles. Specifically, you can create different dev and test database
+configurations, allowing you to run tests from the REPL while your dev system is
+running.
 
 * notes to self
 
@@ -340,6 +576,7 @@ In fact, that's exactly what Sweet Tooth does with its
 - overloading the term "component" as both the concept that has its lifecycle
   implemented, and the return value of one of the lifecycle methods
 - TODO change "computing thing" to "resource" after writing framework notes
+- TODO ig/init return value
 components mean there's an expected interface
 components are interchangeable
 you have to include the route table in the configuration
