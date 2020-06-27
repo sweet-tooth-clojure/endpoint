@@ -1,31 +1,29 @@
-= Server Architecture: Components and Beyond =
-Daniel Higginbotham
-
+#+TITLE: Server Architecture: Components and Beyond
 
 This guide describes the architecture of Sweet Tooth API servers and the tools
 used to implement the architecture. It covers:
 
-* The components involved in handling a request
-* The relationships among the components
-* How https://github.com/duct-framework/core[Duct] and https://github.com/weavejester/integrant[Integrant] compose and manage the components
-* How a request flows through the components
+- The components involved in handling a request
+- The relationships among the components
+- How [[https://github.com/duct-framework/core][Duct]] and [[https://github.com/weavejester/integrant][Integrant]] compose and manage the components
+- How a request flows through the components
 
-The term _component_ is super generic! It's siblings with _module_ and
-_sub-system_ in the "nebulous programming terms" family. For our purposes a
+The term /component/ is super generic! It's siblings with /module/ and
+/sub-system/ in the "nebulous programming terms" family. For our purposes a
 component is "an instance of a computing thing that complies with an
-_interface_." An _interface_ is a set of rules for sending and receiving
+/interface/." An /interface/ is a set of rules for sending and receiving
 messages, including both the transmission mechanism (direct function call,
 network call, etc) and the message structure.
 
-For example, a _machine_ is a computing thing with a TCP/IP interface. An _HTTP
-server_ is a computing thing with an HTTP interface. Let's look at these
+For example, a /machine/ is a computing thing with a TCP/IP interface. An /HTTP
+server/ is a computing thing with an HTTP interface. Let's look at these
 components more closely.
 
 [NOTE]
-====
+======
 
 The "and Beyond" part of this guide's title is bs, but it's lovely bs.
-There's a retail chain in America called _Bed Bath and Beyond_ and the "and
+There's a retail chain in America called /Bed Bath and Beyond/ and the "and
 beyond" totally kills me. For some reason it sounds like they could make your
 wildest dreams come true, but no, the "beyond" part is actually useless
 Americana tchotchkes like Mickey Mouse mini waffle makers.
@@ -38,10 +36,10 @@ untold potential.
 
 Sweet Tooth: good for writing single page apps AND SO MUCH MORE
 
-====
+======
 
+* API Server Component Decomposition
 
-== API Server Component Decomposition ==
 Handling an HTTP request requires the coordination of multiple components.
 This section breaks down high-level components into their subcomponents and
 describes their relationships.
@@ -52,19 +50,19 @@ which looks like it was outsourced to a three year old:
 .wow a very well-drawn architectural diagram
 image::top-down-handlers.png[top down handlers]
 
-The highest-level component is the _machine_ (1). When an HTTP request is sent,
+The highest-level component is the /machine/ (1). When an HTTP request is sent,
 the requestor's only expectation is that some machine - virtual private server
 (VPS), Amazon EC2 instance, a lemon-powered raspberry pi - somewhere receives
 the request and sends a response. It doesn't care about the machine's OS or what
 processes are running.
 
-The machine will be running a _database_ (2). It will also be running an HTTP
+The machine will be running a /database/ (2). It will also be running an HTTP
 server (3). There's nothing special about HTTP servers; they're just some
 program someone wrote, only they happen to listen for HTTP requests and send
 HTTP responses.
 
-For Clojure web apps, the HTTP server usually creates a _database connection_
-(4). The HTTP server also contains a _request handler_ (5). In Clojure apps, the
+For Clojure web apps, the HTTP server usually creates a /database connection/
+(4). The HTTP server also contains a /request handler/ (5). In Clojure apps, the
 request handler is just a function which takes a request and returns a response.
 
 NOTE: the next couple paragraphs are a light overview of how a request gets
@@ -89,8 +87,8 @@ converts the message to some Ruby object.
 Clojure is hosted on the JVM, and we use Java HTTP servers, most frequently a
 library called Jetty. Jetty converts a request to a Java object. In Clojure, we
 prefer to work with native Clojure maps and vectors, and developers most
-frequently use the https://github.com/ring-clojure/ring[ring] library to adapt the request for Clojure. It converts
-the Java request object into https://github.com/ring-clojure/ring/wiki/Concepts#requests[a Clojure map] with the keys `:uri`,
+frequently use the [[https://github.com/ring-clojure/ring][ring]] library to adapt the request for Clojure. It converts
+the Java request object into [[https://github.com/ring-clojure/ring/wiki/Concepts#requests][a Clojure map]] with the keys `:uri`,
 `:query-string`, `:request-method`, `:headers`, and `:body`, plus a few more.
 
 Ring allows you to define a Clojure function to handle requests - we saw that at
@@ -98,24 +96,24 @@ Ring allows you to define a Clojure function to handle requests - we saw that at
 a response, which is a map with the keys `:status`, `:headers`, and `:body`.
 
 You can write a function to construct a Ring response any way you want to, but
-generally Ring request handlers are structured as a _middleware stack_ (7) and a
-_router_ (8). The Ring request map passes through the middleware stack, which
+generally Ring request handlers are structured as a /middleware stack/ (7) and a
+/router/ (8). The Ring request map passes through the middleware stack, which
 transforms the request by adding, modifying, or removing the map's keys. The
 ring request is then passed to the router, which routes the request, passing it
-on to an _endpoint handler_ based on the request's path (e.g. `/topic/1`) and
+on to an /endpoint handler/ based on the request's path (e.g. `/topic/1`) and
 method (`:get`, `:post`, etc).
 
 Endpoint handlers typically perform CRUD (create, read, update, delete)
 operations on a database, and therefore they typically have a reference to the
 database connection (9).
 
+* Component Definition, Composition, and Initialization with Integrant and Duct
 
-== Component Definition, Composition, and Initialization with Integrant and Duct ==
 Now that we know what components are involved in building an API server and how
 those components are related to each others, let's turn our attention toward the
-work we as developers have to do to _implement_ this architecture. Implementing
-an architecture includes addressing how you _define_, _compose_, and
-_initialize_ a system's components.
+work we as developers have to do to /implement/ this architecture. Implementing
+an architecture includes addressing how you /define/, /compose/, and
+/initialize/ a system's components.
 
 To *define* a component is to establish its responsibilities and its interface.
 It also means choosing one or more language constructs to implement the notion
@@ -129,25 +127,25 @@ record? -- but I'll introduce you to techniques for defining components shortly.
 
 *Composing components*: how do components reference each other? The two main
 approaches are to create a globally-accessible component that other components
-reference directly from anywhere, or to follow the https://en.wikipedia.org/wiki/Dependency_injection#:~:text=In%20software%20engineering%2C%20dependency%20injection,object%20is%20called%20a%20service.[dependency injection pattern.]
-You'll soon learn about how Sweet Tooth relies on the https://github.com/weavejester/integrant[Integrant] and https://github.com/duct-framework/core[Duct]
+reference directly from anywhere, or to follow the [[https://en.wikipedia.org/wiki/Dependency_injection][dependency injection pattern.]]
+You'll soon learn about how Sweet Tooth relies on the [[https://github.com/weavejester/integrant][Integrant]] and [[https://github.com/duct-framework/core][Duct]]
 libraries, which implement dependency injection for Clojure apps.
 
-*Initializing components* refers to the process of creating any objects or
-state the component needs, and calling a function or method to start the
-component. To initialize a request handler, you just create a function. To
+*Initializing components* refers to the process of creating any objects or state
+the component needs, and calling a function or method to start the component if
+necessary. To initialize a request handler, you just create a function. To
 initialize a database connection pool you create an instance of a connection
 pool service, which might create some initial threads for db connections.
 
 To get a Clojure API server running, you must first get a JVM process running.
 Within that process, you must initialize components in dependency order:
 
-* Initialize a database connection or connection pool
-* Initialize a request handler that references the database connection
-* Initialize an HTTP server with the request handler
+- Initialize a database connection or connection pool
+- Initialize a request handler that references the database connection
+- Initialize an HTTP server with the request handler
 
 [NOTE]
-====
+======
 
 What does it mean to "initialize an HTTP server" from within a JVM process? If
 you're familiar with programs like Apache or nginx, you might be used to
@@ -169,20 +167,19 @@ Initializing a Jetty server in your JVM process is basically a matter of
 creating an `org.eclipse.jetty.server.Server` object and calling its `start`
 method.
 
-====
+======
 
 You could easily write something like this pseudocode to define, compose, and
 initialize your system's components:
 
-[source,clojure]
-."start a server" pseudocode
-----
+#+CAPTION: "start a server" pseudocode
+#+BEGIN_SRC clojure
 (def db-connection (create-connection))
 (defn handler [req] (update-db db-connection))
 (defn start-server [] (run-jetty handler {:port 3000}))
 
 (start-server)
-----
+#+END_SRc
 
 I've seen plenty of Clojure API servers with code that looks like that, and that
 approach works fine.
@@ -196,22 +193,21 @@ easy to configure components for different environments (dev, test, prod, etc).
 So let's look at Integrant so that you won't have to listen to me say "In a
 minute we're going to look at Integrant" anymore.
 
+* Integrant Tutorial
 
-== Integrant Tutorial ==
-https://github.com/weavejester/integrant[Integrant] brings order to the practice of defining, composing, and initializing
-components. It introduces two architectural abstractions: _systems_ and
-_components_.
+[[https://github.com/weavejester/integrant][Integrant]] brings order to the practice of defining, composing, and initializing
+components. It introduces two architectural abstractions: /systems/ and
+/components/.
 
 As defined above, a component is a computing thing that complies with an
-interface. A _system_ is just the composition of all components needed for
+interface. A /system/ is just the composition of all components needed for
 whatever application or service you're trying to build. It's the outermost
 container for all those cute little components.
 
 All of this is a bit abstract; let's get concrete with some code:
 
-[source,clojure]
-.simple integrant example
-----
+#+CAPTION: simple integrant example
+#+BEGIN_SRC clojure
 (ns integrant-duct-example.basic-components
   (:require [integrant.core :as ig]))
 
@@ -223,7 +219,7 @@ All of this is a bit abstract; let's get concrete with some code:
 
 (ig/init {::message-store {:message "love yourself, homie"}
           ::printer       {:store   (ig/ref ::message-store)}})
-----
+#+END_SRC
 
 If you evaluate this code in a REPL, it will print the message,
 `":integrant-duct-example.basic-components/printer says: love yourself, homie"`.
@@ -234,16 +230,25 @@ are identified by a keyword; this example has components named `::message-store`
 and `::printer`. The first argument to the multimethod is the component's name,
 and the second argument is the component's configuration. The body of the
 multimethod is the code for constructing and "running" a component. The return
-value of `ig/init-key` is whatever construct (atom, object, clojure data
-structure) you want other components to interact with.
+value of `ig/init-key` is a /component instance/, and it can be whatever
+construct (atom, object, clojure data structure) you want other components to
+interact with.
+
+NOTE: The term /component/ is getting a little fuzzy here. I've been using it to
+refer to a kind of conceptual entity that can be implemented in terms of a
+definition and initialization process. But I'm also using it to refer to an
+instance of a component, an actual language object that is returned by
+`ig/init-key` and passed as an argument to other components. I've seen the
+return value of `ig/init-key` referred to as a component but I find it useful to
+refer to it as a /component instance/.
 
 For `::message-store` the configuration only includes a `:message`, but in real
-systems configuration would include things like the port for an HTTP server to
-listen to, the max number of threads for a thread pool, or the URI for a
-database connection.
+systems component configurations would include things like the port for an HTTP
+server to listen to, the max number of threads for a thread pool, or the URI for
+a database connection.
 
 `::printer`'s configuration has the key `:store` and value `(ig/ref
-::message-store)`. `(ig/ref)` produces an _integrant reference_ to the component
+::message-store)`. `(ig/ref)` produces an /integrant reference/ to the component
 named `::message-store`. This makes it possible to pass the `::printer`
 component the initialized `::message-store component`.
 
@@ -256,26 +261,27 @@ the `::message-store` component before `::printer`. Then, when initializing
 `::printer`, it replaces the `::message-store` reference with the value returned
 by `(ig/init-key ::message-store)`.
 
-NOTE: The term _component_ is getting a little fuzzy here. I've been using it to
-refer to a kind of coneptual entity that can be implemented in terms of a
-definition and initialization process. But I'm also using it to refer to an
-instance of a component, an actual language object that is returned by
-`ig/init-key` and passed as an argument to other components. Maybe one day I'll
-clear up that ambiguity, but today is not that day. Sorry.
+[NOTE]
+======
 
-NOTE: Integrant includes a few other lifecycle methods for components:
+`ig/init` returns a /system instance/. If you keep a reference to it you can
+call `ig/halt!` or `ig/suspend!` on the system. Which brings me to another note:
+
+Integrant includes a few other lifecycle methods for components:
 `ig/halt!` and `ig/halt-key!`; `ig/suspend!` and `ig/suspend-key!`; plus a
-couple more. Check out its https://github.com/weavejester/integrant[README] for more details.
+couple more. Check out its [[https://github.com/weavejester/integrant][README]] for more details.
+
+======
 
 We can see how Integrant helps us initialize (`ig/init`, `ig/init-key`) and
 compose (`ig/ref`) components, but what about defining components? Earlier I
 said,
 
-#+begin_quote
+#+BEGIN_QUOTE
 To *define* a component is to establish its responsibilities and its interface.
 It also means choosing one or more language constructs to implement the notion
 of "component".
-#+end_quote
+#+END_QUOTE
 
 `ig/init-key` does help to define a component in that it gives the component an
 identity and imposes the constraint that a component be implemented as a single
@@ -298,17 +304,16 @@ approach.
 
 TODO explain component design more. Link to testing tools.
 
+** Modularity Through Keyword Hierarchies
 
-=== Modularity Through Keyword Hierarchies ===
 Integrant has an interesting feature that greatly expands its usefulness in
 building composable systems, especially when it comes to building a framework
 and building an ecosystem of framework components. Clojure allows you to create
 create keyword hierarchies using `derive`, and Integrant takes advantage of this
 when resolving component references created by `ig/ref`. Here's an example:
 
-[source,clojure]
-.using keyword hierarchies
-----
+#+CAPTION: using keyword hierarchies
+#+BEGIN_SRC clojure
 (ns integrant-duct-example.hierarchy
   (:require [integrant.core :as ig]))
 
@@ -322,17 +327,17 @@ when resolving component references created by `ig/ref`. Here's an example:
 
 (ig/init {::message-store {:message "love yourself, homie"}
           ::printer       {:store   (ig/ref ::store)}})
-----
+#+END_SRC
 
 The `::printer` component refers to a `::store` component. There are no
 components named `::store`, but `::message-store` is derived from `::store`, so
-Integrant uses that. This allows components to declare the _kind of_ components
+Integrant uses that. This allows components to declare the /kind of/ components
 they depend on, which makes it a lot easier to create modular component
 libraries. It's another way of declaring a component's interface: Component A
 depends on a component of Type X. As long as Component B is of Type X, Component
 A can use it; it doesn't matter what Component B's implementation is.
 
-The https://github.com/duct-framework/module.web[Duct web module], for example, https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54[configures its request handler] as depending on
+The [[https://github.com/duct-framework/module.web][Duct web module]], for example, [[https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54][configures its request handler]] as depending on
 a `:duct/router`. It doesn't provide any components named `:duct/router`, but
 the Duct Ataraxy module will add a component named `:duct.router/ataraxy`, which
 is derived from `:duct/router.` It's possible for us to create our own router
@@ -342,14 +347,14 @@ component and use that instead, as long as the component's name is derived from
 In fact, that's exactly what Sweet Tooth does with its
 `:sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router` component.
 
+** Adding Components
 
-=== Adding Components ===
 TODO explain how to add components like a queue or cronut
 
+** Systems as Data
 
-=== Systems as Data ===
 A non-obvious benefit of using Integrant is that it provides a layer of
-abstraction between _the process_ and _the system_. We're used to there being a
+abstraction between /the process/ and /the system/. We're used to there being a
 one-to-one relationship between a process and an application; a process is your
 application being executed. The entrypoint to your application is `-main`, which
 is responsible for initializing all resources and otherwise just gettin' things
@@ -368,22 +373,22 @@ behave as if they're executing in two separate containers. Pretty sweet.
 BTW I'm still trying to figure out the best way to articulate this and welcome
 any feedback.
 
+** Architecture as Data
 
-=== Architecture as Data ===
 It's worth highlighting the the fact that Integrant takes a data-oriented
 approach to defining a system's architecture. Personally, I think this is an
 innovation on par with Ruby's Rack, which inspired the Ring library. From Ring's
 docs:
 
-#+begin_quote
+#+BEGIN_QUOTE
 Ring is a Clojure web applications library inspired by Python's WSGI and Ruby's
 Rack. By abstracting the details of HTTP into a simple, unified API, Ring allows
 web applications to be constructed of modular components that can be shared
 among a variety of applications, web servers, and web frameworks.
-#+end_quote
+#+END_QUOTE
 
 The Ring API allows independent library authors to create middleware for
-functionality like https://github.com/funcool/buddy-auth[auth management] or https://github.com/sethtrain/raven-clj[exception reporting]. Developers can easily
+functionality like [[https://github.com/funcool/buddy-auth][auth management]] or [[https://github.com/sethtrain/raven-clj][exception reporting]]. Developers can easily
 compose this functionality as they see fit, and develop their own.
 
 Integrant does the same thing for architecture: It abstracts the details of
@@ -392,33 +397,34 @@ unified API, laying the groundwork for modular components that can be shared
 across different applications. It's a powerful new tool in the developer's
 toolkit, and I hope that it gains wide adoption.
 
-Integrant separates _the description of the system to run_ (the system config)
-from _the execution of that system_ (`ig/init`). By encoding the system's
+Integrant separates /the description of the system to run/ (the system config)
+from /the execution of that system/ (`ig/init`). By encoding the system's
 description as plain ol' Clojure map, system composition becomes data
 composition. Pretty badass.
 
 I think we still have yet to fully explore the implications of this but here are
 some of the consequences I've noticed so far:
 
-* It's easier to inspect the system. You have one source of truth, the system
-config, to examine to figure out what components are running and how they're
-related. It would be trivial to generate a diagram of the system dependency
-graph.
-* You can implement a structured approach to validating a system configuration.
-Integrant actually provides an `ig/pre-init-spec` multimethod that you can use
-to define a spec for a component's configuration. In the past I've even rolled
-my own validation methods that provide advice how to fix a config in addition
-just alerting that a config is invalid.
-* You can easily transform the system for different contexts. For example, in a
-testing context you could replace a component that AWS's Simple Queue Service
-(SQS) with a component that uses core.async.
+- It's easier to inspect the system. You have one source of truth, the system
+  config, to examine to figure out what components are running and how they're
+  related. It would be trivial to generate a diagram of the system dependency
+  graph.
+- You can implement a structured approach to validating a system configuration.
+  Integrant actually provides an `ig/pre-init-spec` multimethod that you can use
+  to define a spec for a component's configuration. In the past I've even rolled
+  my own validation methods that provide advice how to fix a config in addition
+  just alerting that a config is invalid.
+- You can easily transform the system for different contexts. For example, in a
+  testing context you could replace a component that AWS's Simple Queue Service
+  (SQS) with a component that uses core.async.
+  
+* Duct tutorial
 
-== Duct tutorial ==
-https://github.com/duct-framework/core[Duct] builds on Integrant's data-oriented approach to architecture by providing
+[[https://github.com/duct-framework/core][Duct]] builds on Integrant's data-oriented approach to architecture by providing
 tools for bundling and transforming Integrant configs:
 
-* _profiles_ allow you to name integrant configs
-* _modules_ allow you to write functions that transform configs
+- /profiles/ allow you to name integrant configs
+- /modules/ allow you to write functions that transform configs
 
 Duct also adds support for easily adding environment variables to your config.
 
@@ -426,13 +432,12 @@ To support these features, Duct introduces the "Duct config" concept and the
 `prep-config` function. I'll explain those briefly and then dig into profiles
 and modules.
 
+** `duct/load-hierarchy` and `duct/prep-config`
 
-=== `duct/load-hierarchy` and `duct/prep-config` ===
 Let's start with an example:
 
-[source,clojure]
-.basic duct config
-----
+#+CAPTION: basic duct config
+#+BEGIN_SRC clojure
 (ns integrant-duct-example.duct-config
   (:require [duct.core :as duct]
             [integrant.core :as ig]))
@@ -451,7 +456,7 @@ Let's start with an example:
                                          ::printer       {:store   (ig/ref ::store)}}}))
 
 (ig/init system-config)
-----
+#+END_SRC
 
 This is almost identical to the Integrant hierarchy code block.
 `(duct/load-hierarchy)` is new, as is the call to `duct/prep-config`.
@@ -460,81 +465,77 @@ The function `duct/load-hierarchy` looks for files named `duct_hierarchy.edn` on
 your classpath and uses them to establish keyword hierarchies. These files look
 like this:
 
-[source,clojure]
-.duct_hierarchy.edn
-----
+#+CAPTION: duct_hierarchy.edn
+#+BEGIN_SRC clojure
 {:sweet-tooth.endpoint.module/middleware                            [:duct/module]
  :sweet-tooth.endpoint.module/liberator-reitit-router               [:duct/module]
  :sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router [:duct/router]
  :sweet-tooth.endpoint.datomic/connection                           [:duct/database]}
-----
+#+END_SRC
 
 Keys are child keywords and values are vectors of parents that the children
 should derive from. It's as if `duct/load-hierarchy` is calling `(derive
 :sweet-tooth.endpoint.module/middleware :duct/module)`.
 
-`duct/prep-config` takes a _duct config_ as its argument and returns an
-_integrant config_. How does a duct config differ from an integrant config?
+`duct/prep-config` takes a /duct config/ as its argument and returns an
+/integrant config/. How does a duct config differ from an integrant config?
 
-* The keys for duct configs name either _duct profiles_ or _duct modules_. (I
-will explain these in the upcoming sections.) The keys for integrant configs
-name _integrant components_.
-* Duct configs are meant to be passed to `duct/prep-config`, which returns an
-integrant config. Integrant configs are meant to be passed to `ig/init`, which
-initializes and returns a system.
+- The keys for duct configs name either /duct profiles/ or /duct modules/. (I
+  will explain these in the upcoming sections.) The keys for integrant configs
+  name /integrant components/.
+- Duct configs are meant to be passed to `duct/prep-config`, which returns an
+  integrant config. Integrant configs are meant to be passed to `ig/init`, which
+  initializes and returns a system.
 
 In the example above, the duct config
 
-[source,clojure]
-----
+#+BEGIN_SRC clojure
 {:duct.profile/base {::message-store {:message "love yourself, homie"}
                      ::printer       {:store   (ig/ref ::store)}}}
-----
+#+END_SRC
 
 yields the integrant config
 
-[source,clojure]
-----
+#+BEGIN_SRC clojure
 {::message-store {:message "love yourself, homie"}
  ::printer       {:store   (ig/ref ::store)}
 
  :duct.core/environment :production}
-----
+#+END_SRC
 
 This map, where the keys are component names and values are component config,
 can be used to initialize an integrant system.
 
 [NOTE]
-====
+======
 
 The integrant config contains the pair `:duct.core/environment :production`.
 `prep-config` adds this. What does the `:duct.core/environment` "component" do?
 
-`:duct.core/environment` is an example of a _config constant_. It's as if the
+`:duct.core/environment` is an example of a /config constant/. It's as if the
 implementation of the `:duct.core/environment` "component" is simply the
 identify function applied to the component's config. If another component
 references `:duct.core/environment`, it will receive the value `:production`. I
 recommend trying this out for yourself.
 
-It's instructive to look at how this is https://github.com/duct-framework/core/blob/bcd4aff6700a53e427816f4f47b93cc4ef347538/src/duct/core.clj#L253[implemented]:
+It's instructive to look at how this is [[https://github.com/duct-framework/core/blob/bcd4aff6700a53e427816f4f47b93cc4ef347538/src/duct/core.clj#L253][implemented]]:
 
-[source,clojure]
-----
+#+BEGIN_SRC clojure
 (derive :duct.core/environment :duct/const)
 (defmethod ig/init-key :duct/const [_ v] v)
-----
+#+END_SRC
 
 `:duct.core/environment` derives from `:duct/const`. Duct implements
 `ig/init-key` for `:duct/const`, simply returning the config value.
 
 This relies on a cool, oft-overlooked feature of Clojure multimethods, `isa?`
-based dispatch, which you can read about in https://clojure.org/reference/multimethods[Multimethods and Hierarchies].
+based dispatch, which you can read about in [[https://clojure.org/reference/multimethods][Multimethods and Hierarchies]].
 
 Duct and Integrant make ample use of Clojure's support for hierarchies, so it's
 worth becoming familiar with how it works. If nothing else, it'll make you a
 better Clojure programmer, putting more cools in your developer toolkit.
 
-====
+======
 
 At this point, the introduction of duct config, with its `:duct.profile/base`
 key, and the function `duct/prep-config` kinda seems like a waste of time. It's
@@ -542,14 +543,14 @@ just adding an extra layer that doesn't do anything.
 
 Let's look at actually doing something useful with these new tools.
 
+** Duct Profiles
 
-=== Duct Profiles ===
-Duct introduces the idea of _profiles_. A profile is just a named integrant
-config, and `duct/prep-config` handles profiles by merging them into the _base
-profile_ named `:duct.profile/base`. Behold:
+Duct introduces the idea of /profiles/. A profile is just a named integrant
+config, and `duct/prep-config` handles profiles by merging them into the /base
+profile/ named `:duct.profile/base`. Behold:
 
-[source,clojure]
-----
+#+CAPTION: duct profiles
+#+BEGIN_SRC clojure
 (duct/prep-config
  {:duct.profile/base {::message-store {:message "love yourself, homie"}
                       ::printer       {:store   (ig/ref ::store)}}
@@ -558,36 +559,86 @@ profile_ named `:duct.profile/base`. Behold:
 ;; =>
 {::message-store {:message "take care of yourself, homie"}
  ::printer       {:store {:key ::store}}}
-----
+#+END_SRC
 
 (I removed `:duct.core/environment` to keep the example focused.)
 
 In this example, we add the profile `:duct.profile/prod` and pass a second
 argument to `prep-config`, the vector `[:duct.profile/prod]`. This tells
 `prep-config` to merge all the profiles in that vector, in the order given.
-Profiles are merged using https://github.com/weavejester/meta-merge[meta-merge], so they're deep merged and you can also
+Profiles are merged using [[https://github.com/weavejester/meta-merge][meta-merge]], so they're deep merged and you can also
 provide metadata hints for how values should get merged. Check out the
 meta-merge docs for more info.
 
 The result is that the `::message-store` component has the prod configuration of
 `{:message "take care of yourself, homie"}` instead of `{:message "love
-yourself, homie"}`. I don't know why I have such an aversion to using real-life,
-practical examples, but whatever.
+yourself, homie"}`.
 
+I don't know why I have such an aversion to using real-life, practical examples.
 One actual honest-to-god real world use of this is creating separate dev and
 test profiles. Specifically, you can create different dev and test database
 configurations, allowing you to run tests from the REPL while your dev system is
 running.
 
+** Duct Modules
 
-== notes to self ==
-* describe architecture?
-** the importance of boundaries and purpose in understanding a system
-* component identification vs definition
-* overloading the term "component" as both the concept that has its lifecycle
-implemented, and the return value of one of the lifecycle methods
-* TODO change "computing thing" to "resource" after writing framework notes
-* TODO ig/init return value
-components mean there's an expected interface
-components are interchangeable
-you have to include the route table in the configuration
+Bear with me because shit's about to get wild . Duct modules are functions that
+transform an integrant config, and they're defined using integrant. Check it
+out:
+
+#+CAPTION: duct modules
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.duct-modules
+ (:require [duct.core :as duct]
+           [integrant.core :as ig]))
+
+(defmethod ig/init-key ::add-foo-component [_ _]
+  (fn [config]
+    (assoc config ::foo {})))
+
+(duct/prep-config {:duct.profile/base  {::some-component {}}
+                   ::add-foo-component {}})
+;; =>
+{::some-component {}
+ ::foo            {}}
+#+END_SRC
+
+Let's start at the bottom, with `prep-config`. We already know that this
+function takes a /duct config/ as its argument, and that the config's keys
+should be names of /profiles/ or /modules/. `::add-foo-component` names a
+module.
+
+Internally, `duct/prep-config` calls `ig/init-key` in order to instantiate the
+module. This can be confusing! I've been going on about how `ig/init-key`
+instantiates a /component/, but now I'm saying that it's being used to
+instantiate a /module/, and I'm also saying that those are two very different
+things! Perhaps a useful perspective to adopt is that ultimately Integrant is
+agnostic as to the semantic meaning of the values produced by `ig/init-key`;
+Integrant is a tool for defining a topology (via `ig/ref`) and for walking that
+topology in topological order, applying `ig/init-key` to the nodes. In one
+context, we perform that walk in order to produce a system. In a different
+context, we perform that walk in order to produce functions that modify an
+Integrant config.
+
+All modules should return a function that takes an integrant config as
+an argument and returns an integrant config. The module `::add-foo-component` is
+a function that takes as its argument the map `{::some-component {}}`. The
+function adds a single component config, `::foo {}` to the integrant config, and
+result is the integrant config `{::some-component {}, ::foo {}}`. Note that
+modules are applied to a config /after/ all profiles have been merged.
+
+Modules make it bother easier and more difficult to create component libraries.
+They make it easier because they make it possible for consumers of a component
+library to add only one line to their duct config, `::name-of-module {}`, and
+that module can add any number of components and even modify existing
+components; since the integrant config is just data you can transform it however
+you want. Modules are kind of like macros in that regard.
+
+And that's why they also make it more difficult to create compononent libraries.
+The difficulty comes from the fact that it can be very difficult to observe what
+changes a module is making to your config, or how to customize those changes.
+They introduce uncertainty as to how your config reached its final form. I have
+some ideas for how to mitigate this drawback but until then it seems like the
+only way to understand what a module is doing is to read its source.
+
+** Duct Config Helpers

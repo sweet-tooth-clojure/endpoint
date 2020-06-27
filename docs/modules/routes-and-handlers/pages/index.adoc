@@ -14,11 +14,11 @@ and xref:handlers-in-depth.adoc[Handlers in Depth] explains how to write
 Liberator handlers. xref:responses.adoc[Responses] covers Sweet Tooth's response
 protocol.
 
-xref:top-down-request-handling.adoc[Top-Down Request Handling] explains how
-these sub-systems fit into the larger whole. It describes how they're composed
-using the Duct and Integrant architecture composition micro-frameworks. It's
-light on HOWTO instructions, but the high level perspective it provides should
-help you understand routes and handlers better.
+xref:architecture:index.adoc[Server Architecture: Components and Beyond]
+explains how these sub-systems fit into the larger whole. It describes how
+they're composed using the Duct and Integrant architecture composition
+micro-frameworks. It's light on HOWTO instructions, but the high level
+perspective it provides should help you understand routes and handlers better.
 
 These docs assume you're working within the https://github.com/sweet-tooth-clojure/todo-example[the Sweet Tooth To-Do List Example]
 project.
@@ -248,6 +248,6 @@ writing routes, and xref:handlers-in-depth.adoc[Handlers in Depth] explains how
 to write Liberator handlers. xref:responses.adoc[Responses] discusses Sweet
 Tooth's response protocol.
 
-xref:top-down-request-handling.adoc[Top-Down Request Handling] explains how
-these sub-systems are composed using the Duct and Integrant architecture
+xref:top-down-request-handling.adoc[Request Handling from the Top Down] explains
+how these sub-systems are composed using the Duct and Integrant architecture
 composition micro-frameworks.
