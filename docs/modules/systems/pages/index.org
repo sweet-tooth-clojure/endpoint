@@ -107,21 +107,44 @@ components use sandbox environments.
 
 * Custom `init` and `init-key`
 
-The `sweet-tooth.endpoint.system` namespaces introduces a custom `init` function
-which is meant to be a drop-in replacement for `integrant.core/init`. The only
-differece is Sweet Tooth's `init` function uses a custom `init-key` function, a
-drop-in replacement for `integrant.core/init-key`. (The `system` calls
-`sweet-tooth.endpoint.system/init`, which is another reason to use the `system`
-function.)
+The `sweet-tooth.endpoint.system` namespace introduces a replacement for
+`init-key` that will /examine a component's configuration for alternative
+implementations/. You can write a config like this:
 
-Sweet Tooth's custom `init-key` function differs from Integrant's implementation
-in one /key/ way (ah hahahaaaaa pun! high five, me): The custom `init-key`
-function will /examine a component's configuration for alternative
-implementations/. An alternative implementation that the component `::foo` will
-return a different
+#+CAPTION: mocking a component
+#+BEGIN_SRC clojure
+{::foo {::es/init-key-alternative ::es/shrubbery-mock}}
+#+END_SRC
 
-The main motivation for introducing this was to mock components. In vanilla
-Integrant, there are two main ways to mock a component that I know of:
+and when the `::foo` component is initialized, it will return a [[https://github.com/bguthrie/shrubbery][mock object
+created by the shrubbery library]] instead of the component instance it would
+normally return.
 
-- Derive a mock component from the live one, e.g. `(derive ::foo-mock ::foo)`.
-  Remove `::foo` from the Integrant config and add `::foo-mock`, then 
+(There's also a `sweet-tooth.endpoint.system/init` function that differs from
+Integrant's implementation only by calling the new `init-key` function rather
+than Integrant's. `sweet-tooth.endpoint.system/system` uses
+`sweet-tooth.endpoint.system/init`.)
+
+The main motivation for introducing a custom `init-key` was to mock components.
+In vanilla Integrant, there are two main ways to mock a component that I know
+of:
+
+- Make use of the keyword hierarchy. Have a live component `:foo/component` and
+  `:foo/component-mock` that both derive from `:foo/component-type`, and have
+  consumers use `(ig/ref :foo/component-type)` to refer to the type rather than
+  a specific component name. Test configs include `:foo/component-mock` and
+  non-test configs include `:foo/component`.
+- Make the `ig/init-key` implementation of `:foo/component` dispatch on the
+  configuration it's passed and return a mock object if something like `{:mock?
+  true}` is present in the component's config.
+
+Both of these approaches are ad-hoc and confusing. Introducing a consistent way
+to inspect component configs and produce altnernative component makes it much
+easier to see when you're creating a mock component, and it makes it possible to
+handle mocking programatically, reducing the amount of boilerplate code you have
+to write.
+
+The next sections will explain the init-key alternative system and show you how
+to use the two bundled alternatives, shrubbery mocks and replacements.
+
+** `init-key-alternative`
