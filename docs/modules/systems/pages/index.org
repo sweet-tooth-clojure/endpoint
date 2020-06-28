@@ -13,6 +13,9 @@ introduces some conveniences for dealing with systems:
   `ig/init-key` implementation entirely. The namespace also introduces two kinds
   of component initialization alternatives, `replacement` and `shrubbery-mock`
 
+Throughout these examples you'll see the namespace alias `es`, as in
+`es/config`. This aliases `sweet-tooth.endpoint.system`.
+
 * Named configs
 
 The `sweet-tooth.endpoint.system` multimethod introduces a simple way to create
@@ -144,7 +147,93 @@ easier to see when you're creating a mock component, and it makes it possible to
 handle mocking programatically, reducing the amount of boilerplate code you have
 to write.
 
-The next sections will explain the init-key alternative system and show you how
+`sweet-tooth.endpoint.system/init-key` is very simple:
+
+#+CAPTION: `sweet-tooth.endpoint.system/init-key`
+#+BEGIN_SRC clojure
+(defn init-key
+  "Allows component _configuration_ to specify alterative component
+  implementations."
+  [k v]
+  (or (init-key-alternative k v)
+      (ig/init-key k v)))
+#+END_SRC
+
+The next sections will explain the `init-key-alternative` system and show you how
 to use the two bundled alternatives, shrubbery mocks and replacements.
 
 ** `init-key-alternative`
+
+`init-key-alternative` is a multimethod that returns an alternative
+implementation of a component. Whereas `ig/init-key` dispatches on the /name/ of
+the component, `init-key-alternative` dispatches on the /configuration/ of the
+component. Specifically, it expects the component's configuration to be a map,
+and it dispatches on the value of the
+`:sweet-tooth.endpoint.system/init-key-alternative` key in that map. Let's show
+how this works with a simple component.
+
+#+CAPTION: a simple printing component
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.init-key-alternative
+  (:require [integrant.core :as ig]
+            [sweet-tooth.endpoint.system :as es]
+            [shrubbery.core :as shrub]))
+
+(defmethod ig/init-key ::printer [_ {:keys [message]}]
+  (prn (format "message: %s" message))
+  {:message message})
+#+END_SRC
+
+If we initialize component with `ig/init-key`, it will print a little message
+and return a map:
+
+#+CAPTION: ig/init the printer
+#+BEGIN_SRC clojure
+(ig/init-key ::printer {:message "hi"})
+"message: hi"
+;; =>
+{:message "hi"}
+#+END_SRC
+
+However, if we initialize the component with `es/init-key` and include a
+key/value pair that `es/init-key-alternative` recognizes, we'll get something
+different:
+
+#+BEGIN_SRC clojure
+(es/init-key ::printer {:message                  "hi"
+                        ::es/init-key-alternative ::es/replacement
+                        ::es/replacement          "bye"})
+;; =>
+"bye"
+#+END_SRC
+
+`:message "hi"` is still in the component config, but the message doesn't get
+printed and the return value is `"bye"` instead of the map `{:message "hi"}`.
+
+This happens because `es/init-key` calls the `es/init-key-alternative`
+multimethod, which dispatches on the key `::es/init-key-alternative` in the
+component's config. It finds the value `::es/replacement`, so it uses that
+multimethod implementation:
+
+#+CAPTION: `::es/replacement` implementation
+#+BEGIN_SRC clojure
+(defmethod init-key-alternative ::replacement
+  [_ {:keys [::replacement]}]
+  replacement)
+#+END_SRC
+
+As you can see, it returns the value of `::es/replacement`, which is `"bye"` in
+the snippet above. (The multimethod references `::replacement` rather than
+`::es/replacement` because it's defined from within the
+`sweet-tooth.endpoint.system` namespace.)
+
+Since `init-key-alternative` is a multimethod, you can extend it define your own
+classes of component alternatives. Sweet Tooth comes with `::es/replacement`,
+which you just saw, and `::es/shrubbery-mock`, which is used to create mock
+objects with the shrubbery library.
+
+** The `::es/shrubbery-mock` init-key alternative
+
+
+
+** Duct config readers
