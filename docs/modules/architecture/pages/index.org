@@ -647,6 +647,8 @@ They introduce uncertainty as to how your config reached its final form. I have
 some ideas for how to mitigate this drawback but until then it seems like the
 only way to understand what a module is doing is to read its source.
 
-** TODO Duct Config Helpers
-** TODO Sweet Tooth Systems
-** TODO 
+** TODOs
+- TODO Duct Config Helpers
+- TODO write a crisp definition of "system"
+- TODO duct best practices: local profiles, layout
+- TODO readers

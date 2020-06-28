@@ -1,0 +1,127 @@
+#+TITLE: Systems
+
+Integrant introduces the concept of a /system/, a collection of components that
+has been initialized. Sweet Tooth's `sweet-tooth.endpoint.system` namespace
+introduces some conveniences for dealing with systems:
+
+- A multimethod `config` for naming integrant configs, like `:dev`,
+  `:test`, etc.
+- The `system` function, which lets you specify custom component configuration
+  when it's called
+- An `ig/init-key` alternative that allows a component's *configuration* to
+  specify an alternative component implementation, possibly bypassing the
+  `ig/init-key` implementation entirely. The namespace also introduces two kinds
+  of component initialization alternatives, `replacement` and `shrubbery-mock`
+
+* Named configs
+
+The `sweet-tooth.endpoint.system` multimethod introduces a simple way to create
+named integrant configs. Here's how it's used in the [[https://github.com/sweet-tooth-clojure/todo-example][the Sweet Tooth To-Do List
+Example]]:
+
+#+CAPTION: es/config example
+#+BEGIN_SRC clojure
+(ns sweet-tooth.todo-example.backend.duct
+  (:require [clojure.java.io :as io]
+            [duct.core :as duct]
+            [sweet-tooth.endpoint.system :as es]))
+
+(duct/load-hierarchy)
+
+;;--------
+;; Configs
+;;--------
+(defn read-config []
+  (duct/read-config (io/resource "config.edn")))
+
+(defn prep [& [profiles]]
+  (duct/prep-config (read-config) profiles))
+
+(defmethod es/config :test
+  [_]
+  (dissoc (prep [:duct.profile/test]) :duct.server.http/jetty))
+
+(defmethod es/config :dev
+  [_]
+  (prep [:duct.profile/dev :duct.profile/local]))
+
+(defmethod es/config :prod
+  [_]
+  (prep [:duct.profile/prod]))
+#+END_SRC
+
+A couple reasons to create a named config:
+
+- You want to combine multiple profiles, as happens in the `:dev` config
+- You want to `dissoc` components from a config, as in the `:test` profile.
+  Duct's profile system is additive; when you combine profiles, you merge them,
+  and there isn't a mechanism for removing component keys.
+
+  The `:test` profile dissocs the `:duct.server.http/jetty` component so that
+  starting a `:test` system doesn't start an HTTP server.
+
+* `system`
+
+The `system` function is the preferred way to initialize an integrant system.
+Some features:
+
+- It initializes a system using a named config.
+- It lets you pass in a config map that gets merged with the custom config
+- It makes testing easier
+- It uses a custom init process (covered in the next section)
+
+** Named systems
+
+You call `system` like `(system :test)`.
+
+The `system` function internally calls the `config` multimethod so that it can
+pass a named config to Integrant. I've found it convenient to be able to call
+`(es/system :test)` instead of something like `(ig/init (duct/prep-config
+(duct/read-config (io/resource "config.edn") readers) [:test]))`
+
+It's also been useful to consistently delineate all the different system
+variations in one place.
+
+** Custom configs
+
+`system` takes a second argument, a component config that gets merged, kind of
+like an anonymous profile. For example:
+
+#+BEGIN_SRC clojure
+(es/system :test {:duct.logger/timbre {:level :debug}})
+#+END_SRC
+
+This can be useful for troubleshooting. It can also be using when writing tests,
+for example when you need to mock a component.
+
+** Testing
+
+Sweet Tooth's [[https://github.com/sweet-tooth-clojure/endpoint/blob/master/src/sweet_tooth/endpoint/test/harness.clj][test harness namespace]] relies on `es/system`, introducing the
+`with-system` and `with-custom-system` macros, along with the `system-fixture`
+function. This makes it easier to use test systems in your test.
+
+Note that you can have more than one kind of test system: you might have one
+named `:test` for unit tests where components for external services are mocked
+out and one named `:integration` for integration tests where the external
+components use sandbox environments.
+
+* Custom `init` and `init-key`
+
+The `sweet-tooth.endpoint.system` namespaces introduces a custom `init` function
+which is meant to be a drop-in replacement for `integrant.core/init`. The only
+differece is Sweet Tooth's `init` function uses a custom `init-key` function, a
+drop-in replacement for `integrant.core/init-key`. (The `system` calls
+`sweet-tooth.endpoint.system/init`, which is another reason to use the `system`
+function.)
+
+Sweet Tooth's custom `init-key` function differs from Integrant's implementation
+in one /key/ way (ah hahahaaaaa pun! high five, me): The custom `init-key`
+function will /examine a component's configuration for alternative
+implementations/. An alternative implementation that the component `::foo` will
+return a different
+
+The main motivation for introducing this was to mock components. In vanilla
+Integrant, there are two main ways to mock a component that I know of:
+
+- Derive a mock component from the live one, e.g. `(derive ::foo-mock ::foo)`.
+  Remove `::foo` from the Integrant config and add `::foo-mock`, then 

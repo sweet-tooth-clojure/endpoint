@@ -169,6 +169,7 @@
                :custom-config ::config)
   :ret ::config)
 
+;; TODO rename this to init-system
 (defn system
   ([config-name]
    (init (system-config config-name)))
