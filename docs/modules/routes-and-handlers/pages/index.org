@@ -236,6 +236,6 @@ writing routes, and xref:handlers-in-depth.adoc[Handlers in Depth] explains how
 to write Liberator handlers. xref:responses.adoc[Responses] discusses Sweet
 Tooth's response protocol.
 
-xref:top-down-request-handling.adoc[Request Handling from the Top Down] explains
-how these sub-systems are composed using the Duct and Integrant architecture
-composition micro-frameworks.
+xref:architecture:index.adoc[Server Architecture: Components and Beyond]
+explains how these sub-systems are composed using the Duct and Integrant
+architecture composition micro-frameworks.
