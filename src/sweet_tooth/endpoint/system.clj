@@ -23,7 +23,7 @@
 
 (s/def ::init-key-alternative keyword?)
 (s/def ::replacement any?)
-(s/def ::shrubbery-mock map?)
+
 
 (defmulti replacement-type ::init-key-alternative)
 (defmethod replacement-type ::replacement [_]
@@ -82,6 +82,14 @@
 ;; mock components
 ;;---
 
+(s/def ::shrubbery-mock-map map?)
+(s/def ::shrubbery-mock-object-opts map?)
+(s/def ::shrubbery-mocked-component-opts any?)
+(s/def ::shrubbery-mock-tuple (s/tuple ::shrubbery-mock-object-opts
+                                       ::shrubbery-mocked-component-opts))
+(s/def ::shrubbery-mock-opts (s/or :map ::shrubbery-mock-map
+                                   :tuple ::shrubbery-mock-tuple))
+
 (defn shrubbery-mock
   "Returns a component configuration that will use
   `init-key-alternative`'s `::shrubbery-mock` implementation. Does not
@@ -92,10 +100,15 @@
   get passed to the mocked component. One use for this is to satisfy
   that component's config spec."
   ([] (shrubbery-mock {}))
-  ([{:keys [::mocked-component-opts] :as opts}]
-   (merge {::init-key-alternative ::shrubbery-mock
-           ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
-          mocked-component-opts)))
+  ([opts]
+   (let [[opts-type] (s/conform ::shrubbery-mock-opts opts)]
+     (case opts-type
+       :map   (merge {::init-key-alternative ::shrubbery-mock
+                      ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
+                     (::mocked-component-opts opts))
+       :tuple (merge {::init-key-alternative  ::shrubbery-mock
+                      ::shrubbery-mock        (first opts)}
+                     (second opts))))))
 
 (s/fdef shrubbery-mock
   :ret ::alternative-component)
