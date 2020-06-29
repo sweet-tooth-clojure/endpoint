@@ -620,25 +620,31 @@ function takes a _duct config_ as its argument, and that the config's keys
 should be names of _profiles_ or _modules_. `::add-foo-component` names a
 module.
 
+The `ig/init-key` implementation for all modules should return a function that
+takes an integrant config as an argument and returns an integrant config. When
+`::add-foo-component` is initialized, it returns a function that takes as its
+argument the map `{::some-component {}}`. The function adds a single component
+config, `::foo {}` to the integrant config, and result is the integrant config
+`{::some-component {}, ::foo {}}`. Note that modules are applied to a config
+_after_ all profiles have been merged.
+
+
+==== Modules use ig/init-key??? ====
 Internally, `duct/prep-config` calls `ig/init-key` in order to instantiate the
 module. This can be confusing! I've been going on about how `ig/init-key`
 instantiates a _component_, but now I'm saying that it's being used to
 instantiate a _module_, and I'm also saying that those are two very different
-things! Perhaps a useful perspective to adopt is that ultimately Integrant is
-agnostic as to the semantic meaning of the values produced by `ig/init-key`;
-Integrant is a tool for defining a topology (via `ig/ref`) and for walking that
-topology in topological order, applying `ig/init-key` to the nodes. In one
-context, we perform that walk in order to produce a system. In a different
-context, we perform that walk in order to produce functions that modify an
-Integrant config.
+things!
 
-All modules should return a function that takes an integrant config as
-an argument and returns an integrant config. The module `::add-foo-component` is
-a function that takes as its argument the map `{::some-component {}}`. The
-function adds a single component config, `::foo {}` to the integrant config, and
-result is the integrant config `{::some-component {}, ::foo {}}`. Note that
-modules are applied to a config _after_ all profiles have been merged.
+Perhaps a useful perspective to adopt is that ultimately Integrant is agnostic
+as to the semantic meaning of the values produced by `ig/init-key`; Integrant is
+a tool for defining a digraph (via `ig/ref`) and for walking that graph in
+topological order, applying `ig/init-key` to the nodes. In one context, we
+perform that walk in order to produce a system. In a different context, we
+perform that walk in order to produce functions that modify an Integrant config.
 
+
+==== Modules make it easier to create component libraries... and more difficult! ====
 Modules make it bother easier and more difficult to create component libraries.
 They make it easier because they make it possible for consumers of a component
 library to add only one line to their duct config, `::name-of-module {}`, and
@@ -654,4 +660,8 @@ some ideas for how to mitigate this drawback but until then it seems like the
 only way to understand what a module is doing is to read its source.
 
 
-=== Duct Config Helpers ===
+=== TODOs ===
+* TODO Duct Config Helpers
+* TODO write a crisp definition of "system"
+* TODO duct best practices: local profiles, layout
+* TODO readers

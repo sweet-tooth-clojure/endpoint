@@ -2,3 +2,4 @@
 ** xref:routes-in-depth.adoc[Routes in Depth]
 ** xref:handlers-in-depth.adoc[Handlers in Depth]
 ** xref:responses.adoc[Responses]
+** xref:request-handling-intro.adoc[Introduction to Request Handling]
