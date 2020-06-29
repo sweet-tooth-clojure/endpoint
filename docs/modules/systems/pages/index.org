@@ -234,6 +234,160 @@ objects with the shrubbery library.
 
 ** The `::es/shrubbery-mock` init-key alternative
 
+If you're using Integrant, it's common to define components to interact with
+external services. If you wanted to interact with AWS SQS (simple queue
+service), for example, you would create a component to serve as the SQS client.
+
+It's also common for components to be modeled using [[https://www.braveclojure.com/multimethods-records-protocols/][protocols]], and for
+components to instantiated as records or [[https://clojuredocs.org/clojure.core/reify][reified objects]] that implement those
+protocols. The `::es/shrubbery-mock` init-key alternative makes it easy for you
+to create mocks of those components.
+
+An SQS component might look something like this:
+
+#+CAPTION: very fake AWS SQS service
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.shrubbery-mock
+  (:require [integrant.core :as ig]
+            [sweet-tooth.endpoint.system :as es]
+            [shrubbery.core :as shrub])
+  (:refer-clojure :exclude [take]))
+
+(defprotocol Queue
+  (add [_ queue-name v])
+  (take [_]))
+
+(defrecord QueueClient []
+  Queue
+  (add [_ queue-name v]
+    ;; AWS interaction goes here
+    :added)
+  (take [_]
+    ;; AWS interaction goes here
+    :taked))
+
+(defmethod ig/init-key ::queue [_ _]
+  (QueueClient.))
+#+END_SRC
+
+This is what it looks like to interact with the real component:
+
+#+CAPTION: interacting with the real component
+#+BEGIN_SRC clojure
+(defmethod es/config ::dev [_]
+  {::queue {}})
+
+(def real-component (::queue (es/system ::dev)))
+(add real-component :foo :bar)
+;; =>
+:added
+
+(take real-component :foo)
+;; =>
+:taked
+#+END_SRC
+
+The `::dev` config initializes the `::queue` component, returning a record that
+implements the `Queue` protocol. When calling `add`, `:added` is returned. When
+calling `take`, `:take` is returned.
+
+This is what it looks like to interact with the mocked component:
+
+#+CAPTION: interacting with a mocked component
+#+BEGIN_SRC clojure
+(defmethod es/config ::test [_]
+  {::queue {::es/init-key-alternative ::es/shrubbery-mock
+            ::es/shrubbery-mock       {}}})
+
+(def mocked-component (::queue (es/system ::test)))
+(add mocked-component :msgs "hi")
+;; =>
+nil
+
+(shrub/calls mocked-component)
+;; =>
+{#function[integrant-duct-example.shrubbery-mock/eval17947/fn--17961/G--17936--17970]
+ ((:msgs "hi"))}
+
+(shrub/received? mocked-component add [:msgs "hi"])
+;; =>
+true
+#+END_SRC
+
+The `::test` config's `::queue` component is initialized using the
+`::es/shrubbery-mock` implementation of the `es/init-key-alternative`
+multimethod. It returns a mock object created by the shrubbery library.
+
+When you call `add` on the mocked component, it returns `nil`. You can use
+shrubbery's `calls` and `received?` functions to interrogate the mocked object.
+
+*** mock values
+
+What if you need the mocked method to return a value other than `nil`? Here's
+how you could do that:
+
+#+CAPTION: mock values
+#+BEGIN_SRC clojure
+(defmethod es/config ::test-2 [_]
+  {::queue {::es/init-key-alternative ::es/shrubbery-mock
+            ::es/shrubbery-mock       {:add :mock-added}}})
+
+(def mocked-component-2
+  (::queue (es/system ::test-2)))
+
+(add mocked-component-2 :msgs "hi")
+;; =>
+:mock-added
+#+END_SRC
+
+The map `{:add :mock-added}` tells shrubbery what values to return for mocked
+methods. The keyword `:add` corresponds to the `Queue` protocol's `add` method,
+and that's why the method call returns `:mock-added`.
+
+[NOTE]
+======
+
+You can also make use of `es/system`'s second argument:
+
+#+CAPTION: making use of `es/system`'s second argument
+#+BEGIN_SRC clojure
+(def mocked-component-3
+  (::queue (es/system ::test {::queue {::es/shrubbery-mock {:add :mock-added}}})))
+#+END_SRC
+
+======
+
+*** mock helper
+
+The `sweet-tooth.endpoint.system` namespace includes a mocking components,
+`shrubbery-mock`. Instead of
+
+#+CAPTION: full mock config
+#+BEGIN_SRC clojure
+{::es/init-key-alternative ::es/shrubbery-mock
+ ::es/shrubbery-mock       {:add :mock-added}}
+#+END_SRC
+
+You can write
+
+#+CAPTION: `shrubbery-mock` helper
+#+BEGIN_SRC clojure
+(es/shrubbery-mock {:add :mock-added})
+#+END_SRC
+
+it expands to the map above.
+
+* Duct config readers
+
+`sweet-tooth.endpoint.system/readers` is a map of readers you can use when
+[[https://github.com/duct-framework/core/blob/master/src/duct/core.clj#L144][reading duct config files]]. It adds the `st/replacement` and `st/shrubbery-mock`
+reader literals, allowing you to write config.edn files that look like this:
 
 
-** Duct config readers
+#+CAPTION: example config.edn
+#+BEGIN_SRC clojure
+{:your-project/component #st/shrubbery-mock {}}
+#+END_SRC
+
+The literal will get expanded by calling the `es/shrubbery-mock` function on the
+value `{}`.

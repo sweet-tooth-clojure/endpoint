@@ -31,7 +31,7 @@
 (defmethod replacement-type ::shrubbery-mock [_]
   (s/keys :req [::init-key-alternative ::shrubbery-mock]))
 
-(s/def ::alternative-component (s/multi-spec replacement-type ::init-key-altnernative))
+(s/def ::alternative-component (s/multi-spec replacement-type ::init-key-alternative))
 
 (defn component-spec-with-alternative
   "Alternative components are likely run in dev and test environments
@@ -116,7 +116,8 @@
 ;; mock a component by initializating the mocked component, returning a
 ;; record that's used to create a mock object
 (defmethod init-key-alternative ::shrubbery-mock
-  [mocked-component {:keys [::shrubbery-mock] :as shrubbery-config}]
+  [mocked-component {:keys [::shrubbery-mock] :as shrubbery-config
+                     :or   {shrubbery-mock {}}}]
   (let [record           (ig/init-key mocked-component (dissoc shrubbery-config ::shrubbery-mock ::init-key-alternative))
         protocols        (set (shrub/protocols record))
         proto-impls      (medley/filter-keys protocols shrubbery-mock)
