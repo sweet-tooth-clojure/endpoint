@@ -10,7 +10,7 @@ introduces some conveniences for dealing with systems:
 `:test`, etc.
 * The `system` function, which lets you specify custom component configuration
 when it's called
-* An `ig/init-key` alternative that allows a component's *configuration* to
+* An `ig/init-key` alternative that allows a component's _configuration_ to
 specify an alternative component implementation, possibly bypassing the
 `ig/init-key` implementation entirely. The namespace also introduces two kinds
 of component initialization alternatives, `replacement` and `shrubbery-mock`
@@ -243,7 +243,7 @@ which you just saw, and `::es/shrubbery-mock`, which is used to create mock
 objects with the shrubbery library.
 
 
-=== The `::es/shrubbery-mock` init-key alternative ===
+== The `::es/shrubbery-mock` init-key alternative ==
 If you're using Integrant, it's common to define components to interact with
 external services. If you wanted to interact with AWS SQS (simple queue
 service), for example, you would create a component to serve as the SQS client.
@@ -335,7 +335,7 @@ When you call `add` on the mocked component, it returns `nil`. You can use
 shrubbery's `calls` and `received?` functions to interrogate the mocked object.
 
 
-==== mock values ====
+=== mock values ===
 What if you need the mocked method to return a value other than `nil`? Here's
 how you could do that:
 
@@ -361,10 +361,10 @@ and that's why the method call returns `:mock-added`.
 [NOTE]
 ====
 
-You can also make use of `es/system`'s second argument:
+You can also make use of the second argument to `es/system`:
 
 [source,clojure]
-.making use of `es/system`'s second argument
+.`es/system` anonymous profile
 ----
 (def mocked-component-3
   (::queue (es/system ::test {::queue {::es/shrubbery-mock {:add :mock-added}}})))
@@ -373,7 +373,7 @@ You can also make use of `es/system`'s second argument:
 ====
 
 
-==== mock helper ====
+=== mock helper ===
 The `sweet-tooth.endpoint.system` namespace includes a mocking components,
 `shrubbery-mock`. Instead of
 
