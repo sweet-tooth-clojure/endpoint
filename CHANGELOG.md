@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.10.5] 2020-06-30
+
+### Changed
+
+- `sweet-tooth.endpoint.system/shrubbery-mock` now has a new signature, making
+  it easier to distinguish mock method return vals from args passed to the
+  component.
+
 ## [0.10.3] 2020-06-15
 
 ### Added
