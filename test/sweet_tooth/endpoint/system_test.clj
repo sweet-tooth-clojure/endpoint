@@ -71,10 +71,10 @@
 
 (deftest mock-component
   (testing "works with protocol specified"
-    (is (= "blurmed!" (blurm (::b (es/system ::alternative-test {::b (es/shrubbery-mock {Stubby {:blurm "blurmed!"}})}))))))
+    (is (= "blurmed!" (blurm (::b (es/system ::alternative-test {::b (es/shrubbery-mock {:mock {Stubby {:blurm "blurmed!"}}})}))))))
 
   (testing "works without protocol specified"
-    (is (= "blurmed!" (blurm (::b (es/system ::alternative-test {::b (es/shrubbery-mock {:blurm "blurmed!"})}))))))
+    (is (= "blurmed!" (blurm (::b (es/system ::alternative-test {::b (es/shrubbery-mock {:mock {:blurm "blurmed!"}})}))))))
 
   (testing "works with no methods specified"
     (let [{:keys [::b]} (es/system ::alternative-test {::b (es/shrubbery-mock)})]
@@ -86,12 +86,7 @@
   (is (= {::es/init-key-alternative :sweet-tooth.endpoint.system/shrubbery-mock
           ::es/shrubbery-mock       {:foo :bar}
           :baz                      :boop}
-         (es/shrubbery-mock {:foo                       :bar
-                             ::es/mocked-component-opts {:baz :boop}})))
-  (is (= {::es/init-key-alternative :sweet-tooth.endpoint.system/shrubbery-mock
-          ::es/shrubbery-mock       {:foo :bar}
-          :baz                      :boop}
-         (es/shrubbery-mock [{:foo :bar}
-                             {:baz :boop}]))))
+         (es/shrubbery-mock {:mock      {:foo :bar}
+                             :component {:baz :boop}}))))
 
-(es/system ::alternative-test {::b (es/shrubbery-mock {Stubby {:blurm "blurmed!"}})})
+(es/system ::alternative-test {::b (es/shrubbery-mock {:mock {Stubby {:blurm "blurmed!"}}})})

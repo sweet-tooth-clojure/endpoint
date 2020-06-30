@@ -82,13 +82,10 @@
 ;; mock components
 ;;---
 
-(s/def ::shrubbery-mock-map map?)
-(s/def ::shrubbery-mock-object-opts map?)
-(s/def ::shrubbery-mocked-component-opts any?)
-(s/def ::shrubbery-mock-tuple (s/tuple ::shrubbery-mock-object-opts
-                                       ::shrubbery-mocked-component-opts))
-(s/def ::shrubbery-mock-opts (s/or :map ::shrubbery-mock-map
-                                   :tuple ::shrubbery-mock-tuple))
+(s/def ::mock map?)
+(s/def ::component map?) ;; TODO more specific {:method-name val}
+
+(s/def ::shrubbery-mock-opts (s/keys :opt-un [::mock ::component]))
 
 (defn shrubbery-mock
   "Returns a component configuration that will use
@@ -96,21 +93,20 @@
   replace the original component's config so that the mocked
   component can be initialized.
 
-  `::mocked-component-opts` defines additional config opts that should
+  `:mock` specifies mocked methods and their values. You can use either
+  `{:method-name val}` or `{Protocol {:method-name val}}`.
+
+  `:component` defines additional config opts that should
   get passed to the mocked component. One use for this is to satisfy
   that component's config spec."
   ([] (shrubbery-mock {}))
-  ([opts]
-   (let [[opts-type] (s/conform ::shrubbery-mock-opts opts)]
-     (case opts-type
-       :map   (merge {::init-key-alternative ::shrubbery-mock
-                      ::shrubbery-mock       (dissoc opts ::mocked-component-opts)}
-                     (::mocked-component-opts opts))
-       :tuple (merge {::init-key-alternative  ::shrubbery-mock
-                      ::shrubbery-mock        (first opts)}
-                     (second opts))))))
+  ([{:keys [component mock]}]
+   (merge {::init-key-alternative ::shrubbery-mock
+           ::shrubbery-mock       (or mock {})}
+          component)))
 
 (s/fdef shrubbery-mock
+  :args (s/cat :opts (s/? ::shrubbery-mock-opts))
   :ret ::alternative-component)
 
 ;; mock a component by initializating the mocked component, returning a
