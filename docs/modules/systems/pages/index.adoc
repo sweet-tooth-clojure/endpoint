@@ -393,7 +393,7 @@ You can write
 [source,clojure]
 .`shrubbery-mock` helper
 ----
-(es/shrubbery-mock {:add :mock-added})
+(es/shrubbery-mock {:mock {:add :mock-added}})
 ----
 
 it expands to the map above.

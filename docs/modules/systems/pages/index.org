@@ -376,7 +376,7 @@ You can write
 
 #+CAPTION: `shrubbery-mock` helper
 #+BEGIN_SRC clojure
-(es/shrubbery-mock {:add :mock-added})
+(es/shrubbery-mock {:mock {:add :mock-added}})
 #+END_SRC
 
 it expands to the map above.
