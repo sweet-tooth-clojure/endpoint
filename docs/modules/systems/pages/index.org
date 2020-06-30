@@ -6,8 +6,8 @@ introduces some conveniences for dealing with systems:
 
 - A multimethod `config` for naming integrant configs, like `:dev`,
   `:test`, etc.
-- The `system` function, which lets you specify custom component configuration
-  when it's called
+- The `system` function, which lets you customize your integrant configuration
+  inline
 - An `ig/init-key` alternative that allows a component's /configuration/ to
   specify an alternative component implementation, possibly bypassing the
   `ig/init-key` implementation entirely. The namespace also introduces two kinds
@@ -96,6 +96,10 @@ like an anonymous profile. For example:
 
 This can be useful for troubleshooting. It can also be using when writing tests,
 for example when you need to mock a component.
+
+`system`'s second argument can also be a function, in which case it takes an
+integrant config as an argument and should return an integrant config. That way
+you can `dissoc` keys.
 
 ** Testing
 
