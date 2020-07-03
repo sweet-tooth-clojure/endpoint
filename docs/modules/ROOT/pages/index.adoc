@@ -22,4 +22,4 @@ the components
 
 xref:systems:index.adoc[*Systems*] reviews the `sweet-tooth.endpoint.system`
 namespace and its tools for managing integrant configs and specifying
-altnernative component implementations.
+alternative component implementations.

@@ -88,8 +88,8 @@ Clojure is hosted on the JVM, and we use Java HTTP servers, most frequently a
 library called Jetty. Jetty converts a request to a Java object. In Clojure, we
 prefer to work with native Clojure maps and vectors, and developers most
 frequently use the [[https://github.com/ring-clojure/ring][ring]] library to adapt the request for Clojure. It converts
-the Java request object into [[https://github.com/ring-clojure/ring/wiki/Concepts#requests][a Clojure map]] with the keys `:uri`,
-`:query-string`, `:request-method`, `:headers`, and `:body`, plus a few more.
+the Java request object into [[https://github.com/ring-clojure/ring/wiki/Concepts#requests][a Clojure map]] with the keys ~:uri~,
+~:query-string~, ~:request-method~, ~:headers~, and ~:body~, plus a few more.
 
 Ring allows you to define a Clojure function to handle requests - we saw that at
 (5). The request function takes a Ring request as an argument and should return
