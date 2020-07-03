@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.6] 2020-07-03
+
+### Changed
+
+- changed project name from `sweet-tooth/sweet-tooth-endpoint` to
+  `sweet-tooth/endpoint`
+
 ## [0.10.5] 2020-06-30
 
 ### Changed
