@@ -35,7 +35,7 @@
    {}
 
    :member
-   {})"
+   {}})"
    :strategy :sweet-tooth.endpoint.generate/create-file})
 
 (def package

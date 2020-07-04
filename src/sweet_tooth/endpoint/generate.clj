@@ -8,11 +8,15 @@
 ;; generator helpers
 ;;------
 
-(defn point-path
+(defn point-path-segments
   [{:keys [path]} {:keys [src-base] :as opts}]
-  (str/join "/" (into src-base (if (fn? path)
-                                 (path opts)
-                                 path))))
+  (into src-base (if (fn? path)
+                   (path opts)
+                   path)))
+
+(defn point-path
+  [point opts]
+  (str/join "/" (point-path-segments point opts)))
 
 
 ;;------
@@ -35,7 +39,10 @@
   (modify-file point opts))
 
 (defmethod generate-point ::create-file
-  [_ _])
+  [{:keys [template] :as point} opts]
+  (let [file-path (point-path point opts)]
+    (.mkdirs (java.io.File. (str/join "/" (butlast (point-path-segments point opts)))))
+    (spit file-path template)))
 
 
 ;;------
