@@ -31,5 +31,8 @@
                  rzw/insert-space-left
                  rzw/insert-space-left
                  rzw/insert-space-left
-                 rzw/insert-space-left
-                 rz/print-root))})
+                 rzw/insert-space-left))})
+
+(defn update-file
+  [{:keys [modify] :as point} form]
+  (rz/root-string (modify (rz/of-file (path point)) form)))
