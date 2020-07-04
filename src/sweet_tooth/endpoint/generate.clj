@@ -1,41 +1,64 @@
 (ns sweet-tooth.endpoint.generate
-  (:require [rewrite-clj.zip :as rz]
-            [rewrite-clj.zip.whitespace :as rzw]
-            [rewrite-clj.node :as rn]
-            [rewrite-clj.custom-zipper.core :as rcz]
-            [sweet-tooth.endpoint.system :as es]
-            [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [rewrite-clj.zip :as rz]
+            [sweet-tooth.endpoint.generate.endpoint :as sge]
+            [sweet-tooth.endpoint.system :as es]))
 
-(defn- src-base* [config]
-  ["src" (name (:duct.core/project-ns config))])
+;;------
+;; generator helpers
+;;------
 
-(defn  src-base [config-name]
-  (src-base* (es/config config-name)))
-
-(defn path
-  ([point]
-   (path point :dev))
-  ([point config-name]
-   (str/join "/" (into (src-base config-name) (:path point)))))
+(defn point-path
+  [{:keys [path]} {:keys [src-base] :as opts}]
+  (str/join "/" (into src-base (if (fn? path)
+                                 (path opts)
+                                 path))))
 
 
-(def endpoint-routes-point
-  {:path ["cross" "endpoint_routes.cljc"]
-   :modify (fn [node form]
-             (let [comment-node (-> node
-                                    (rz/find-value rz/next 'serr/expand-routes)
-                                    rz/right
-                                    (rz/find-value rz/next 'comment)
-                                    rz/up)
-                   comment-left (rz/node (rcz/left comment-node))
-                   whitespace   (and (:whitespace comment-left) comment-left)]
-               (-> comment-node
-                   (rcz/insert-right form)
-                   rz/right
-                   rzw/insert-newline-left
-                   (rcz/insert-left whitespace))))})
+;;------
+;; point generators
+;;------
 
-(defn update-file!
-  [{:keys [modify] :as point} form]
-  (let [file-path (path point)]
-    (spit file-path (rz/root-string (modify (rz/of-file file-path) form)))))
+(defmulti generate-point (fn [{:keys [strategy]} _opts] strategy))
+
+;; modify file
+
+(defn modify-file
+  "Updates a file using the modifications from a point"
+  [{:keys [modify form] :as point} opts]
+  (let [file-path (point-path point opts)]
+    (spit file-path (rz/root-string (modify (rz/of-file file-path)
+                                            (form opts))))))
+
+(defmethod generate-point ::modify-file
+  [point opts]
+  (modify-file point opts))
+
+(defmethod generate-point ::create-file
+  [_ _])
+
+
+;;------
+;; packages
+;;------
+(defmulti package identity)
+;; TODO explore package naming and ns deps. we require sge only so that we can
+;; register its package here. but it would be nice if there were some other way
+;; to make packages discoverable
+(defmethod package :sweet-tooth/endpoint [_] sge/package)
+
+;;------
+;; generate
+;;------
+(defn generate
+  [package-name {:keys [:config-name project-ns] :as opts}]
+  (let [pkg           (package package-name)
+        points        (select-keys (:points pkg) (or (:points opts) (:default-points pkg)))
+        config        (es/config (or config-name :dev))
+        project-ns    (or project-ns (:duct.core/project-ns config))
+        generate-opts (merge {:project-ns project-ns
+                              :src-base   ["src" project-ns]}
+                             opts)
+        opts          (merge generate-opts ((:opts pkg identity) generate-opts))]
+    (doseq [point (vals points)]
+      (generate-point point opts))))
