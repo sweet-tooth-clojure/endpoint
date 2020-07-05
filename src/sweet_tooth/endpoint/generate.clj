@@ -1,5 +1,6 @@
 (ns sweet-tooth.endpoint.generate
   (:require [clojure.string :as str]
+            [cljstache.core :as cs]
             [rewrite-clj.zip :as rz]
             [sweet-tooth.endpoint.generate.endpoint :as sge]
             [sweet-tooth.endpoint.system :as es]))
@@ -42,7 +43,7 @@
   [{:keys [template] :as point} opts]
   (let [file-path (point-path point opts)]
     (.mkdirs (java.io.File. (str/join "/" (butlast (point-path-segments point opts)))))
-    (spit file-path template)))
+    (spit file-path (cs/render template opts))))
 
 
 ;;------

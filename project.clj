@@ -29,7 +29,8 @@
                  [ring-middleware-format "0.7.4"] ;; transit content negotiation
                  [bk/ring-gzip "0.3.0"]
                  [buddy/buddy-auth "2.1.0"]
-                 [rewrite-clj "0.6.1"]]
+                 [rewrite-clj "0.6.1"]
+                 [cljstache "2.0.6"]]
 
   :profiles {:dev {:dependencies   [[com.datomic/datomic-free "0.9.5344"]]
                    :resource-paths #{"test-resources"}}})

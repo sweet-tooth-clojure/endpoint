@@ -11,7 +11,7 @@
                (let [comment-node (-> node
                                       (rz/find-value rz/next 'serr/expand-routes)
                                       rz/right
-                                      (rz/find-value rz/next 'st:begin-api-routes)
+                                      (rz/find-value rz/next 'st:begin-ns-routes)
                                       rz/up)
                      comment-left (rz/node (rcz/left comment-node))
                      whitespace   (and (:whitespace comment-left) comment-left)]
@@ -46,5 +46,4 @@
                      {:endpoint-ns (->> [project-ns "backend" "endpoint" endpoint-name]
                                         (map name)
                                         (str/join ".")
-                                        (symbol))})
-   :name           :sweet-tooth/endpoint})
+                                        (symbol))})})
