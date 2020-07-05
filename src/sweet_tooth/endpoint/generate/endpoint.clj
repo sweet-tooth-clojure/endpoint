@@ -9,7 +9,7 @@
 
 (def routes-point
   {:path     ["cross" "endpoint_routes.cljc"]
-   :modify   (fn [node form]
+   :rewrite  (fn [node form]
                (let [comment-node (-> node
                                       (rz/find-value rz/next 'serr/expand-routes)
                                       rz/right
@@ -24,7 +24,7 @@
                      (rcz/insert-left whitespace))))
    :form     (fn [{:keys [endpoint-ns]}]
                [(keyword endpoint-ns)])
-   :strategy :sweet-tooth.endpoint.generate/modify-file})
+   :strategy :sweet-tooth.endpoint.generate/rewrite-file})
 
 ;; TODO handle nested endpoints?
 (def endpoint-file-point
@@ -48,7 +48,7 @@
   (let [project-ns (or project-ns (:duct.core/project-ns (es/config config-name)))]
     (merge {:project-ns    project-ns
             :endpoint-name endpoint-name
-            :src-base      ["src" project-ns]
+            :path-base     ["src" project-ns]
             :endpoint-ns   (->> [project-ns "backend" "endpoint" endpoint-name]
                                 (map name)
                                 (str/join ".")
@@ -62,5 +62,4 @@
 (def package
   {:points         {:routes        routes-point
                     :endpoint-file endpoint-file-point}
-   :default-points #{:routes :endpoint-file}
    :opts           package-opts})

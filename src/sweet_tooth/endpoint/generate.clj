@@ -2,17 +2,21 @@
   (:require [clojure.string :as str]
             [cljstache.core :as cs]
             [rewrite-clj.zip :as rz]
-            [sweet-tooth.endpoint.generate.endpoint :as sge]))
+            [sweet-tooth.endpoint.generate.endpoint :as sge]
+            [clojure.spec.alpha :as s]))
+
+(s/def ::point map?)
+(s/def ::points (s/map-of keyword? ::point))
 
 ;;------
 ;; generator helpers
 ;;------
 
 (defn point-path-segments
-  [{:keys [path]} {:keys [src-base] :as opts}]
-  (into src-base (if (fn? path)
-                   (path opts)
-                   path)))
+  [{:keys [path]} {:keys [path-base] :as opts}]
+  (into path-base (if (fn? path)
+                    (path opts)
+                    path)))
 
 (defn point-path
   [point opts]
@@ -25,18 +29,11 @@
 
 (defmulti generate-point (fn [{:keys [strategy]} _opts] strategy))
 
-;; modify file
-
-(defn modify-file
-  "Updates a file using the modifications from a point"
-  [{:keys [modify form] :as point} opts]
+(defmethod generate-point ::rewrite-file
+  [{:keys [rewrite form] :as point} opts]
   (let [file-path (point-path point opts)]
-    (spit file-path (rz/root-string (modify (rz/of-file file-path)
-                                            (form opts))))))
-
-(defmethod generate-point ::modify-file
-  [point opts]
-  (modify-file point opts))
+    (spit file-path (rz/root-string (rewrite (rz/of-file file-path)
+                                             (form opts))))))
 
 (defmethod generate-point ::create-file
   [{:keys [template] :as point} opts]
@@ -54,12 +51,35 @@
 ;; to make packages discoverable
 (defmethod package :sweet-tooth/endpoint [_] sge/package)
 
+(s/def ::package-name keyword?)
+(s/def ::package-points (s/coll-of keyword?))
+(s/def ::package-pair (s/tuple ::package-name ::package-points))
+(s/def ::opts fn?)
+(s/def ::package (s/keys :req-un [::points]
+                         :opt-un [::opts]))
+
+(s/def ::package*-arg (s/or :package-name ::package-name
+                            :package-pair ::package-pair
+                            :package      ::package))
+
+(defn package*
+  [pkg]
+  (let [conformed (s/conform ::package*-arg pkg)]
+    (when (= :clojure.spec.alpha/invalid conformed)
+      (throw (ex-info "Invalid package" {:package pkg
+                                         :spec    (s/explain-data ::package*-arg pkg)})))
+    (let [[ptype] conformed]
+      (case ptype
+        :package-name (package pkg)
+        :package-pair (update (package (first pkg)) select-keys (second pkg))
+        :package      pkg))))
+
 ;;------
 ;; generate
 ;;------
 (defn generate
-  [package-name & args]
-  (let [{:keys [opts points]} (package package-name)
+  [package & args]
+  (let [{:keys [opts points]} (package* package)
         opts                  ((or opts identity) args)]
     (doseq [point (vals points)]
       (generate-point point opts))))
