@@ -9,8 +9,9 @@
 
 (def routes-point
   {:path     ["cross" "endpoint_routes.cljc"]
-   :rewrite  (fn [node form]
-               (let [comment-node (-> node
+   :rewrite  (fn [node {:keys [endpoint-ns]}]
+               (let [form         [(keyword endpoint-ns)]
+                     comment-node (-> node
                                       (rz/find-value rz/next 'serr/expand-routes)
                                       rz/right
                                       (rz/find-value rz/next 'st:begin-ns-routes)
@@ -22,8 +23,6 @@
                      rz/right
                      rzw/insert-newline-left
                      (rcz/insert-left whitespace))))
-   :form     (fn [{:keys [endpoint-ns]}]
-               [(keyword endpoint-ns)])
    :strategy :sweet-tooth.endpoint.generate/rewrite-file})
 
 ;; TODO handle nested endpoints?

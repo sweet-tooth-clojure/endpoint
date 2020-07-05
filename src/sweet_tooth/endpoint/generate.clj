@@ -30,10 +30,9 @@
 (defmulti generate-point (fn [{:keys [strategy]} _opts] strategy))
 
 (defmethod generate-point ::rewrite-file
-  [{:keys [rewrite form] :as point} opts]
+  [{:keys [rewrite] :as point} opts]
   (let [file-path (point-path point opts)]
-    (spit file-path (rz/root-string (rewrite (rz/of-file file-path)
-                                             (form opts))))))
+    (spit file-path (rz/root-string (rewrite (rz/of-file file-path) opts)))))
 
 (defmethod generate-point ::create-file
   [{:keys [template] :as point} opts]
