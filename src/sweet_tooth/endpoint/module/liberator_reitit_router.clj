@@ -67,7 +67,8 @@
         valid-methods        #{:get :head :post :put :delete
                                :connect :options :trace :patch}
         unrecognized-methods (set/difference (set (keys decision-map)) valid-methods)]
-    (when (empty? decision-map)
+    ;; TODO figure out less obnoxious way to do this
+    #_(when (empty? decision-map)
       (log/warn logger
                 ::no-decisions-defined
                 (assoc common-log-data

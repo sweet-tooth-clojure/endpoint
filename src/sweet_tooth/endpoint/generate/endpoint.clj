@@ -32,10 +32,13 @@
 
 (def decisions
   {:collection
-   {}
+   {:get  {:handle-ok (fn [ctx] [])}
+    :post {:handle-created (fn [ctx] [])}}
 
    :member
-   {}})"
+   {:get {:handle-ok (fn [ctx] [])}
+    :put {:handle-ok (fn [ctx] [])}
+    :delete {:handle-ok nil}}})"
    :strategy :sweet-tooth.endpoint.generate/create-file})
 
 (def package
