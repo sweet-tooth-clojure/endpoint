@@ -2,8 +2,7 @@
   (:require [clojure.string :as str]
             [cljstache.core :as cs]
             [rewrite-clj.zip :as rz]
-            [sweet-tooth.endpoint.generate.endpoint :as sge]
-            [sweet-tooth.endpoint.system :as es]))
+            [sweet-tooth.endpoint.generate.endpoint :as sge]))
 
 ;;------
 ;; generator helpers
@@ -59,14 +58,8 @@
 ;; generate
 ;;------
 (defn generate
-  [package-name {:keys [:config-name project-ns] :as opts}]
-  (let [pkg           (package package-name)
-        points        (select-keys (:points pkg) (or (:points opts) (:default-points pkg)))
-        config        (es/config (or config-name :dev))
-        project-ns    (or project-ns (:duct.core/project-ns config))
-        generate-opts (merge {:project-ns project-ns
-                              :src-base   ["src" project-ns]}
-                             opts)
-        opts          (merge generate-opts ((:opts pkg identity) generate-opts))]
+  [package-name & args]
+  (let [{:keys [opts points]} (package package-name)
+        opts                  ((or opts identity) args)]
     (doseq [point (vals points)]
       (generate-point point opts))))

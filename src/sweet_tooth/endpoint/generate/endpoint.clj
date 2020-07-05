@@ -3,7 +3,9 @@
   (:require [rewrite-clj.custom-zipper.core :as rcz]
             [rewrite-clj.zip :as rz]
             [rewrite-clj.zip.whitespace :as rzw]
-            [clojure.string :as str]))
+            [clojure.string :as str]
+            [clojure.spec.alpha :as s]
+            [sweet-tooth.endpoint.system :as es]))
 
 (def routes-point
   {:path     ["cross" "endpoint_routes.cljc"]
@@ -28,7 +30,7 @@
 (def endpoint-file-point
   {:path     (fn [{:keys [endpoint-name]}]
                ["backend" "endpoint" (str endpoint-name ".clj")])
-   :template "(ns {{project-ns}}.backend.endpoint.{{endpoint-name}})
+   :template "(ns {{endpoint-ns}})
 
 (def decisions
   {:collection
@@ -41,12 +43,24 @@
     :delete {:handle-ok nil}}})"
    :strategy :sweet-tooth.endpoint.generate/create-file})
 
+(defn package-opts
+  [[endpoint-name {:keys [config-name project-ns] :as opts :or {config-name :dev}}]]
+  (let [project-ns (or project-ns (:duct.core/project-ns (es/config config-name)))]
+    (merge {:project-ns    project-ns
+            :endpoint-name endpoint-name
+            :src-base      ["src" project-ns]
+            :endpoint-ns   (->> [project-ns "backend" "endpoint" endpoint-name]
+                                (map name)
+                                (str/join ".")
+                                (symbol))}
+           opts)))
+
+(s/fdef package-opts
+  :args (s/cat :args (s/tuple keyword? map?))
+  :ret map?)
+
 (def package
   {:points         {:routes        routes-point
                     :endpoint-file endpoint-file-point}
    :default-points #{:routes :endpoint-file}
-   :opts           (fn [{:keys [project-ns endpoint-name]}]
-                     {:endpoint-ns (->> [project-ns "backend" "endpoint" endpoint-name]
-                                        (map name)
-                                        (str/join ".")
-                                        (symbol))})})
+   :opts           package-opts})
