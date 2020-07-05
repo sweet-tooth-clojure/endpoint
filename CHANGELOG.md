@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.7] 2020-07-05
+
+### Added
+
+- introduced `sweet-tooth.generate`
+- added generators under `sweet-tooth.endpoint.generate.endpoint`
+
 ## [0.10.6] 2020-07-03
 
 ### Changed

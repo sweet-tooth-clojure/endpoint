@@ -1,5 +1,5 @@
 (ns sweet-tooth.endpoint.generate.endpoint
-  "Generator points for an endpoint"
+  "Generator for an endpoint"
   (:require [rewrite-clj.custom-zipper.core :as rcz]
             [rewrite-clj.zip :as rz]
             [rewrite-clj.zip.whitespace :as rzw]
