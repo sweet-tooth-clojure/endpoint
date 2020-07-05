@@ -27,6 +27,7 @@
    :strategy :sweet-tooth.endpoint.generate/rewrite-file})
 
 (def endpoint-file-point
+  ;; TODO this is kinda ugly
   {:path     (fn [{:keys [endpoint-name]}]
                (let [segments (->> (str/split endpoint-name #"\.")
                                    (map #(str/replace % "-" "_")))]
@@ -45,7 +46,7 @@
     :delete {:handle-ok nil}}})"
    :strategy :sweet-tooth.endpoint.generate/create-file})
 
-(defn package-opts
+(defn generator-opts
   [[endpoint-name {:keys [config-name project-ns] :as opts :or {config-name :dev}}]]
   (let [project-ns (or project-ns (:duct.core/project-ns (es/config config-name)))]
     (merge {:project-ns    project-ns
@@ -57,13 +58,13 @@
                                 (symbol))}
            opts)))
 
-(s/fdef package-opts
+(s/fdef generator-opts
   :args (s/cat :args (s/tuple keyword? map?))
   :ret map?)
 
-(def package
-  {:points         {:routes        routes-point
-                    :endpoint-file endpoint-file-point}
-   :opts           package-opts})
+(def generator
+  {:points {:routes        routes-point
+            :endpoint-file endpoint-file-point}
+   :opts   generator-opts})
 
-(defmethod sg/package :sweet-tooth/endpoint [_] package)
+(defmethod sg/generator :sweet-tooth/endpoint [_] generator)

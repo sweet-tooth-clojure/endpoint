@@ -57,44 +57,44 @@
     (spit file-path (cs/render template opts))))
 
 ;;------
-;; packages
+;; generators
 ;;------
 
 ;; specs
 
-(s/def ::package-name keyword?)
-(s/def ::package-points (s/coll-of keyword?))
-(s/def ::package-pair (s/tuple ::package-name ::package-points))
+(s/def ::generator-name keyword?)
+(s/def ::generator-point-names (s/coll-of keyword?))
+(s/def ::generator-pair (s/tuple ::generator-name ::generator-point-names))
 (s/def ::opts fn?)
-(s/def ::package (s/keys :req-un [::points]
-                         :opt-un [::opts]))
+(s/def ::generator (s/keys :req-un [::points]
+                           :opt-un [::opts]))
 
-(s/def ::package*-arg (s/or :package-name ::package-name
-                            :package-pair ::package-pair
-                            :package      ::package))
+(s/def ::generator*-arg (s/or :generator-name ::generator-name
+                              :generator-pair ::generator-pair
+                              :generator      ::generator))
 
 ;; methods / fns
 
-(defmulti package identity)
+(defmulti generator identity)
 
-(defn package*
+(defn generator*
   [pkg]
-  (let [conformed (s/conform ::package*-arg pkg)]
+  (let [conformed (s/conform ::generator*-arg pkg)]
     (when (= :clojure.spec.alpha/invalid conformed)
-      (throw (ex-info "Invalid package" {:package pkg
-                                         :spec    (s/explain-data ::package*-arg pkg)})))
+      (throw (ex-info "Invalid generator" {:generator pkg
+                                           :spec    (s/explain-data ::generator*-arg pkg)})))
     (let [[ptype] conformed]
       (case ptype
-        :package-name (package pkg)
-        :package-pair (update (package (first pkg)) select-keys (second pkg))
-        :package      pkg))))
+        :generator-name (generator pkg)
+        :generator-pair (update (generator (first pkg)) select-keys (second pkg))
+        :generator      pkg))))
 
 ;;------
 ;; generate
 ;;------
 (defn generate
-  [package & args]
-  (let [{:keys [opts points]} (package* package)
+  [generator & args]
+  (let [{:keys [opts points]} (generator* generator)
         opts                  ((or opts identity) args)]
     (doseq [point (vals points)]
       (generate-point point opts))))
