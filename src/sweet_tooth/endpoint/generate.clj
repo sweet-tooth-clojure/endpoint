@@ -18,7 +18,6 @@
   [point opts]
   (str/join "/" (point-path-segments point opts)))
 
-
 ;;------
 ;; point generators
 ;;------

@@ -26,10 +26,12 @@
                      (rcz/insert-left whitespace))))
    :strategy :sweet-tooth.endpoint.generate/rewrite-file})
 
-;; TODO handle nested endpoints?
 (def endpoint-file-point
   {:path     (fn [{:keys [endpoint-name]}]
-               ["backend" "endpoint" (str endpoint-name ".clj")])
+               (let [segments (->> (str/split endpoint-name #"\.")
+                                   (map #(str/replace % "-" "_")))]
+                 (conj (into ["backend" "endpoint"] (butlast segments))
+                       (str (last segments) ".clj"))))
    :template "(ns {{endpoint-ns}})
 
 (def decisions
