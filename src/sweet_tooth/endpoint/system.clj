@@ -31,7 +31,7 @@
 (defmethod replacement-type ::shrubbery-mock [_]
   (s/keys :req [::init-key-alternative ::shrubbery-mock]))
 
-(s/def ::alternative-component (s/multi-spec replacement-type ::init-key-altnernative))
+(s/def ::alternative-component (s/multi-spec replacement-type ::init-key-alternative))
 
 (defn component-spec-with-alternative
   "Alternative components are likely run in dev and test environments

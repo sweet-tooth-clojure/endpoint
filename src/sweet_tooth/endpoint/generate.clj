@@ -5,8 +5,6 @@
             [sweet-tooth.endpoint.generate.endpoint :as sge]
             [clojure.spec.alpha :as s]))
 
-(s/def ::point map?)
-(s/def ::points (s/map-of keyword? ::point))
 
 ;;------
 ;; generator helpers
@@ -27,6 +25,27 @@
 ;; point generators
 ;;------
 
+;; specs
+
+(s/def ::path (s/or :path-segments (s/coll-of string?)
+                    :path-fn fn?))
+(s/def ::strategy keyword?)
+(s/def ::rewrite fn?)
+(s/def ::template string?)
+
+(defmulti generate-point-type :strategy)
+
+(defmethod generate-point-type ::rewrite-file [_]
+  (s/keys :req-un [::path ::rewrite ::strategy]))
+
+(defmethod generate-point-type ::create-file [_]
+  (s/keys :req-un [::path ::template ::strategy]))
+
+(s/def ::point (s/multi-spec generate-point-type :strategy))
+(s/def ::points (s/map-of keyword? ::point))
+
+;; methods
+
 (defmulti generate-point (fn [{:keys [strategy]} _opts] strategy))
 
 (defmethod generate-point ::rewrite-file
@@ -40,15 +59,11 @@
     (.mkdirs (java.io.File. (str/join "/" (butlast (point-path-segments point opts)))))
     (spit file-path (cs/render template opts))))
 
-
 ;;------
 ;; packages
 ;;------
-(defmulti package identity)
-;; TODO explore package naming and ns deps. we require sge only so that we can
-;; register its package here. but it would be nice if there were some other way
-;; to make packages discoverable
-(defmethod package :sweet-tooth/endpoint [_] sge/package)
+
+;; specs
 
 (s/def ::package-name keyword?)
 (s/def ::package-points (s/coll-of keyword?))
@@ -60,6 +75,15 @@
 (s/def ::package*-arg (s/or :package-name ::package-name
                             :package-pair ::package-pair
                             :package      ::package))
+
+;; methods / fns
+
+(defmulti package identity)
+;; TODO explore package naming and ns deps. we require sge only so that we can
+;; register its package here. but it would be nice if there were some other way
+;; to make packages discoverable
+(defmethod package :sweet-tooth/endpoint [_] sge/package)
+
 
 (defn package*
   [pkg]
