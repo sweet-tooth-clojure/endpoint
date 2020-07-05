@@ -5,6 +5,7 @@
             [rewrite-clj.zip.whitespace :as rzw]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
+            [sweet-tooth.endpoint.generate :as sg]
             [sweet-tooth.endpoint.system :as es]))
 
 (def routes-point
@@ -62,3 +63,5 @@
   {:points         {:routes        routes-point
                     :endpoint-file endpoint-file-point}
    :opts           package-opts})
+
+(defmethod sg/package :sweet-tooth/endpoint [_] package)

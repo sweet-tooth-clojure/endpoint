@@ -2,9 +2,7 @@
   (:require [clojure.string :as str]
             [cljstache.core :as cs]
             [rewrite-clj.zip :as rz]
-            [sweet-tooth.endpoint.generate.endpoint :as sge]
             [clojure.spec.alpha :as s]))
-
 
 ;;------
 ;; generator helpers
@@ -79,11 +77,6 @@
 ;; methods / fns
 
 (defmulti package identity)
-;; TODO explore package naming and ns deps. we require sge only so that we can
-;; register its package here. but it would be nice if there were some other way
-;; to make packages discoverable
-(defmethod package :sweet-tooth/endpoint [_] sge/package)
-
 
 (defn package*
   [pkg]
