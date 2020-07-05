@@ -5,7 +5,7 @@
             [rewrite-clj.zip.whitespace :as rzw]
             [clojure.string :as str]
             [clojure.spec.alpha :as s]
-            [sweet-tooth.endpoint.generate :as sg]
+            [sweet-tooth.generate :as sg]
             [sweet-tooth.endpoint.system :as es]))
 
 (def routes-point
@@ -24,7 +24,7 @@
                      rz/right
                      rzw/insert-newline-left
                      (rcz/insert-left whitespace))))
-   :strategy :sweet-tooth.endpoint.generate/rewrite-file})
+   :strategy ::sg/rewrite-file})
 
 (def endpoint-file-point
   ;; TODO this is kinda ugly
@@ -44,7 +44,7 @@
    {:get {:handle-ok (fn [ctx] [])}
     :put {:handle-ok (fn [ctx] [])}
     :delete {:handle-ok nil}}})"
-   :strategy :sweet-tooth.endpoint.generate/create-file})
+   :strategy ::sg/create-file})
 
 (defn generator-opts
   [[endpoint-name {:keys [config-name project-ns] :as opts :or {config-name :dev}}]]

@@ -18,6 +18,7 @@
                  [duct/module.web       "0.7.0"]
 
                  [sweet-tooth/describe "0.3.0"]
+                 [sweet-tooth/generate "0.1.0"]
                  [com.gearswithingears/shrubbery "0.4.1"]
                  [com.rpl/specter "1.1.3"]
 
@@ -28,9 +29,7 @@
                  [liberator "0.15.3"]
                  [ring-middleware-format "0.7.4"] ;; transit content negotiation
                  [bk/ring-gzip "0.3.0"]
-                 [buddy/buddy-auth "2.1.0"]
-                 [rewrite-clj "0.6.1"]
-                 [cljstache "2.0.6"]]
+                 [buddy/buddy-auth "2.1.0"]]
 
   :profiles {:dev {:dependencies   [[com.datomic/datomic-free "0.9.5344"]]
                    :resource-paths #{"test-resources"}}})
