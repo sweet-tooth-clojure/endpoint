@@ -1,4 +1,5 @@
 (ns sweet-tooth.endpoint.generate
+  "Write code generators that can be executed from the REPL"
   (:require [clojure.string :as str]
             [cljstache.core :as cs]
             [rewrite-clj.zip :as rz]
@@ -9,7 +10,8 @@
 ;;------
 
 (defn point-path-segments
-  [{:keys [path]} {:keys [path-base] :as opts}]
+  [{:keys [path]} {:keys [path-base] :as opts
+                   :or {path-base []}}]
   (into path-base (if (fn? path)
                     (path opts)
                     path)))
