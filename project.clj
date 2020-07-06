@@ -1,4 +1,4 @@
-(defproject sweet-tooth/endpoint "0.10.7"
+(defproject sweet-tooth/endpoint "0.10.8"
   :description "Utilities for working with liberator-based endpoints"
   :url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"
   :scm {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"}
@@ -18,7 +18,7 @@
                  [duct/module.web       "0.7.0"]
 
                  [sweet-tooth/describe "0.3.0"]
-                 [sweet-tooth/generate "0.1.0"]
+                 [sweet-tooth/generate "0.1.1"]
                  [com.gearswithingears/shrubbery "0.4.1"]
                  [com.rpl/specter "1.1.3"]
 

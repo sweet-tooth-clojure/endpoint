@@ -1,9 +1,6 @@
 (ns sweet-tooth.endpoint.generate.endpoint
   "Generator for an endpoint"
-  (:require [rewrite-clj.custom-zipper.core :as rcz]
-            [rewrite-clj.zip :as rz]
-            [rewrite-clj.zip.whitespace :as rzw]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [clojure.spec.alpha :as s]
             [sweet-tooth.generate :as sg]
             [sweet-tooth.endpoint.system :as es]))
@@ -11,19 +8,7 @@
 (def routes-point
   {:path     ["cross" "endpoint_routes.cljc"]
    :rewrite  (fn [node {:keys [endpoint-ns]}]
-               (let [form         [(keyword endpoint-ns)]
-                     comment-node (-> node
-                                      (rz/find-value rz/next 'serr/expand-routes)
-                                      rz/right
-                                      (rz/find-value rz/next 'st:begin-ns-routes)
-                                      rz/up)
-                     comment-left (rz/node (rcz/left comment-node))
-                     whitespace   (and (:whitespace comment-left) comment-left)]
-                 (-> comment-node
-                     (rcz/insert-right form)
-                     rz/right
-                     rzw/insert-newline-left
-                     (rcz/insert-left whitespace))))
+               (sg/insert-below-anchor node 'st:begin-ns-routes [(keyword endpoint-ns)]))
    :strategy ::sg/rewrite-file})
 
 (def endpoint-file-point

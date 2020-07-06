@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.10.8] 2020-07-06
+
+### Changed
+
+- updated to `sweet-tooth/generate 0.1.1`, using new rewrite helper
+
 ## [0.10.7] 2020-07-05
 
 ### Added
