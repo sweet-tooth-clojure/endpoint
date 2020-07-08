@@ -1,10 +1,11 @@
 # Changelog
 
-## [0.10.8] 2020-07-06
+## [0.10.8] 2020-07-08
 
 ### Changed
 
 - updated to `sweet-tooth/generate 0.1.1`, using new rewrite helper
+- "not found" handler defaults to 404 instead of 200
 
 ## [0.10.7] 2020-07-05
 

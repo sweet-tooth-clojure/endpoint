@@ -7,12 +7,13 @@
 ;; valid frontend routes, and by loading index.html you give the
 ;; frontend app a chance to handle the route.
 (defmethod ig/init-key ::index.html
-  [_ {:keys [root exclude]
+  [_ {:keys [root exclude status]
       :or   {root    "public"
-             exclude ["json"]}}]
+             exclude ["json"]
+             status  200}}]
   (fn [req]
     (let [content-type (str (get-in req [:headers "content-type"]))]
       (if (some #(re-find (re-pattern %) content-type) exclude)
-        {:status 404}
+        {:status status}
         (-> (resp/resource-response "index.html" {:root root})
             (resp/content-type "text/html"))))))
