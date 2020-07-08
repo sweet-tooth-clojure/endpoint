@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.9] 2020-07-08
+
+### Changed
+
+- updated to `sweet-tooth/generate 0.1.2`, includes some lein template helpers
+- use lein template helper for endpoint route path
+
 ## [0.10.8] 2020-07-08
 
 ### Changed

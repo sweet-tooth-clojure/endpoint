@@ -2,6 +2,7 @@
   "Generator for an endpoint"
   (:require [clojure.string :as str]
             [clojure.spec.alpha :as s]
+            [leiningen.new.templates :as lt]
             [sweet-tooth.generate :as sg]
             [sweet-tooth.endpoint.system :as es]))
 
@@ -15,7 +16,7 @@
   ;; TODO this is kinda ugly
   {:path     (fn [{:keys [endpoint-name]}]
                (let [segments (->> (str/split endpoint-name #"\.")
-                                   (map #(str/replace % "-" "_")))]
+                                   (map lt/sanitize))]
                  (conj (into ["backend" "endpoint"] (butlast segments))
                        (str (last segments) ".clj"))))
    :template "(ns {{endpoint-ns}})
@@ -36,7 +37,7 @@
   (let [project-ns (or project-ns (:duct.core/project-ns (es/config config-name)))]
     (merge {:project-ns    project-ns
             :endpoint-name endpoint-name
-            :path-base     ["src" project-ns]
+            :path-base     ["src" (lt/name-to-path project-ns)]
             :endpoint-ns   (->> [project-ns "backend" "endpoint" endpoint-name]
                                 (map name)
                                 (str/join ".")
