@@ -1,0 +1,228 @@
+= Integrant Tutorial =
+Daniel Higginbotham
+
+
+https://github.com/weavejester/integrant[Integrant] brings order to the practice of defining, composing, and initializing
+components. It introduces two architectural abstractions: _systems_ and
+_components_.
+
+As defined above, a component is a computing thing that complies with an
+interface. A _system_ is just the composition of all components needed for
+whatever application or service you're trying to build. It's the outermost
+container for all those cute little components.
+
+All of this is a bit abstract; let's get concrete with some code:
+
+[source,clojure]
+.simple integrant example
+----
+(ns integrant-duct-example.basic-components
+  (:require [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer store)))
+
+(ig/init {::message-store {:message "love yourself, homie"}
+          ::printer       {:store   (ig/ref ::message-store)}})
+----
+
+If you evaluate this code in a REPL, it will print the message,
+`":integrant-duct-example.basic-components/printer says: love yourself, homie"`.
+Let's work through it. The code, not loving yourself.
+
+Integrant uses the multimethod `init-key` to initialize components. Components
+are identified by a keyword; this example has components named `::message-store`
+and `::printer`. The first argument to the multimethod is the component's name,
+and the second argument is the component's configuration. The body of the
+multimethod is the code for constructing and "running" a component. The return
+value of `ig/init-key` is a _component instance_, and it can be whatever
+construct (atom, object, clojure data structure) you want other components to
+interact with.
+
+NOTE: The term _component_ is getting a little fuzzy here. I've been using it to
+refer to a kind of conceptual entity that can be implemented in terms of a
+definition and initialization process. But I'm also using it to refer to an
+instance of a component, an actual language object that is returned by
+`ig/init-key` and passed as an argument to other components. I've seen the
+return value of `ig/init-key` referred to as a component but I find it useful to
+refer to it as a _component instance_.
+
+For `::message-store` the configuration only includes a `:message`, but in real
+systems component configurations would include things like the port for an HTTP
+server to listen to, the max number of threads for a thread pool, or the URI for
+a database connection.
+
+`::printer`'s configuration has the key `:store` and value `(ig/ref
+::message-store)`. `(ig/ref)` produces an _integrant reference_ to the component
+named `::message-store`. This makes it possible to pass the `::printer`
+component the initialized `::message-store component`.
+
+Integrant's `ig/init` function initializes a system. Its argument is a map whose
+keys are component names, and whose values are the configuration for that
+component. `ig/init` uses integrant references to initialize components in
+dependency order. In the configuration above, the presence of `(ig/ref
+::message-store)` in `::printer`'s configuration tells Integrant to initialize
+the `::message-store` component before `::printer`. Then, when initializing
+`::printer`, it replaces the `::message-store` reference with the value returned
+by `(ig/init-key ::message-store)`.
+
+[NOTE]
+====
+
+`ig/init` returns a _system instance_. If you keep a reference to it you can
+call `ig/halt!` or `ig/suspend!` on the system. Which brings me to another note:
+
+Integrant includes a few other lifecycle methods for components:
+`ig/halt!` and `ig/halt-key!`; `ig/suspend!` and `ig/suspend-key!`; plus a
+couple more. Check out its https://github.com/weavejester/integrant[README] for more details.
+
+====
+
+We can see how Integrant helps us initialize (`ig/init`, `ig/init-key`) and
+compose (`ig/ref`) components, but what about defining components? Earlier I
+said,
+
+#+begin_quote
+To *define* a component is to establish its responsibilities and its interface.
+It also means choosing one or more language constructs to implement the notion
+of "component".
+#+end_quote
+
+`ig/init-key` does help to define a component in that it gives the component an
+identity and imposes the constraint that a component be implemented as a single
+thing that can get passed as a value to other components (which eliminates some
+possibilities for defining components, like saying that namespace defines a
+component.)
+
+Integrant doesn't really prescribe what Clojure language constructs you use to
+implement a component; the return value of `ig/init-key` can be whatever you
+want.
+
+That being said, it's common to define component interfaces using protocols and
+to have `ig/init-key` return some object that implements the component's
+protocols. There's some debate over whether or not it's a good idea to use
+protocols in this context, and ultimately that choice is up to you. I personally
+prefer protocols because they force me to make good design choices, and as a
+side benefit they make testing easier. As a consequence Sweet Tooth provides
+some useful tools for creating test mocks for components that take the protocol
+approach.
+
+TODO explain component design more. Link to testing tools.
+
+
+== Modularity Through Keyword Hierarchies ==
+Integrant has an interesting feature that greatly expands its usefulness in
+building composable systems, especially when it comes to building a framework
+and building an ecosystem of framework components. Clojure allows you to create
+create keyword hierarchies using `derive`, and Integrant takes advantage of this
+when resolving component references created by `ig/ref`. Here's an example:
+
+[source,clojure]
+.using keyword hierarchies
+----
+(ns integrant-duct-example.hierarchy
+  (:require [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer @store)))
+
+(derive ::message-store ::store)
+
+(ig/init {::message-store {:message "love yourself, homie"}
+          ::printer       {:store   (ig/ref ::store)}})
+----
+
+The `::printer` component refers to a `::store` component. There are no
+components named `::store`, but `::message-store` is derived from `::store`, so
+Integrant uses that. This allows components to declare the _kind of_ components
+they depend on, which makes it a lot easier to create modular component
+libraries. It's another way of declaring a component's interface: Component A
+depends on a component of Type X. As long as Component B is of Type X, Component
+A can use it; it doesn't matter what Component B's implementation is.
+
+The https://github.com/duct-framework/module.web[Duct web module], for example, https://github.com/duct-framework/module.web/blob/master/src/duct/module/web.clj#L54[configures its request handler] as depending on
+a `:duct/router`. It doesn't provide any components named `:duct/router`, but
+the Duct Ataraxy module will add a component named `:duct.router/ataraxy`, which
+is derived from `:duct/router.` It's possible for us to create our own router
+component and use that instead, as long as the component's name is derived from
+`:duct/router`.
+
+In fact, that's exactly what Sweet Tooth does with its
+`:sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router` component.
+
+
+== Adding Components ==
+TODO explain how to add components like a queue or cronut
+
+
+== Systems as Data ==
+A non-obvious benefit of using Integrant is that it provides a layer of
+abstraction between _the process_ and _the system_. We're used to there being a
+one-to-one relationship between a process and an application; a process is your
+application being executed. The entrypoint to your application is `-main`, which
+is responsible for initializing all resources and otherwise just gettin' things
+started.
+
+Integrant introduces a different model for starting your application (system),
+one that's under programmatic control. It's almost like a virtualization layer.
+You can use it to start multiple systems simultaneously, which is extremely
+useful during development because it lets you run and interact with a dev
+system, and at the same time run tests against a test system. The dev and test
+systems can be configured to use different databases, and they're initialized
+with separate component instances. If you follow the dependency injection
+pattern and don't rely on shared global state, your dev and test systems will
+behave as if they're executing in two separate containers. Pretty sweet.
+
+BTW I'm still trying to figure out the best way to articulate this and welcome
+any feedback.
+
+
+== Architecture as Data ==
+It's worth highlighting the the fact that Integrant takes a data-oriented
+approach to defining a system's architecture. Personally, I think this is an
+innovation on par with Ruby's Rack, which inspired the Ring library. From Ring's
+docs:
+
+#+begin_quote
+Ring is a Clojure web applications library inspired by Python's WSGI and Ruby's
+Rack. By abstracting the details of HTTP into a simple, unified API, Ring allows
+web applications to be constructed of modular components that can be shared
+among a variety of applications, web servers, and web frameworks.
+#+end_quote
+
+The Ring API allows independent library authors to create middleware for
+functionality like https://github.com/funcool/buddy-auth[auth management] or https://github.com/sethtrain/raven-clj[exception reporting]. Developers can easily
+compose this functionality as they see fit, and develop their own.
+
+Integrant does the same thing for architecture: It abstracts the details of
+configuring, composing, and managing the lifecycle of components into a simple,
+unified API, laying the groundwork for modular components that can be shared
+across different applications. It's a powerful new tool in the developer's
+toolkit, and I hope that it gains wide adoption.
+
+Integrant separates _the description of the system to run_ (the system config)
+from _the execution of that system_ (`ig/init`). By encoding the system's
+description as plain ol' Clojure map, system composition becomes data
+composition. Pretty badass.
+
+I think we still have yet to fully explore the implications of this but here are
+some of the consequences I've noticed so far:
+
+* It's easier to inspect the system. You have one source of truth, the system
+config, to examine to figure out what components are running and how they're
+related. It would be trivial to generate a diagram of the system dependency
+graph.
+* You can implement a structured approach to validating a system configuration.
+Integrant actually provides an `ig/pre-init-spec` multimethod that you can use
+to define a spec for a component's configuration. In the past I've even rolled
+my own validation methods that provide advice how to fix a config in addition
+just alerting that a config is invalid.
+* You can easily transform the system for different contexts. For example, in a
+testing context you could replace a component that AWS's Simple Queue Service
+(SQS) with a component that uses core.async.

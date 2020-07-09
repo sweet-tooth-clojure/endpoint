@@ -1,0 +1,228 @@
+#+TITLE: Duct Tutorial
+
+[[https://github.com/duct-framework/core][Duct]] builds on Integrant's data-oriented approach to architecture by providing
+tools for bundling and transforming Integrant configs:
+
+- /profiles/ allow you to name integrant configs
+- /modules/ allow you to write functions that transform configs
+
+Duct also adds support for easily adding environment variables to your config.
+
+To support these features, Duct introduces the "Duct config" concept and the
+~prep-config~ function. I'll explain those briefly and then dig into profiles
+and modules.
+
+* ~duct/load-hierarchy~ and ~duct/prep-config~
+
+Let's start with an example:
+
+#+CAPTION: basic duct config
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.duct-config
+  (:require [duct.core :as duct]
+            [integrant.core :as ig]))
+
+(defmethod ig/init-key ::message-store [_ {:keys [message]}]
+  (atom message))
+
+(defmethod ig/init-key ::printer [_ {:keys [store]}]
+  (prn (format "%s says: %s" ::printer @store)))
+
+(derive ::message-store ::store)
+
+(duct/load-hierarchy)
+(def system-config
+  (duct/prep-config {:duct.profile/base {::message-store {:message "love yourself, homie"}
+                                         ::printer       {:store   (ig/ref ::store)}}}))
+
+(ig/init system-config)
+#+END_SRC
+
+This is almost identical to the Integrant hierarchy code block.
+~(duct/load-hierarchy)~ is new, as is the call to ~duct/prep-config~.
+
+The function ~duct/load-hierarchy~ looks for files named ~duct_hierarchy.edn~ on
+your classpath and uses them to establish keyword hierarchies. These files look
+like this:
+
+#+CAPTION: duct_hierarchy.edn
+#+BEGIN_SRC clojure
+{:sweet-tooth.endpoint.module/middleware                            [:duct/module]
+ :sweet-tooth.endpoint.module/liberator-reitit-router               [:duct/module]
+ :sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router [:duct/router]
+ :sweet-tooth.endpoint.datomic/connection                           [:duct/database]}
+#+END_SRC
+
+Keys are child keywords and values are vectors of parents that the children
+should derive from. It's as if ~duct/load-hierarchy~ is calling ~(derive
+:sweet-tooth.endpoint.module/middleware :duct/module)~.
+
+~duct/prep-config~ takes a /duct config/ as its argument and returns an
+/integrant config/. How does a duct config differ from an integrant config?
+
+- The keys for duct configs name either /duct profiles/ or /duct modules/. (I
+  will explain these in the upcoming sections.) The keys for integrant configs
+  name /integrant components/.
+- Duct configs are meant to be passed to ~duct/prep-config~, which returns an
+  integrant config. Integrant configs are meant to be passed to ~ig/init~, which
+  initializes and returns a system.
+
+In the example above, the duct config
+
+#+BEGIN_SRC clojure
+{:duct.profile/base {::message-store {:message "love yourself, homie"}
+                     ::printer       {:store   (ig/ref ::store)}}}
+#+END_SRC
+
+yields the integrant config
+
+#+BEGIN_SRC clojure
+{::message-store {:message "love yourself, homie"}
+ ::printer       {:store   (ig/ref ::store)}
+
+ :duct.core/environment :production}
+#+END_SRC
+
+This map, where the keys are component names and values are component config,
+can be used to initialize an integrant system.
+
+[NOTE]
+======
+
+The integrant config contains the pair ~:duct.core/environment :production~.
+~prep-config~ adds this. What does the ~:duct.core/environment~ "component" do?
+
+~:duct.core/environment~ is an example of a /config constant/. It's as if the
+implementation of the ~:duct.core/environment~ "component" is simply the
+identify function applied to the component's config. If another component
+references ~:duct.core/environment~, it will receive the value ~:production~. I
+recommend trying this out for yourself.
+
+It's instructive to look at how this is [[https://github.com/duct-framework/core/blob/bcd4aff6700a53e427816f4f47b93cc4ef347538/src/duct/core.clj#L253][implemented]]:
+
+#+BEGIN_SRC clojure
+(derive :duct.core/environment :duct/const)
+(defmethod ig/init-key :duct/const [_ v] v)
+#+END_SRC
+
+~:duct.core/environment~ derives from ~:duct/const~. Duct implements
+~ig/init-key~ for ~:duct/const~, simply returning the config value.
+
+This relies on a cool, oft-overlooked feature of Clojure multimethods, ~isa?~
+based dispatch, which you can read about in [[https://clojure.org/reference/multimethods][Multimethods and Hierarchies]].
+
+Duct and Integrant make ample use of Clojure's support for hierarchies, so it's
+worth becoming familiar with how it works. If nothing else, it'll make you a
+better Clojure programmer, putting more cools in your developer toolkit.
+
+======
+
+At this point, the introduction of duct config, with its ~:duct.profile/base~
+key, and the function ~duct/prep-config~ kinda seems like a waste of time. It's
+just adding an extra layer that doesn't do anything.
+
+Let's look at actually doing something useful with these new tools.
+
+* Duct Profiles
+
+Duct introduces the idea of /profiles/. A profile is just a named integrant
+config, and ~duct/prep-config~ handles profiles by merging them into the /base
+profile/ named ~:duct.profile/base~. Behold:
+
+#+CAPTION: duct profiles
+#+BEGIN_SRC clojure
+(duct/prep-config
+ {:duct.profile/base {::message-store {:message "love yourself, homie"}
+                      ::printer       {:store   (ig/ref ::store)}}
+  :duct.profile/prod {::message-store {:message "take care of yourself, homie"}}}
+ [:duct.profile/prod])
+;; =>
+{::message-store {:message "take care of yourself, homie"}
+ ::printer       {:store {:key ::store}}}
+#+END_SRC
+
+(I removed ~:duct.core/environment~ to keep the example focused.)
+
+In this example, we add the profile ~:duct.profile/prod~ and pass a second
+argument to ~prep-config~, the vector ~[:duct.profile/prod]~. This tells
+~prep-config~ to merge all the profiles in that vector, in the order given.
+Profiles are merged using [[https://github.com/weavejester/meta-merge][meta-merge]], so they're deep merged and you can also
+provide metadata hints for how values should get merged. Check out the
+meta-merge docs for more info.
+
+The result is that the ~::message-store~ component has the prod configuration of
+~{:message "take care of yourself, homie"}~ instead of ~{:message "love
+yourself, homie"}~.
+
+I don't know why I have such an aversion to using real-life, practical examples.
+One actual honest-to-god real world use of this is creating separate dev and
+test profiles. Specifically, you can create different dev and test database
+configurations, allowing you to run tests from the REPL while your dev system is
+running.
+
+* Duct Modules
+
+Bear with me because shit's about to get wild . Duct modules are functions that
+transform an integrant config, and they're defined using integrant. Check it
+out:
+
+#+CAPTION: duct modules
+#+BEGIN_SRC clojure
+(ns integrant-duct-example.duct-modules
+ (:require [duct.core :as duct]
+           [integrant.core :as ig]))
+
+(defmethod ig/init-key ::add-foo-component [_ _]
+  (fn [config]
+    (assoc config ::foo {})))
+
+(duct/prep-config {:duct.profile/base  {::some-component {}}
+                   ::add-foo-component {}})
+;; =>
+{::some-component {}
+ ::foo            {}}
+#+END_SRC
+
+Let's start at the bottom, with ~prep-config~. We already know that this
+function takes a /duct config/ as its argument, and that the config's keys
+should be names of /profiles/ or /modules/. ~::add-foo-component~ names a
+module.
+
+The ~ig/init-key~ implementation for all modules should return a function that
+takes an integrant config as an argument and returns an integrant config. When
+~::add-foo-component~ is initialized, it returns a function that takes as its
+argument the map ~{::some-component {}}~. The function adds a single component
+config, ~::foo {}~ to the integrant config, and result is the integrant config
+~{::some-component {}, ::foo {}}~. Note that modules are applied to a config
+/after/ all profiles have been merged.
+
+** Modules use ig/init-key???
+
+Internally, ~duct/prep-config~ calls ~ig/init-key~ in order to instantiate the
+module. This can be confusing! I've been going on about how ~ig/init-key~
+instantiates a /component/, but now I'm saying that it's being used to
+instantiate a /module/, and I'm also saying that those are two very different
+things!
+
+Perhaps a useful perspective to adopt is that ultimately Integrant is agnostic
+as to the semantic meaning of the values produced by ~ig/init-key~; Integrant is
+a tool for defining a digraph (via ~ig/ref~) and for walking that graph in
+topological order, applying ~ig/init-key~ to the nodes. In one context, we
+perform that walk in order to produce a system. In a different context, we
+perform that walk in order to produce functions that modify an Integrant config.
+
+** Modules make it easier to create component libraries... and more difficult!
+
+Modules make it bother easier and more difficult to create component libraries.
+They make it easier because they make it possible for consumers of a component
+library to add only one line to their duct config, ~::name-of-module {}~, and
+that module can add any number of components and even modify existing
+components; since the integrant config is just data you can transform it however
+you want. Modules are kind of like macros in that regard.
+
+And that's why they also make it more difficult to create compononent libraries.
+The difficulty comes from the fact that it can be very difficult to observe what
+changes a module is making to your config, or how to customize those changes.
+They introduce uncertainty as to how your config reached its final form. I have
+some ideas for how to mitigate this drawback but until then it seems like the
+only way to understand what a module is doing is to read its source.

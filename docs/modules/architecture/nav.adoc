@@ -1,1 +1,3 @@
 * xref:index.adoc[Server Architecture: Components and Beyond]
+** xref:integrant-tutorial.adoc[Integrant Tutorial]
+** xref:duct-tutorial.adoc[Duct Tutorial]
