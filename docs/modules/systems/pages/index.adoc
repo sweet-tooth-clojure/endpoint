@@ -1,0 +1,415 @@
+= Systems =
+Daniel Higginbotham
+
+
+Integrant introduces the concept of a _system_, a collection of components that
+has been initialized. Sweet Tooth's `sweet-tooth.endpoint.system` namespace
+introduces some conveniences for dealing with systems:
+
+* A multimethod `config` for naming integrant configs, like `:dev`,
+`:test`, etc.
+* The `system` function, which lets you customize your integrant configuration
+inline
+* An `ig/init-key` alternative that allows a component's _configuration_ to
+specify an alternative component implementation, possibly bypassing the
+`ig/init-key` implementation entirely. The namespace also introduces two kinds
+of component initialization alternatives, `replacement` and `shrubbery-mock`
+
+Throughout these examples you'll see the namespace alias `es`, as in
+`es/config`. This aliases `sweet-tooth.endpoint.system`.
+
+
+== Named configs ==
+The `sweet-tooth.endpoint.system` multimethod introduces a simple way to create
+named integrant configs. Here's how it's used in the https://github.com/sweet-tooth-clojure/todo-example[the Sweet Tooth To-Do List
+Example]:
+
+[source,clojure]
+.es/config example
+----
+(ns sweet-tooth.todo-example.backend.duct
+  (:require [clojure.java.io :as io]
+            [duct.core :as duct]
+            [sweet-tooth.endpoint.system :as es]))
+
+(duct/load-hierarchy)
+
+;;--------
+;; Configs
+;;--------
+(defn read-config []
+  (duct/read-config (io/resource "config.edn")))
+
+(defn prep [& [profiles]]
+  (duct/prep-config (read-config) profiles))
+
+(defmethod es/config :test
+  [_]
+  (dissoc (prep [:duct.profile/test]) :duct.server.http/jetty))
+
+(defmethod es/config :dev
+  [_]
+  (prep [:duct.profile/dev :duct.profile/local]))
+
+(defmethod es/config :prod
+  [_]
+  (prep [:duct.profile/prod]))
+----
+
+A couple reasons to create a named config:
+
+* You want to combine multiple profiles, as happens in the `:dev` config
+* You want to `dissoc` components from a config, as in the `:test` profile.
+Duct's profile system is additive; when you combine profiles, you merge them,
+and there isn't a mechanism for removing component keys.
++
+The `:test` profile dissocs the `:duct.server.http/jetty` component so that
+starting a `:test` system doesn't start an HTTP server.
+
+
+== `system` ==
+The `system` function is the preferred way to initialize an integrant system.
+Some features:
+
+* It initializes a system using a named config.
+* It lets you pass in a config map that gets merged with the custom config
+* It makes testing easier
+* It uses a custom init process (covered in the next section)
+
+
+=== Named systems ===
+You call `system` like `(system :test)`.
+
+The `system` function internally calls the `config` multimethod so that it can
+pass a named config to Integrant. I've found it convenient to be able to call
+`(es/system :test)` instead of something like `(ig/init (duct/prep-config
+(duct/read-config (io/resource "config.edn") readers) [:test]))`
+
+It's also been useful to consistently delineate all the different system
+variations in one place.
+
+
+=== Custom configs ===
+`system` takes a second argument, a component config that gets merged, kind of
+like an anonymous profile. For example:
+
+[source,clojure]
+----
+(es/system :test {:duct.logger/timbre {:level :debug}})
+----
+
+This can be useful for troubleshooting. It can also be using when writing tests,
+for example when you need to mock a component.
+
+`system`'s second argument can also be a function, in which case it takes an
+integrant config as an argument and should return an integrant config. That way
+you can `dissoc` keys.
+
+
+=== Testing ===
+Sweet Tooth's https://github.com/sweet-tooth-clojure/endpoint/blob/master/src/sweet_tooth/endpoint/test/harness.clj[test harness namespace] relies on `es/system`, introducing the
+`with-system` and `with-custom-system` macros, along with the `system-fixture`
+function. This makes it easier to use test systems in your test.
+
+Note that you can have more than one kind of test system: you might have one
+named `:test` for unit tests where components for external services are mocked
+out and one named `:integration` for integration tests where the external
+components use sandbox environments.
+
+
+== Custom `init` and `init-key` ==
+The `sweet-tooth.endpoint.system` namespace introduces a replacement for
+`init-key` that will _examine a component's configuration for alternative
+implementations_. You can write a config like this:
+
+[source,clojure]
+.mocking a component
+----
+{::foo {::es/init-key-alternative ::es/shrubbery-mock}}
+----
+
+and when the `::foo` component is initialized, it will return a https://github.com/bguthrie/shrubbery[mock object
+created by the shrubbery library] instead of the component instance it would
+normally return.
+
+(There's also a `sweet-tooth.endpoint.system/init` function that differs from
+Integrant's implementation only by calling the new `init-key` function rather
+than Integrant's. `sweet-tooth.endpoint.system/system` uses
+`sweet-tooth.endpoint.system/init`.)
+
+The main motivation for introducing a custom `init-key` was to mock components.
+In vanilla Integrant, there are two main ways to mock a component that I know
+of:
+
+* Make use of the keyword hierarchy. Have a live component `:foo/component` and
+`:foo/component-mock` that both derive from `:foo/component-type`, and have
+consumers use `(ig/ref :foo/component-type)` to refer to the type rather than
+a specific component name. Test configs include `:foo/component-mock` and
+non-test configs include `:foo/component`.
+* Make the `ig/init-key` implementation of `:foo/component` dispatch on the
+configuration it's passed and return a mock object if something like `{:mock?
+true}` is present in the component's config.
+
+Both of these approaches are ad-hoc and confusing. Introducing a consistent way
+to inspect component configs and produce altnernative component makes it much
+easier to see when you're creating a mock component, and it makes it possible to
+handle mocking programatically, reducing the amount of boilerplate code you have
+to write.
+
+`sweet-tooth.endpoint.system/init-key` is very simple:
+
+[source,clojure]
+.`sweet-tooth.endpoint.system/init-key`
+----
+(defn init-key
+  "Allows component _configuration_ to specify alterative component
+  implementations."
+  [k v]
+  (or (init-key-alternative k v)
+      (ig/init-key k v)))
+----
+
+The next sections will explain the `init-key-alternative` system and show you how
+to use the two bundled alternatives, shrubbery mocks and replacements.
+
+
+=== `init-key-alternative` ===
+`init-key-alternative` is a multimethod that returns an alternative
+implementation of a component. Whereas `ig/init-key` dispatches on the _name_ of
+the component, `init-key-alternative` dispatches on the _configuration_ of the
+component. Specifically, it expects the component's configuration to be a map,
+and it dispatches on the value of the
+`:sweet-tooth.endpoint.system/init-key-alternative` key in that map. Let's show
+how this works with a simple component.
+
+[source,clojure]
+.a simple printing component
+----
+(ns integrant-duct-example.init-key-alternative
+  (:require [integrant.core :as ig]
+            [sweet-tooth.endpoint.system :as es]
+            [shrubbery.core :as shrub]))
+
+(defmethod ig/init-key ::printer [_ {:keys [message]}]
+  (prn (format "message: %s" message))
+  {:message message})
+----
+
+If we initialize component with `ig/init-key`, it will print a little message
+and return a map:
+
+[source,clojure]
+.ig/init the printer
+----
+(ig/init-key ::printer {:message "hi"})
+"message: hi"
+;; =>
+{:message "hi"}
+----
+
+However, if we initialize the component with `es/init-key` and include a
+key/value pair that `es/init-key-alternative` recognizes, we'll get something
+different:
+
+[source,clojure]
+----
+(es/init-key ::printer {:message                  "hi"
+                        ::es/init-key-alternative ::es/replacement
+                        ::es/replacement          "bye"})
+;; =>
+"bye"
+----
+
+`:message "hi"` is still in the component config, but the message doesn't get
+printed and the return value is `"bye"` instead of the map `{:message "hi"}`.
+
+This happens because `es/init-key` calls the `es/init-key-alternative`
+multimethod, which dispatches on the key `::es/init-key-alternative` in the
+component's config. It finds the value `::es/replacement`, so it uses that
+multimethod implementation:
+
+[source,clojure]
+.`::es/replacement` implementation
+----
+(defmethod init-key-alternative ::replacement
+  [_ {:keys [::replacement]}]
+  replacement)
+----
+
+As you can see, it returns the value of `::es/replacement`, which is `"bye"` in
+the snippet above. (The multimethod references `::replacement` rather than
+`::es/replacement` because it's defined from within the
+`sweet-tooth.endpoint.system` namespace.)
+
+Since `init-key-alternative` is a multimethod, you can extend it define your own
+classes of component alternatives. Sweet Tooth comes with `::es/replacement`,
+which you just saw, and `::es/shrubbery-mock`, which is used to create mock
+objects with the shrubbery library.
+
+
+== The `::es/shrubbery-mock` init-key alternative ==
+If you're using Integrant, it's common to define components to interact with
+external services. If you wanted to interact with AWS SQS (simple queue
+service), for example, you would create a component to serve as the SQS client.
+
+It's also common for components to be modeled using https://www.braveclojure.com/multimethods-records-protocols/[protocols], and for
+components to instantiated as records or https://clojuredocs.org/clojure.core/reify[reified objects] that implement those
+protocols. The `::es/shrubbery-mock` init-key alternative makes it easy for you
+to create mocks of those components.
+
+An SQS component might look something like this:
+
+[source,clojure]
+.very fake AWS SQS service
+----
+(ns integrant-duct-example.shrubbery-mock
+  (:require [integrant.core :as ig]
+            [sweet-tooth.endpoint.system :as es]
+            [shrubbery.core :as shrub])
+  (:refer-clojure :exclude [take]))
+
+(defprotocol Queue
+  (add [_ queue-name v])
+  (take [_]))
+
+(defrecord QueueClient []
+  Queue
+  (add [_ queue-name v]
+    ;; AWS interaction goes here
+    :added)
+  (take [_]
+    ;; AWS interaction goes here
+    :taked))
+
+(defmethod ig/init-key ::queue [_ _]
+  (QueueClient.))
+----
+
+This is what it looks like to interact with the real component:
+
+[source,clojure]
+.interacting with the real component
+----
+(defmethod es/config ::dev [_]
+  {::queue {}})
+
+(def real-component (::queue (es/system ::dev)))
+(add real-component :foo :bar)
+;; =>
+:added
+
+(take real-component :foo)
+;; =>
+:taked
+----
+
+The `::dev` config initializes the `::queue` component, returning a record that
+implements the `Queue` protocol. When calling `add`, `:added` is returned. When
+calling `take`, `:take` is returned.
+
+This is what it looks like to interact with the mocked component:
+
+[source,clojure]
+.interacting with a mocked component
+----
+(defmethod es/config ::test [_]
+  {::queue {::es/init-key-alternative ::es/shrubbery-mock
+            ::es/shrubbery-mock       {}}})
+
+(def mocked-component (::queue (es/system ::test)))
+(add mocked-component :msgs "hi")
+;; =>
+nil
+
+(shrub/calls mocked-component)
+;; =>
+{#function[integrant-duct-example.shrubbery-mock/eval17947/fn--17961/G--17936--17970]
+ ((:msgs "hi"))}
+
+(shrub/received? mocked-component add [:msgs "hi"])
+;; =>
+true
+----
+
+The `::test` config's `::queue` component is initialized using the
+`::es/shrubbery-mock` implementation of the `es/init-key-alternative`
+multimethod. It returns a mock object created by the shrubbery library.
+
+When you call `add` on the mocked component, it returns `nil`. You can use
+shrubbery's `calls` and `received?` functions to interrogate the mocked object.
+
+
+=== mock values ===
+What if you need the mocked method to return a value other than `nil`? Here's
+how you could do that:
+
+[source,clojure]
+.mock values
+----
+(defmethod es/config ::test-2 [_]
+  {::queue {::es/init-key-alternative ::es/shrubbery-mock
+            ::es/shrubbery-mock       {:add :mock-added}}})
+
+(def mocked-component-2
+  (::queue (es/system ::test-2)))
+
+(add mocked-component-2 :msgs "hi")
+;; =>
+:mock-added
+----
+
+The map `{:add :mock-added}` tells shrubbery what values to return for mocked
+methods. The keyword `:add` corresponds to the `Queue` protocol's `add` method,
+and that's why the method call returns `:mock-added`.
+
+[NOTE]
+====
+
+You can also make use of the second argument to `es/system`:
+
+[source,clojure]
+.`es/system` anonymous profile
+----
+(def mocked-component-3
+  (::queue (es/system ::test {::queue {::es/shrubbery-mock {:add :mock-added}}})))
+----
+
+====
+
+
+=== mock helper ===
+The `sweet-tooth.endpoint.system` namespace includes a mocking components,
+`shrubbery-mock`. Instead of
+
+[source,clojure]
+.full mock config
+----
+{::es/init-key-alternative ::es/shrubbery-mock
+ ::es/shrubbery-mock       {:add :mock-added}}
+----
+
+You can write
+
+[source,clojure]
+.`shrubbery-mock` helper
+----
+(es/shrubbery-mock {:mock {:add :mock-added}})
+----
+
+it expands to the map above.
+
+
+== Duct config readers ==
+`sweet-tooth.endpoint.system/readers` is a map of readers you can use when
+https://github.com/duct-framework/core/blob/master/src/duct/core.clj#L144[reading duct config files]. It adds the `st/replacement` and `st/shrubbery-mock`
+reader literals, allowing you to write config.edn files that look like this:
+
+
+[source,clojure]
+.example config.edn
+----
+{:your-project/component #st/shrubbery-mock {}}
+----
+
+The literal will get expanded by calling the `es/shrubbery-mock` function on the
+value `{}`.

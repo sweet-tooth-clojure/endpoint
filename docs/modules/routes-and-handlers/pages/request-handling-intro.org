@@ -1,0 +1,94 @@
+#+TITLE: Intro to Request Handling
+
+If you're here you're likely new to web development. Cool!! Welcome and I'm so
+pleased that you're using Sweet Tooth to get your start. I've been doing this
+for like 15 years now and it continues to be rewarding. I hope you'll enjoy it,
+too, and that these tools will help you on your journey.
+
+This guide covers /request routing/ and /request handlers/. It assumes that you
+have some experience programming, and in particular that you have experience
+using the command line. If that's not where you are, take some time to check out
+[[https://www.learnenough.com/command-line-tutorial/basics][Learn Enough Command Line to Be Dangerous]]
+
+* Routing and Handling on the Command Line
+
+A lot of programming is about sending messages from one process to another, and
+single page apps are no exception. To understand how request handling works,
+let's look at a kind of message sending that you're familiar: running commands
+at the command line.
+
+When you type in a simple command like `ls`, you can think of it as a terminal
+process sending a message consisting of the text `"ls"` to a shell process. The
+shell uses the `$PATH` environment variable to look up an executable whose name
+matches the text `"ls"`. You can think of it as a lookup table. If your `$PATH`
+is `/.gem/ruby/2.4.6/bin:/.yarn/bin:/bin` then the table would look like this:
+
+| Directory              | Contents                            |
+|------------------------+-------------------------------------|
+| `/.gem/ruby/2.4.6/bin` | `asciidoctor` `bundle` `tmuxinator` |
+| `/.yarn/bin`           | `yarn`                              |
+| `/bin`                 | `bash` `cat` `ls`                   |
+
+The shell progresses through the table to find a match for the text `"ls"`. It
+goes through each directory in order, finding a file named `"ls"`, until it
+reaches `/bin/ls`. The command line "message" can include arguments like `"-la"`
+in `ls -la`, and these are passed to the executable. Arguments don't affect the
+executable lookup procedure.
+
+You can think of this as the shell's procedure for /routing/ a command line
+message to the correct /handler/. Routing is the process of finding a handler
+that can respond to a message. Handlers perform the work specified by a message,
+whether that's reading data or modifying state.
+
+NOTE: You might have noticed that this explanation ignores the fact that you can
+create shell aliases and functions. This doesn't fundamentally change the
+explanation: you can imagine an internal, virtual "directory" of aliases and
+function names that gets checked first.
+
+* Routing and Handling in Web Apps
+
+When creating web apps, we're still performing work by sending messages from one
+process to another. It's just that, instead of sending messages from a terminal
+to a shell running on the same machine, we're sending messages from a browser to
+a server presumably running on separate machines. The message sent from a
+browser to a server is called a /request/, and the message the server sends back
+is called a /response/.
+
+In a terminal, requests have the structure `[command-name] [command arguments]`.
+Web app requests are structured as [[https://developer.mozilla.org/en-US/docs/Web/HTTP/Messages][HTTP messages]]. Here's an example of the kind
+of text your browser would send to a server:
+
+#+CAPTION: example HTTP message
+#+BEGIN_SRC
+GET /user HTTP/1.1
+User-Agent: Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:47.0) Gecko/20100101 Firefox/47.
+Host: www.your-cool-site.com
+Accept-Language: en-us
+Accept-Encoding: gzip, deflate
+Connection: Keep-Alive
+#+END_SRC
+
+Shells destructure the messages they receive from a terminal and use the command
+name to route a message to the correct handler. With web apps, routing is
+usually performed by matching the text of the request /method/ and /path/. In
+the example above, these are `GET` and `/user`.
+
+Shells are programs that other people wrote, and at some point they had to
+implement routing logic. A web app server is a program that you are writing, and
+you have to implement message routing yourself. There are a few libraries to
+facilitate this, and you'll use them to create what's essentially a table like:
+
+
+| Path Pattern | Method  | Handler Function      |
+|--------------+---------+-----------------------|
+| `/user`      | `:get`  | `(fn list-users [])`  |
+| `/user`      | `:post` | `(fn create-user [])` |
+| `/user/{id}` | `:get`  | `(fn show-user [])`   |
+| `/user/{id}` | `:put`  | `(fn update-user [])` |
+
+A routing library will construct a /router/ that uses such a route table to
+find the route that matches a request, and then apply the corresponding handler
+to the request.
+
+xref:index.adoc[Endpoint Routes and Handlers] explains how to do this with Sweet
+Tooth.

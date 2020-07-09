@@ -90,8 +90,8 @@
   expander type. These both work:
 
   ```clojure
-  {:coll {:get {:handle-ok [}}}
-  {"/" {:get {:handle-ok [}}}
+  {:coll {:get {:handle-ok (fn [])}}}
+  {"/" {:get {:handle-ok (fn [])}}}
   ```
 
 ## [0.9.3] 2020-05-28

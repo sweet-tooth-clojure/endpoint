@@ -1,0 +1,154 @@
+#+TITLE: Responses
+
+Sweet Tooth introduces a simple, extensible protocol for endpoint responses. The
+Sweet Tooth frontend expects response bodies to be a vector of /segments/, where
+each segment is a two-element vector of `[segment-type payload]`, like this:
+
+
+#+CAPTION: response example
+#+BEGIN_SRC clojure
+[[:entity {:todo-list {1 {:todo-list/title "blah"}}}]
+ [:page {:paginator-name :todo-lists
+         :page-num       1}]]
+#+END_SRC
+
+The frontend loops over responses and uses a multimethod to perform the correct
+action for each segment. The segment types recognized out of the box are:
+
+- `:entity` the most common segment type, the frontend processes this by doing
+  a deep merge of the payload under the re-frame app db's `:entity` key
+- `:exception` this prints the backend's exception message and stack trace in
+  the dev console. In theory this is useful during development
+- `:page` this organizes pagination data. TODO document pagination
+- `:errors` is used by forms to display validation errors. (For some reason it
+  is the only segment type that is pluralized. Whoops.)
+- `:default` this simply merges the payload into the re-frame app db
+
+Whether or not this design choice is a terrible idea remains to be seen. The
+rationale behind it is two-fold:
+
+- Making the response a vector of segments makes it easy to compose responses.
+  You can compose heterogenous data from different parts of your system just by
+  appending segments to the response vector. (This is in contrast to other
+  solutions I've seen where you have to jump through a lot of hoops to build a
+  single response map. If you don't know what I'm referring to just roll with it
+  😎)
+- The frontend response handler is a multimethod, making it easy for devs to
+  introduce their own segment type
+
+
+The rest of this guide explains the ways in which Sweet Tooth makes it
+convenient to respond with entities.
+
+* Returning Entities
+
+Most of the time you'll want your endpoints to return either a single entity or
+a collection of entities. The Sweet Tooth frontend expects such response bodies
+to take this form:
+
+#+CAPTION: entity response
+#+BEGIN_SRC clojure
+[[:entity {:entity-type {entity-id-1 entity-map-1
+                         entity-id-2 entity-map-2
+                         entity-id-3 entity-map-3}}]]
+#+END_SRC
+
+The content of an actual response body might look like this:
+
+#+CAPTION: entity response
+#+BEGIN_SRC clojure
+[[:entity {:todo-list {1 {:id 1 :todo-list/title "title 1"}
+                       2 {:id 2 :toto-list/title "title 2"}
+                       3 {:id 3 :toto-list/title "title 3"}}}]]
+#+END_SRC
+
+This response body includes an `:entity` segment. The payload for an `:entity`
+segment is a map that's keyed first by the entities' type (`:todo-list`) and then
+by then by the entities' ids.
+
+TODO explain the rationale for this lightly indexed structure
+
+It'd be pretty inconvenient to always have to format your data to fit this
+structure. Thankfully, Sweet Tooth doesn't make you do this. Most of the time,
+you can just return maps or vectors of maps. Here are liberator status handlers
+that show that:
+
+#+CAPTION: you can usually return maps or vectors of maps
+#+BEGIN_SRC clojure
+(def decisions
+  {:collection
+   {:get {:handle-ok (fn [ctx]
+                       [{:id 1 :todo-list/title "title 1"}
+                        {:id 2 :todo-list/title "title 2"}
+                        {:id 1 :todo-list/title "title 3"}])}}
+
+   :member
+   {:get {:handle-ok (fn [ctx] {:id 1 :todo-list/title "title 1"})}}})
+#+END_SRC
+
+The above snippet shows how you would create handlers that respond to GET
+requests at paths like `/todo-list` and `/todo-list/1`. `:handle-ok` is a status
+handler function whose return value will be the body of the response. In the
+case of `:collection` (which would correspond to `/todo-list`), the return value
+is a vector of maps. For `:member` (which would correspond to `/todo-list/1`),
+the return value is a single map.
+
+You can return these values instead of the fully protocol-conformat values
+because Sweet Tooth will format the responses from your handlers. It derives the
+entity type from the endpoint namespace; the entity type for
+`sweet-tooth.todo-example.backend.endpoint.todo-list` is `:todo-list`. It
+formats responses using `sweet-tooth.endpoint.format/format-response`. If a
+response consists of segments, like `[ [:errors ...] ]`, the function will
+leave those segments untouched. Otherwise it will try to convert the data into
+an entity segment.
+
+But what if you want to return a mix of entities of different types? Or what if
+the namespace name doesn't match the name of the entity type?
+
+* Returning entities of different types
+
+You can specify entity types in-line as metadata. All of these will work as
+responses:
+
+#+CAPTION: you can specify entity type inline
+#+BEGIN_SRC clojure
+^{:ent-type :todo-list} {:id 1 :todo-list/title "title 1"}
+
+^{:ent-type :todo-list} [{:id 1 :todo-list/title "title 1"}
+                         {:id 2 :todo-list/title "title 2"}
+                         {:id 1 :todo-list/title "title 3"}]
+
+[^{:ent-type :todo-list} {:id 1 :todo-list/title "title 1"}
+ ^{:ent-type :todo}      {:id 1 :todo/title "todo 1"}]
+
+[^{:ent-type :todo-list} [{:id 1 :todo-list/title "title 1"}
+                          {:id 2 :todo-list/title "title 2"}]
+ ^{:ent-type :todo}      [{:id 1 :todo/title "todo 1"}
+                          {:id 2 :todo/title "todo 2"}]]
+#+END_SRC
+
+
+* Setting a namespace's entity type
+
+If the name of your namespace doesn't match the name of the entity type, you can
+specify the ent-type in that namespace's route:
+
+#+CAPTION: you can specify the entity type for a namespace
+#+BEGIN_SRC clojure
+(serr/expand-routes
+ [[:sweet-tooth.backend.endpoint.restricted-todo-list {:ent-type :todo-list}]])
+#+END_SRC
+
+* Returning Errors
+
+Sweet Tooth's frontend tools also recognize the `:errors` segment type:
+
+#+CAPTION: errors segment type
+#+BEGIN_SRC clojure
+[[:errors {:todo-list/title ["required"]}]]
+#+END_SRC
+
+If use a form's `field` component it will automatically display
+any errors.
+
+TODO write more docs for field components and errors
