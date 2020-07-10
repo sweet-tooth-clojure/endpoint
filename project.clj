@@ -1,7 +1,7 @@
 (defproject sweet-tooth/endpoint "0.10.9"
   :description "Utilities for working with liberator-based endpoints"
-  :url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"
-  :scm {:url "https://github.com/sweet-tooth-clojure/sweet-tooth-endpoint"}
+  :url "https://github.com/sweet-tooth-clojure/endpoint"
+  :scm {:url "https://github.com/sweet-tooth-clojure/endpoint"}
   :license {:name "MIT"
             :url  "https://opensource.org/licenses/MIT"}
 
