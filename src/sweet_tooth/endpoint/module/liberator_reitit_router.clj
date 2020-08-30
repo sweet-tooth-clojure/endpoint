@@ -25,6 +25,7 @@
   (:require [duct.core :as duct]
             [integrant.core :as ig]
             [reitit.ring :as rr]
+            [reitit.ring.coercion :as rrc]
             [com.flyingmachine.liberator-unbound :as lu]
             [meta-merge.core :as mm]
 
@@ -182,6 +183,7 @@
   handler. For example, reitit adds route params to the request map."
   [route]
   (update-route-opts route update :middleware #(mm/meta-merge [(format-middleware-fn route)
+                                                               rrc/coerce-request-middleware
                                                                em/wrap-merge-params]
                                                               %)))
 

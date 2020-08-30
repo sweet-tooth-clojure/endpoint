@@ -10,18 +10,6 @@
 (def db-after (el/get-ctx [:result :db-after]))
 (def db-before (el/get-ctx [:result :db-before]))
 
-(defn req-id-key
-  [ctx id-key]
-  (or id-key (:id-key ctx) :id))
-
-(defn ctx-id
-  "Get id from the params, try to convert to number"
-  [ctx & [id-key]]
-  (let [id-key (req-id-key ctx id-key)]
-    (when-let [id (id-key (el/params ctx))]
-      (cond (int? id)    id
-            (string? id) (Long/parseLong id)))))
-
 (defn assoc-tempid
   [x]
   (assoc x :db/id (d/tempid :db.part/user)))
@@ -37,7 +25,7 @@
 (defn auth-owns?
   "Check if the user entity is the same as the authenticated user"
   [ctx db user-key & [id-key]]
-  (let [ent (d/entity db (ctx-id ctx id-key))]
+  (let [ent (d/entity db (el/ctx-id ctx id-key))]
     (= (:db/id (user-key ent)) (el/auth-id ctx))))
 
 ;;-----
@@ -45,7 +33,7 @@
 ;;-----
 (defn pull-ctx-id
   [ctx]
-  (let [e (d/pull (db ctx) '[:*] (ctx-id ctx))]
+  (let [e (d/pull (db ctx) '[:*] (el/ctx-id ctx))]
     (when (not= [:db/id] (keys e))
       e)))
 
@@ -94,8 +82,7 @@
   (-> ctx
       el/params
       (->> (medley/filter-vals some?))
-      (dissoc (req-id-key ctx id-key))
-      (assoc :db/id (ctx-id ctx id-key))))
+      (assoc (el/req-id-key ctx id-key) (el/ctx-id ctx id-key))))
 
 (defn update
   [ctx]
@@ -105,13 +92,18 @@
   "Use when you've updated a single entity and stored the tx result
   under :result"
   [ctx]
-  (d/entity (db-after ctx) (ctx-id ctx)))
+  (d/entity (db-after ctx) (el/ctx-id ctx)))
 
 (defn updated-pull
   "Differs from `created-entity` in that it returns a map, not a
   map-like Datomic Entity"
-  [ctx]
-  (d/pull (db-after ctx) '[:*] (ctx-id ctx)))
+  [ctx & [attrs]]
+  (let [id-key (el/req-id-key ctx)
+        id-val (el/ctx-id ctx)]
+    (d/q {:find [(list 'pull '?e (or attrs '[:*]))]
+          :in   '[$ ?id-attr ?id-val]
+          :where '[[?e ?id-attr ?id-val]]}
+         (db-after ctx) id-key id-val)))
 
 ;;-----
 ;; delete
@@ -119,7 +111,7 @@
 
 (defn delete
   [ctx & [id-key]]
-  (d/transact (conn ctx) [[:db.fn/retractEntity (ctx-id ctx id-key)]]))
+  (d/transact (conn ctx) [[:db.fn/retractEntity (el/ctx-id ctx id-key)]]))
 
 ;;-----
 ;; compose tx functions, put result in :result

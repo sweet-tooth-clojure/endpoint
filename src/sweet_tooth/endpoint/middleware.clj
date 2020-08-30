@@ -1,6 +1,7 @@
 (ns sweet-tooth.endpoint.middleware
   (:require [clojure.stacktrace :as cst]
             [integrant.core :as ig]
+            [reitit.ring.coercion :as rrc]
             [ring.middleware.format :as f]
             [ring.middleware.gzip :as ring-gzip]
             [ring.middleware.stacktrace :as ring-stacktrace]

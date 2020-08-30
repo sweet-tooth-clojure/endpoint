@@ -123,13 +123,13 @@
 (deftest test-ctx->update-map
   (is (= {:title "boop", :db/id 1}
          (sut/ctx->update-map {:id-key  :db/id
-                               :request {:params {:db/id "1"
+                               :request {:params {:db/id 1
                                                   :title "boop"
                                                   :x     nil}}})))
 
-  (is (= {:title "boop", :db/id 1}
+  (is (= {:title "boop", :thing-id 1}
          (sut/ctx->update-map {:id-key  :thing-id
-                               :request {:params {:thing-id "1"
+                               :request {:params {:thing-id 1
                                                   :title    "boop"
                                                   :x        nil}}}))))
 

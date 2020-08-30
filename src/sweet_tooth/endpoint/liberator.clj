@@ -93,6 +93,16 @@
       {:record ent}
       false)))
 
+(defn req-id-key
+  [ctx & [id-key]]
+  (or id-key (:id-key ctx) :id))
+
+(defn ctx-id
+  "Get id from the params"
+  [ctx & [id-key]]
+  (get (params ctx) (req-id-key ctx id-key)))
+
+
 ;; -------------------------
 ;; decisions
 ;; -------------------------
