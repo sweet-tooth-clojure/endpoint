@@ -69,8 +69,8 @@
 (defn created-pull
   "Differs from `created-entity` in that it returns a map, not a
   map-like Datomic Entity"
-  [ctx]
-  (d/pull (db-after ctx) '[:*] (created-id ctx)))
+  [ctx & [pull]]
+  (d/pull (db-after ctx) (or pull '[:*]) (created-id ctx)))
 
 ;;-----
 ;; update

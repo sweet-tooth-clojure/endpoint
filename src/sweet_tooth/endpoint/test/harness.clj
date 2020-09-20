@@ -202,12 +202,13 @@
    `(let [test-ent-attrs#      (into {} ~test-ent-attrs)
           [ent# :as entities#] (response-entities ~ent-type ~resp-data)
           c#                   (count entities#)]
-      (when (not= 1 c#)
-        (throw (ex-info (str "Response should contain 1 entity. It had " c# ". Consider using `assert-response-contains-entity-like`")
-                        {:entities entities#})))
+      (test/is (= 1 c#)
+               (str "Response should contain 1 entity. It had "
+                    c#
+                    ". Consider using `assert-response-contains-entity-like`. "))
       (test/is (= (prep-comparison ent# test-ent-attrs#)
                   test-ent-attrs#)
-               (str "Response entity:\n"
+               (str "First response entity:\n"
                     (with-out-str (pprint/pprint ent#)))))))
 
 (defmacro assert-response-contains-entity-like

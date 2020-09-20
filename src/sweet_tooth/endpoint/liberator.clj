@@ -103,6 +103,10 @@
   (get (params ctx) (req-id-key ctx id-key)))
 
 
+(defn update-params
+  [ctx f & args]
+  (apply update-in ctx [:request :params] f args))
+
 ;; -------------------------
 ;; decisions
 ;; -------------------------
