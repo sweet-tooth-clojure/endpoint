@@ -102,10 +102,13 @@
   [ctx & [id-key]]
   (get (params ctx) (req-id-key ctx id-key)))
 
-
 (defn update-params
   [ctx f & args]
   (apply update-in ctx [:request :params] f args))
+
+(defn assoc-params
+  [ctx params]
+  (assoc-in ctx [:request :params] params))
 
 ;; -------------------------
 ;; decisions

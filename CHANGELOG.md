@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.10] WIP
+
+### Added
+
+- added `sweet-tooth.endpoint.liberator/update-params` and
+  `sweet-tooth.endpoint.liberator/assoc-params`
+- added reitit coercion middleware to reitit routes
+
+### Changed
+
+- moved ctx-id and req-id-key to `sweet-tooth.endpoint.liberator`
+
 ## [0.10.9] 2020-07-08
 
 ### Changed
