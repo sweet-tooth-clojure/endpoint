@@ -17,8 +17,15 @@
 (def ^:dynamic *system* nil)
 
 ;; -------------------------
-;; system wrapper macros
+;; system wrapper helpers
 ;; -------------------------
+
+(defn system
+  "more assertive system retrieval"
+  []
+  (when-not *system*
+    (throw (ex-info "sweet-tooth.endpoint.test.harness/*system* is nil but should be a system" {})))
+  *system*)
 
 (defmacro with-system
   "Bind dynamic system var to a test system."
@@ -46,7 +53,7 @@
 (defn component
   "Look up component in current test system"
   [component-key]
-  (or (component-key *system*)
+  (or (component-key (system))
       (throw (ex-info "Could not find component" {:component-key component-key}))))
 
 ;; -------------------------
