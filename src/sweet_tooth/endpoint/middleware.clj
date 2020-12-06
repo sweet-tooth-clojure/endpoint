@@ -88,16 +88,36 @@
   #(wrap-latency % opts))
 
 ;;---
+;; not found - like the default duct but don't force a status
+;;---
+(defn not-found
+  [resp]
+  (update resp :status #(or % 404)))
+
+(defn wrap-not-found
+  "Middleware that returns a 404 'Not Found' response from an error handler if
+  the base handler returns nil."
+  [handler error-handler]
+  (fn
+    ([request]
+     (or (handler request) (not-found (error-handler request))))
+    ([request respond raise]
+     (handler request #(respond (or % (not-found (error-handler request)))) raise))))
+
+(defmethod ig/init-key ::not-found [_ {:keys [error-handler]}]
+#(wrap-not-found % error-handler))
+
+;;---
 ;; integrantized external middleware
 ;;---
 
 ;; serialization and deserialization, see
 ;; https://github.com/ngrunwald/ring-middleware-format#summary
 (defmethod ig/init-key ::restful-format [_ options]
-  #(f/wrap-restful-format % options))
+#(f/wrap-restful-format % options))
 
 (defmethod ig/init-key ::gzip [_ _]
-  #(ring-gzip/wrap-gzip %))
+#(ring-gzip/wrap-gzip %))
 
 (defmethod ig/init-key ::stacktrace-log [_ options]
-  #(ring-stacktrace/wrap-stacktrace-log % options))
+#(ring-stacktrace/wrap-stacktrace-log % options))

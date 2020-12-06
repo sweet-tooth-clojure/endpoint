@@ -16,4 +16,5 @@
       (if (some #(re-find (re-pattern %) content-type) exclude)
         {:status status}
         (-> (resp/resource-response "index.html" {:root root})
-            (resp/content-type "text/html"))))))
+            (resp/content-type "text/html")
+            (resp/status 200))))))
