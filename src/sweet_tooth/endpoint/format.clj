@@ -151,7 +151,8 @@
   "Formats a response body to consist of segments unless formatter
   is ::raw."
   [response]
-  (if (= ::segments (get-in response [:sweet-tooth.endpoint/format ::formatter]))
+  (if (= ::segments (or (-> response :body meta ::formatter)
+                        (get-in response [:sweet-tooth.endpoint/format ::formatter])))
     (format-segments-response response)
     response))
 
