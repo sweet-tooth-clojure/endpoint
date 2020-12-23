@@ -43,6 +43,10 @@
   [route]
   (get-in route [1 ::err/ns]))
 
+(defn- flip-merge
+  [x y]
+  (merge y x))
+
 ;;-----------
 ;; liberator handlers
 ;;-----------
@@ -134,10 +138,6 @@
   [route]
   (get route 1))
 
-(defn- flip-merge
-  [x y]
-  (merge y x))
-
 (defn- add-handler-ref
   "Adds an integrant ref to an ns-route for `:handler` so that the
   handler can be initialized by the backend"
@@ -174,8 +174,10 @@
   [[_ endpoint-opts]]
   (fn format-middleware [f]
     (fn [req]
-      (assoc (f req)
-             :sweet-tooth.endpoint/format (select-keys endpoint-opts [:id-key :ent-type ::ef/formatter])))))
+      (update (f req)
+              :sweet-tooth.endpoint/format
+              flip-merge
+              (select-keys endpoint-opts [:id-key :ent-type ::ef/formatter])))))
 
 (defn- add-middleware
   "Middleware is added to reitit in order to work on the request map

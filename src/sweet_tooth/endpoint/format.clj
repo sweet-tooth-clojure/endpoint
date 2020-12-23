@@ -1,6 +1,6 @@
 (ns sweet-tooth.endpoint.format
   "Conforms endpoint response bodies to the format that the frontend expects.
-  The Sweet Tooth frotend expects responses in the form of
+  The Sweet Tooth frontend expects responses in the form of
 
   `[[:entity {:ent-type {ent-id {:entity :map}}}]]`
 
