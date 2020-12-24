@@ -4,23 +4,17 @@
 
 ### Added
 
-- added `sweet-tooth.endpoint.liberator/update-params` and
-  `sweet-tooth.endpoint.liberator/assoc-params`
-- added reitit coercion middleware to reitit routes
-- added `stsf/sync-req->sync-event` to avoid awkward composition of generating a
-  function and immediately applying it, which was necessary with `stsf/sync-fx`
-- added `stsf/sync-req->dispatch`
+- `sweet-tooth.endpoint.liberator/update-params`
+- `sweet-tooth.endpoint.liberator/assoc-params`
+- `sweet-tooth.endpoint.liberator/raw`
+- reitit coercion middleware to reitit routes
 
 ### Changed
 
 - moved ctx-id and req-id-key to `sweet-tooth.endpoint.liberator`
-- renamed `stsf/sync-fx` to `stsf/sync-fx-handler`
-- renamed `stsf/sync-once-fx` to `stsf/sync-once-fx-handler`
 - return 200 and index.html for non-json requests
-
-### Fixed
-
-- checkbox input uses `:checked` instead of `:default-checked` so its controlled
+- can specify a raw response by adding metadata of 
+  `{::ef/formatter ::ef/raw}`
 
 ## [0.10.9] 2020-07-08
 

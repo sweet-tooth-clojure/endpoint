@@ -15,7 +15,8 @@
             [liberator.representation :as lr]
             [medley.core :as medley]
             [ring.util.response :as resp]
-            [sweet-tooth.describe :as d]))
+            [sweet-tooth.describe :as d]
+            [sweet-tooth.endpoint.format :as ef]))
 
 ;; -------------------------
 ;; returning transit
@@ -220,9 +221,13 @@
 ;; misc
 ;; -------------------------
 
-;; TODO move this somwhere else, it's not really liberator
+;; TODO move this somewhere else, it's not really liberator
 (defn html-resource
   "Serve resource at `path` as html"
   [path]
   (-> (resp/resource-response path)
       (resp/content-type "text/html")))
+
+(defn raw
+  [response]
+  (with-meta response {::ef/formatter ::ef/raw}))
