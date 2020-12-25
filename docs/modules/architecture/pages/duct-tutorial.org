@@ -49,7 +49,7 @@ like this:
 #+BEGIN_SRC clojure
 {:sweet-tooth.endpoint.module/middleware                            [:duct/module]
  :sweet-tooth.endpoint.module/liberator-reitit-router               [:duct/module]
- :sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router [:duct/router]
+ :sweet-tooth.endpoint.module.liberator-reitit-router/ring-router   [:duct/router]
  :sweet-tooth.endpoint.datomic/connection                           [:duct/database]}
 #+END_SRC
 

@@ -264,14 +264,19 @@
 
       (-> config
           (duct/merge-configs
-            {::reitit-router (mapv add-route-defaults routes)}
-            (->> routes
-                 (filter ns-route?)
-                 (mapv add-handler-defaults)
-                 (reduce add-route-handler-to-config {})))
+           {::reitit-router {:routes (mapv add-route-defaults routes)}
+            ::ring-router   {:router (ig/ref ::reitit-router)}}
+           (->> routes
+                (filter ns-route?)
+                (mapv add-handler-defaults)
+                (reduce add-route-handler-to-config {})))
           (dissoc :duct.router/cascading)))))
+
+;; This produces a router
+(defmethod ig/init-key ::reitit-router [_ {:keys [routes] :as opts}]
+  (rr/router routes (dissoc opts :routes)))
 
 ;; This is the actual component that the duct web module picks up and
 ;; uses as the router for the ring stack.
-(defmethod ig/init-key ::reitit-router [_ routes]
-  (rr/ring-handler (rr/router routes)))
+(defmethod ig/init-key ::ring-router [_ {:keys [router]}]
+  (rr/ring-handler router))

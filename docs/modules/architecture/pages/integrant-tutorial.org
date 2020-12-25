@@ -150,7 +150,8 @@ component and use that instead, as long as the component's name is derived from
 ~:duct/router~.
 
 In fact, that's exactly what Sweet Tooth does with its
-~:sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router~ component.
+~:sweet-tooth.endpoint.module.liberator-reitit-router/ring-router~
+component.
 
 * Adding Components
 

@@ -6,12 +6,6 @@
             [sweet-tooth.endpoint.datomic.connection] ; for multimethod
             [sweet-tooth.endpoint.datomic.liberator :as sut]))
 
-(deftest test-ctx-id
-  (is (= 1
-         (sut/ctx-id {:request {:params {:id "1"}}}))
-      (= 17592186056135
-         (sut/ctx-id {:request {:params {:id "17592186056135"}}}))))
-
 ;;-------
 ;; interactions with actual datomic db
 ;;-------

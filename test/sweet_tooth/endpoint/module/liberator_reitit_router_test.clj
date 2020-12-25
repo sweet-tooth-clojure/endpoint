@@ -53,65 +53,74 @@
    :sweet-tooth.endpoint.module/middleware {}})
 
 (deftest builds-duct-config
-  (let [duct-config (-> (select-keys (duct/prep-config duct-config) [::sut/reitit-router ::collection-handler ::member-handler
-                                                                     ::member-history-handler ::custom-path-handler])
+  (let [duct-config (-> (select-keys (duct/prep-config duct-config)
+                                     [::sut/reitit-router ::collection-handler ::member-handler
+                                      ::member-history-handler ::custom-path-handler])
                         ;; TODO figure out how to not have to do these
                         ;; shenanigans
 
                         ;; dropping the first middleware because it's
                         ;; an anonymous function so I can't really test for that
-                        (update ::sut/reitit-router #(mapv (fn [route]
-                                                             (update-in route [1 :middleware] (fn [x] (drop 1 x))))
-                                                           %)))]
+                        (update ::sut/ring-router
+                                #(mapv (fn [route]
+                                         (update-in route [1 :middleware] (fn [x] (drop 1 x))))
+                                       %)))]
 
-    (is (= #{::collection-handler ::member-handler ::sut/reitit-router ::member-history-handler ::custom-path-handler}
+    (is (= #{::collection-handler ::member-handler ::sut/ring-router ::sut/reitit-router
+             ::member-history-handler ::custom-path-handler}
            (set (keys duct-config))))
 
     (testing "router"
-      (is (= {::sut/reitit-router [["/module/liberator-reitit-router-test"
-                                    {:name          :module.liberator-reitit-router-tests
-                                     :id-key        :id
-                                     :auth-id-key   :id
-                                     ::ef/formatter ::ef/segments
-                                     :ent-type      :liberator-reitit-router-test
-                                     :middleware    [em/wrap-merge-params]
-                                     :handler       (ig/ref ::collection-handler)
-                                     ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type     :collection}]
-                                   ["/module/liberator-reitit-router-test/{id}"
-                                    {:name          :module.liberator-reitit-router-test
-                                     :id-key        :id
-                                     :auth-id-key   :id
-                                     ::ef/formatter ::ef/segments
-                                     :ent-type      :liberator-reitit-router-test
-                                     :middleware    [em/wrap-merge-params]
-                                     :handler       (ig/ref ::member-handler)
-                                     ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type     :member}]
-                                   ["/module/liberator-reitit-router-test/{id}/history"
-                                    {:name          :module.liberator-reitit-router-test/history
-                                     :id-key        :id
-                                     :auth-id-key   :id
-                                     ::ef/formatter ::ef/segments
-                                     :ent-type      :liberator-reitit-router-test
-                                     :middleware    [em/wrap-merge-params]
-                                     :handler       (ig/ref ::member-history-handler)
-                                     ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type     :member/history}]
-                                   ["/module/liberator-reitit-router-test/custom/path"
-                                    {:name          :custom-path
-                                     :handler       (ig/ref ::custom-path-handler)
-                                     :ent-type      :liberator-reitit-router-test
-                                     :middleware    [em/wrap-merge-params]
-                                     :id-key        :id
-                                     :auth-id-key   :id
-                                     ::ef/formatter ::ef/segments
-                                     ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                                     ::err/type     :custom-path}]
-                                   ["/" {:woo        :yeah
-                                         :handler    "x"
-                                         :middleware [em/wrap-merge-params]}]]}
-             (select-keys duct-config [::sut/reitit-router]))))
+      (is (= {::sut/reitit-router
+              {:routes [["/module/liberator-reitit-router-test"
+                         {:name          :module.liberator-reitit-router-tests
+                          :id-key        :id
+                          :auth-id-key   :id
+                          ::ef/formatter ::ef/segments
+                          :ent-type      :liberator-reitit-router-test
+                          ;; :middleware    [em/wrap-merge-params]
+                          :handler       (ig/ref ::collection-handler)
+                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type     :collection}]
+                        ["/module/liberator-reitit-router-test/{id}"
+                         {:name          :module.liberator-reitit-router-test
+                          :id-key        :id
+                          :auth-id-key   :id
+                          ::ef/formatter ::ef/segments
+                          :ent-type      :liberator-reitit-router-test
+                          ;; :middleware    [em/wrap-merge-params]
+                          :handler       (ig/ref ::member-handler)
+                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type     :member}]
+                        ["/module/liberator-reitit-router-test/{id}/history"
+                         {:name          :module.liberator-reitit-router-test/history
+                          :id-key        :id
+                          :auth-id-key   :id
+                          ::ef/formatter ::ef/segments
+                          :ent-type      :liberator-reitit-router-test
+                          ;; :middleware    [em/wrap-merge-params]
+                          :handler       (ig/ref ::member-history-handler)
+                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type     :member/history}]
+                        ["/module/liberator-reitit-router-test/custom/path"
+                         {:name          :custom-path
+                          :handler       (ig/ref ::custom-path-handler)
+                          :ent-type      :liberator-reitit-router-test
+                          ;; :middleware    [em/wrap-merge-params]
+                          :id-key        :id
+                          :auth-id-key   :id
+                          ::ef/formatter ::ef/segments
+                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type     :custom-path}]
+                        ["/" {:woo        :yeah
+                              :handler    "x"
+                              ;; :middleware [em/wrap-merge-params]
+                              }]]}}
+             (-> (select-keys duct-config [::sut/reitit-router])
+                 (update-in [::sut/reitit-router :routes]
+                            (fn [routes]
+                              (mapv #(update % 1 dissoc :middleware)
+                                    routes)))))))
 
     (testing "coll handler"
       (is (= {::collection-handler {:name        :module.liberator-reitit-router-tests
