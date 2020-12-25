@@ -99,11 +99,15 @@
   map-like Datomic Entity"
   [ctx & [attrs]]
   (let [id-key (el/req-id-key ctx)
-        id-val (el/ctx-id ctx)]
-    (d/q {:find [(list 'pull '?e (or attrs '[:*]))]
-          :in   '[$ ?id-attr ?id-val]
-          :where '[[?e ?id-attr ?id-val]]}
-         (db-after ctx) id-key id-val)))
+        id-val (el/ctx-id ctx)
+        db     (db-after ctx)
+        pull   (or attrs '[:*])]
+    (if (= :db/id id-key)
+      (d/pull db pull id-val)
+      (d/q {:find  [(list 'pull '?e pull)]
+            :in    '[$ ?id-attr ?id-val]
+            :where '[[?e ?id-attr ?id-val]]}
+           db id-key id-val))))
 
 ;;-----
 ;; delete
@@ -124,9 +128,7 @@
 
 (defn transact->ctx
   [tx-fn]
-  (fn [ctx]
-    (merge ctx
-           (-> ctx tx-fn deref->:result))))
+  (fn [ctx] (merge ctx (-> ctx tx-fn deref->:result))))
 
 (def update->:result (transact->ctx update))
 (def delete->:result (transact->ctx delete))

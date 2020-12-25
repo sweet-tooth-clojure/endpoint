@@ -15,6 +15,8 @@
 - return 200 and index.html for non-json requests
 - can specify a raw response by adding metadata of 
   `{::ef/formatter ::ef/raw}`
+- `sweet-tooth.endpoint.module.liberator-reitit-router` separated the liberator
+  reitit router from its ring handler
 
 ## [0.10.9] 2020-07-08
 

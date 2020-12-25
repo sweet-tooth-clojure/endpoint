@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest is]]
             [duct.core :as duct]
             [duct.middleware.buddy :as dbuddy]
-            [duct.middleware.web :as dweb]
             [integrant.core :as ig]
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.handler :as eh]))
@@ -11,7 +10,8 @@
 
 (deftest module-groups-middleware-in-correct-order
   (is (= {:duct.core/environment  :test
-          :duct.handler/root      {:middleware [(ig/ref :duct.middleware.buddy/authentication)
+          :duct.handler/root      {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/not-found)
+                                                (ig/ref :duct.middleware.buddy/authentication)
                                                 (ig/ref :sweet-tooth.endpoint.middleware/format-response)
                                                 (ig/ref :sweet-tooth.endpoint.middleware/merge-params)
                                                 (ig/ref :sweet-tooth.endpoint.module.middleware-test/null)
@@ -20,7 +20,7 @@
                                                 (ig/ref :sweet-tooth.endpoint.middleware/restful-format)
                                                 (ig/ref :sweet-tooth.endpoint.middleware/gzip)]
                                    :router     (ig/ref :duct/router)}
-          ::dweb/not-found        {:error-handler (ig/ref ::eh/index.html)}
+          ::em/not-found          {:error-handler (ig/ref ::eh/index.html)}
           ::em/format-exception   {:include-data true}
           ::em/gzip               {}
           ::em/restful-format     {:formats [:transit-json]}
@@ -35,14 +35,15 @@
 
 (deftest exclude-middleware
   (is (= {:duct.core/environment :test
-          :duct.handler/root     {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/format-response)
+          :duct.handler/root     {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/not-found)
+                                               (ig/ref :sweet-tooth.endpoint.middleware/format-response)
                                                (ig/ref :sweet-tooth.endpoint.middleware/merge-params)
                                                (ig/ref :sweet-tooth.endpoint.module.middleware-test/null)
                                                (ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
                                                (ig/ref :sweet-tooth.endpoint.middleware/format-exception)
                                                (ig/ref :sweet-tooth.endpoint.middleware/gzip)]
                                   :router     (ig/ref :duct/router)}
-          ::dweb/not-found       {:error-handler (ig/ref ::eh/index.html)}
+          ::em/not-found         {:error-handler (ig/ref ::eh/index.html)}
           ::em/format-exception  {:include-data true}
           ::em/gzip              {}
           ::em/merge-params      {}

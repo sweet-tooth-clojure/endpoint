@@ -10,10 +10,11 @@
 (deftest meta-merge-with-default-configs
   (is (= {:sweet-tooth.endpoint.middleware/stacktrace-log {}
           :sweet-tooth.endpoint.middleware/restful-format {:formats [:json]}
-          :duct.middleware.web/not-found                  {:error-handler (ig/ref :sweet-tooth.endpoint.handler/index.html)}
+          :sweet-tooth.endpoint.middleware/not-found      {:error-handler (ig/ref :sweet-tooth.endpoint.handler/index.html)}
           :sweet-tooth.endpoint.handler/index.html        {}
           :duct.handler/root                              {:router     (ig/ref :duct/router)
-                                                           :middleware [(ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
+                                                           :middleware [(ig/ref :sweet-tooth.endpoint.middleware/not-found)
+                                                                        (ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
                                                                         (ig/ref :sweet-tooth.endpoint.middleware/restful-format)]}}
 
          (duct/prep-config {:duct.profile/base                      {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}

@@ -103,7 +103,8 @@
   [db params]
   (let [created-id (sut/created-id {:result (create-user db)})]
     (sut/update->:result {:db      db
-                          :request {:params (assoc params :id (str created-id))}})))
+                          :id-key  :db/id
+                          :request {:params (assoc params :db/id created-id)}})))
 
 (deftest test-update->:result
   (with-system system db
@@ -129,13 +130,11 @@
 
 (deftest test-update
   (with-system system db
-    (let [created-id (sut/created-id {:result (create-user db)})]
-      (update-user db {:id            (str created-id)
-                       :user/username "marple"})
-      (is (= {:user/username "marple"}
-             (-> (d/db (:conn db))
-                 (dj/one [:user/username])
-                 (select-keys [:user/username])))))))
+    (update-user db {:user/username "marple"})
+    (is (= {:user/username "marple"}
+           (-> (d/db (:conn db))
+               (dj/one [:user/username])
+               (select-keys [:user/username]))))))
 
 (deftest test-updated-entity
   (with-system system db
@@ -159,5 +158,5 @@
   (with-system system db
     (let [created-id (sut/created-id {:result (create-user db)})
           result     @(sut/delete {:db      db
-                                   :request {:params {:id (str created-id)}}})]
+                                   :request {:params {:id created-id}}})]
       (is (empty? (into {} (d/entity (:db-after result) created-id)))))))
