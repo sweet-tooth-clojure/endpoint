@@ -20,6 +20,5 @@
          (duct/prep-config {:duct.profile/base                      {:sweet-tooth.endpoint.middleware/restful-format {:formats ^:replace [:json]}}
                             :sweet-tooth.endpoint.module/middleware {:exclude [::em/gzip
                                                                                ::em/merge-params
-                                                                               ::em/format-response
                                                                                ::em/format-exception
                                                                                ::dbuddy/authentication]}}))))

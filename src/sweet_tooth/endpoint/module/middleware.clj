@@ -9,7 +9,6 @@
   {::em/gzip               {}
    ::em/restful-format     ^:displace {:formats [:transit-json]}
    ::em/merge-params       {}
-   ::em/format-response    {}
    ::em/format-exception   {}
    ::em/stacktrace-log     {}
    ::em/not-found          {:error-handler (ig/ref ::eh/index.html)}
@@ -25,7 +24,6 @@
   (fn [{:keys [:duct.core/environment] :as config}]
     (let [selected-middlewares (remove (set exclude) [::em/not-found
                                                       ::dbuddy/authentication
-                                                      ::em/format-response
                                                       ::em/merge-params
                                                       ::em/stacktrace-log
                                                       ::em/format-exception

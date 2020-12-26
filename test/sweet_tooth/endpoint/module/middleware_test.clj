@@ -12,7 +12,6 @@
   (is (= {:duct.core/environment  :test
           :duct.handler/root      {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/not-found)
                                                 (ig/ref :duct.middleware.buddy/authentication)
-                                                (ig/ref :sweet-tooth.endpoint.middleware/format-response)
                                                 (ig/ref :sweet-tooth.endpoint.middleware/merge-params)
                                                 (ig/ref :sweet-tooth.endpoint.module.middleware-test/null)
                                                 (ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
@@ -25,7 +24,6 @@
           ::em/gzip               {}
           ::em/restful-format     {:formats [:transit-json]}
           ::em/merge-params       {}
-          ::em/format-response    {}
           ::em/stacktrace-log     {}
           ::dbuddy/authentication {:backend :session}
           ::eh/index.html         {}}
@@ -36,7 +34,6 @@
 (deftest exclude-middleware
   (is (= {:duct.core/environment :test
           :duct.handler/root     {:middleware [(ig/ref :sweet-tooth.endpoint.middleware/not-found)
-                                               (ig/ref :sweet-tooth.endpoint.middleware/format-response)
                                                (ig/ref :sweet-tooth.endpoint.middleware/merge-params)
                                                (ig/ref :sweet-tooth.endpoint.module.middleware-test/null)
                                                (ig/ref :sweet-tooth.endpoint.middleware/stacktrace-log)
@@ -47,7 +44,6 @@
           ::em/format-exception  {:include-data true}
           ::em/gzip              {}
           ::em/merge-params      {}
-          ::em/format-response   {}
           ::em/stacktrace-log    {}
           ::eh/index.html        {}}
          (duct/prep-config {:duct.profile/base                      {:duct.handler/root     {:middleware [(ig/ref ::null)]}

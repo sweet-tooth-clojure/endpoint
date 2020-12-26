@@ -93,6 +93,8 @@ case of `:collection` (which would correspond to `/todo-list`), the return value
 is a vector of maps. For `:member` (which would correspond to `/todo-list/1`),
 the return value is a single map.
 
+TODO update format-response part, this has been removed.
+
 You can return these values instead of the fully protocol-conformat values
 because Sweet Tooth will format the responses from your handlers. It derives the
 entity type from the endpoint namespace; the entity type for
