@@ -8,6 +8,7 @@
 - `sweet-tooth.endpoint.liberator/assoc-params`
 - `sweet-tooth.endpoint.liberator/raw`
 - reitit coercion middleware to reitit routes
+- can now use route names for `eth/req` instead of paths
 
 ### Changed
 

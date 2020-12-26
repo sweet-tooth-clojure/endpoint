@@ -11,6 +11,7 @@
             [com.rpl.specter :as specter]
             [integrant.core :as ig]
             [ring.mock.request :as mock]
+            [reitit.core :as rc]
             [sweet-tooth.endpoint.system :as es]
             [clojure.pprint :as pprint]))
 
@@ -24,7 +25,7 @@
   "more assertive system retrieval"
   []
   (when-not *system*
-    (throw (ex-info "sweet-tooth.endpoint.test.harness/*system* is nil but should be a system" {})))
+    (throw (ex-info "sweet-tooth.endpoint.test.harness/*system* is nil but should be a system. Try adding (use-fixtures :each (system-fixture :test-system-name)) to your test namespace." {})))
   *system*)
 
 (defmacro with-system
@@ -56,15 +57,35 @@
   (or (component-key (system))
       (throw (ex-info "Could not find component" {:component-key component-key}))))
 
+
+;; ---
+;; paths
+;; ---
+
+(defn router
+  "The endpoint router."
+  []
+  (if-let [router-key (-> :st/router descendants first)]
+    (router-key (system))
+    (throw (ex-info "No router for *system*. Router should descend from :st/router. Default is :sweet-tooth.endpoint.module.liberator-reitit-router/reitit-router" {}))))
+
+(defn path
+  ([route-name]
+   (path route-name {}))
+  ([route-name route-params]
+   (or (:path (rc/match-by-name (router) route-name route-params))
+       (throw (ex-info "could not generate router path" {:route-name   route-name
+                                                         :route-params route-params})))))
+
 ;; -------------------------
-;; compose and dispatch reqeusts
+;; compose and dispatch requests
 ;; -------------------------
 
 (defn handler
   "The root handler for the system. Used to perform requests."
   []
-  (or (:duct.handler/root *system*)
-      (throw (ex-info "No request handler for *system*. Try adding (use-fixtures :each (system-fixture :test-system-name)) to your test namespace." {}))))
+  (or (:duct.handler/root (system))
+      (throw (ex-info "No request handler for *system*." {}))))
 
 (defn transit-in
   "An input stream of json-encoded transit. For request bodies."
@@ -104,15 +125,23 @@
   [method url params _]
   (base-request* method url params :transit-json))
 
+(defn urlize
+  [url & [params]]
+  (if (keyword? url) (path url params) url))
+
+(defn base-request**
+  [method url params content-type]
+  (base-request* method (urlize url params) params content-type))
+
 (defn base-request
   ([method url]
-   (base-request* method url {} nil))
+   (base-request** method url {} nil))
   ([method url params-or-content-type]
    (if (keyword? params-or-content-type)
-     (base-request* method url {} params-or-content-type)
-     (base-request* method url params-or-content-type nil)))
+     (base-request** method url {} params-or-content-type)
+     (base-request** method url params-or-content-type nil)))
   ([method url params content-type]
-   (base-request* method url params content-type)))
+   (base-request** method url params content-type)))
 
 (defn req
   "Perform a request with the system's root handler"
