@@ -83,16 +83,3 @@
            (sut/format-body body
                             conformed
                             {:id-key :id :ent-type :topic})))))
-
-(deftest formats-response
-  (let [response (sut/format-response {:body                        {:id 3}
-                                       :sweet-tooth.endpoint/format {::sut/formatter ::sut/segments
-                                                                     :id-key         :id
-                                                                     :ent-type       :topic}})]
-    (is (= {:body                        [[:entity {:topic {3 {:id 3}}}]]
-            :sweet-tooth.endpoint/format {:sweet-tooth.endpoint.format/formatter :sweet-tooth.endpoint.format/segments
-                                          :id-key                                :id
-                                          :ent-type                              :topic}}
-           response))
-
-    (is (nil? (s/explain-data ::sut/formatted-response response)))))

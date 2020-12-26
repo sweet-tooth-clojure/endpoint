@@ -28,8 +28,6 @@
             [reitit.ring.coercion :as rrc]
             [com.flyingmachine.liberator-unbound :as lu]
             [meta-merge.core :as mm]
-
-            [sweet-tooth.endpoint.format :as ef]
             [sweet-tooth.endpoint.liberator :as el]
             [sweet-tooth.endpoint.middleware :as em]
             [sweet-tooth.endpoint.routes.reitit :as err]
@@ -164,28 +162,12 @@
   [route]
   (update-opts-if-ns-route route flip-merge {:id-key :id, :auth-id-key :id}))
 
-(defn- add-formatter
-  [route]
-  (update-opts-if-ns-route route flip-merge {::ef/formatter ::ef/segments}))
-
-(defn- format-middleware-fn
-  "Associates opts which are later used by the format middleware to
-  format responses."
-  [[_ endpoint-opts]]
-  (fn format-middleware [f]
-    (fn [req]
-      (update (f req)
-              :sweet-tooth.endpoint/format
-              flip-merge
-              (select-keys endpoint-opts [:id-key :ent-type ::ef/formatter])))))
-
 (defn- add-middleware
   "Middleware is added to reitit in order to work on the request map
   that reitit produces before that request map is passed to the
   handler. For example, reitit adds route params to the request map."
   [route]
-  (update-route-opts route update :middleware #(mm/meta-merge [(format-middleware-fn route)
-                                                               rrc/coerce-request-middleware
+  (update-route-opts route update :middleware #(mm/meta-merge [rrc/coerce-request-middleware
                                                                em/wrap-merge-params]
                                                               %)))
 
@@ -197,7 +179,7 @@
 
 (defn- add-default-ctx
   [[_ endpoint-opts :as route]]
-  (let [ctx (merge (select-keys endpoint-opts [:id-key :auth-id-key])
+  (let [ctx (merge (select-keys endpoint-opts [:id-key :ent-type :auth-id-key])
                    {:logger                         (ig/ref :duct/logger)
                     :sweet-tooth.endpoint/namespace (::err/ns endpoint-opts)})]
     (update-opts-if-ns-route route update :ctx flip-merge ctx)))
@@ -206,9 +188,6 @@
   "Compose the final route passed to reitit/router"
   [route]
   (-> route
-      add-id-keys
-      add-ent-type
-      add-formatter
       add-handler-ref
       add-middleware))
 

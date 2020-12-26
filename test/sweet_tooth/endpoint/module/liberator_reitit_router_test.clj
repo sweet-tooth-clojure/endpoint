@@ -10,8 +10,7 @@
             [duct.logger]
             [integrant.core :as ig]
             [clojure.test :refer :all]
-            [shrubbery.core :as shrub]
-            [sweet-tooth.endpoint.format :as ef]))
+            [shrubbery.core :as shrub]))
 
 (duct/load-hierarchy)
 
@@ -73,47 +72,33 @@
     (testing "router"
       (is (= {::sut/reitit-router
               {:routes [["/module/liberator-reitit-router-test"
-                         {:name          :module.liberator-reitit-router-tests
-                          :id-key        :id
-                          :auth-id-key   :id
-                          ::ef/formatter ::ef/segments
-                          :ent-type      :liberator-reitit-router-test
+                         {:name      :module.liberator-reitit-router-tests
                           ;; :middleware    [em/wrap-merge-params]
-                          :handler       (ig/ref ::collection-handler)
-                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                          ::err/type     :collection}]
+                          :handler   (ig/ref ::collection-handler)
+                          ::err/ns   :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type :collection}]
                         ["/module/liberator-reitit-router-test/{id}"
-                         {:name          :module.liberator-reitit-router-test
-                          :id-key        :id
-                          :auth-id-key   :id
-                          ::ef/formatter ::ef/segments
-                          :ent-type      :liberator-reitit-router-test
+                         {:name      :module.liberator-reitit-router-test
+                          :id-key    :id
                           ;; :middleware    [em/wrap-merge-params]
-                          :handler       (ig/ref ::member-handler)
-                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                          ::err/type     :member}]
+                          :handler   (ig/ref ::member-handler)
+                          ::err/ns   :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type :member}]
                         ["/module/liberator-reitit-router-test/{id}/history"
-                         {:name          :module.liberator-reitit-router-test/history
-                          :id-key        :id
-                          :auth-id-key   :id
-                          ::ef/formatter ::ef/segments
-                          :ent-type      :liberator-reitit-router-test
+                         {:name      :module.liberator-reitit-router-test/history
+                          :id-key    :id
                           ;; :middleware    [em/wrap-merge-params]
-                          :handler       (ig/ref ::member-history-handler)
-                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                          ::err/type     :member/history}]
+                          :handler   (ig/ref ::member-history-handler)
+                          ::err/ns   :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type :member/history}]
                         ["/module/liberator-reitit-router-test/custom/path"
-                         {:name          :custom-path
-                          :handler       (ig/ref ::custom-path-handler)
-                          :ent-type      :liberator-reitit-router-test
+                         {:name      :custom-path
+                          :handler   (ig/ref ::custom-path-handler)
                           ;; :middleware    [em/wrap-merge-params]
-                          :id-key        :id
-                          :auth-id-key   :id
-                          ::ef/formatter ::ef/segments
-                          ::err/ns       :sweet-tooth.endpoint.module.liberator-reitit-router-test
-                          ::err/type     :custom-path}]
-                        ["/" {:woo        :yeah
-                              :handler    "x"
+                          ::err/ns   :sweet-tooth.endpoint.module.liberator-reitit-router-test
+                          ::err/type :custom-path}]
+                        ["/" {:woo     :yeah
+                              :handler "x"
                               ;; :middleware [em/wrap-merge-params]
                               }]]}}
              (-> (select-keys duct-config [::sut/reitit-router])
@@ -128,6 +113,7 @@
                                     :auth-id-key :id
                                     :ctx         {:id-key                         :id
                                                   :auth-id-key                    :id
+                                                  :ent-type                       :liberator-reitit-router-test
                                                   :logger                         (ig/ref :duct/logger)
                                                   :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
                                     :decisions   'decisions
@@ -143,6 +129,7 @@
                                 :auth-id-key :id
                                 :ctx         {:id-key                         :id
                                               :auth-id-key                    :id
+                                              :ent-type                       :liberator-reitit-router-test
                                               :logger                         (ig/ref :duct/logger)
                                               :sweet-tooth.endpoint/namespace :sweet-tooth.endpoint.module.liberator-reitit-router-test}
                                 :decisions   'decisions

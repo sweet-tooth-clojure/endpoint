@@ -1,11 +1,9 @@
 (ns sweet-tooth.endpoint.middleware
   (:require [clojure.stacktrace :as cst]
             [integrant.core :as ig]
-            [reitit.ring.coercion :as rrc]
             [ring.middleware.format :as f]
             [ring.middleware.gzip :as ring-gzip]
-            [ring.middleware.stacktrace :as ring-stacktrace]
-            [sweet-tooth.endpoint.format :as ef]))
+            [ring.middleware.stacktrace :as ring-stacktrace]))
 
 ;;---
 ;; merge params
@@ -20,19 +18,6 @@
 
 (defmethod ig/init-key ::merge-params [_ _]
   #(wrap-merge-params %))
-
-;;---
-;; format response
-;;---
-
-(defn wrap-format-response
-  "See `ef/format-response` for an explanation of what this does"
-  [f]
-  (fn [req]
-    (ef/format-response (f req))))
-
-(defmethod ig/init-key ::format-response [_ _]
-  #(wrap-format-response %))
 
 ;;---
 ;; format exception

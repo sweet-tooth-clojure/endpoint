@@ -28,7 +28,7 @@
   (as-response [_ context]
     {:body    data
      :headers {"Content-Type" (-> (get-in context [:representation :media-type])
-                                  (str/replace #"segment" "transit"))}}))
+                                  (str/replace #"st-segments" "transit"))}}))
 
 (defmethod lr/render-map-generic "application/transit+json"
   [data _ctx]
@@ -56,25 +56,23 @@
 
 (defn segment-response
   [data ctx]
-  #_(ef/format))
+  (->TransitResponse (ef/format-body-data data ctx)))
 
-(defmethod lr/render-map-generic "application/segments+json"
-  [data _ctx]
-  (prn "CTX" (keys _ctx))
-  (->TransitResponse data))
+(defmethod lr/render-map-generic "application/st-segments+json"
+  [data ctx]
+  (segment-response data ctx))
 
-(defmethod lr/render-map-generic "application/segments+msgpack"
-  [data _ctx]
-  (->TransitResponse data))
+(defmethod lr/render-map-generic "application/st-segments+msgpack"
+  [data ctx]
+  (segment-response data ctx))
 
-(defmethod lr/render-seq-generic "application/segments+json"
-  [data _ctx]
-  (prn "CTX" (keys _ctx))
-  (->TransitResponse data))
+(defmethod lr/render-seq-generic "application/st-segments+json"
+  [data ctx]
+  (segment-response data ctx))
 
-(defmethod lr/render-seq-generic "application/segments+msgpack"
-  [data _ctx]
-  (->TransitResponse data))
+(defmethod lr/render-seq-generic "application/st-segments+msgpack"
+  [data ctx]
+  (segment-response data ctx))
 
 
 ;; -------------------------
@@ -145,8 +143,8 @@
 (def decision-defaults
   "A base set of liberator resource decisions"
   (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
-        base          {:available-media-types ["application/segments+json"
-                                               "application/segments+msgpack"
+        base          {:available-media-types ["application/st-segments+json"
+                                               "application/st-segments+msgpack"
                                                "application/transit+json"
                                                "application/transit+msgpack"
                                                "application/json"]

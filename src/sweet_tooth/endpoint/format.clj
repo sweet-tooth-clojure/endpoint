@@ -62,25 +62,6 @@
                         :possible-entity ::possible-entity
                         :mixed-vector    ::mixed-vector))
 
-;;---
-;; formatted response
-;;---
-
-(defn- get-format-type
-  [response]
-  (get-in response [:sweet-tooth.endpoint/format ::formatter]))
-
-(s/def :sweet-tooth.endpoint.format.raw/body any?)
-(s/def :sweet-tooth.endpoint.format.segments/body ::segments)
-
-(defmulti format-type get-format-type)
-(defmethod format-type ::raw [_]
-  (s/keys :req-un [:sweet-tooth.endpoint.format.raw/body]))
-(defmethod format-type ::segments [_]
-  (s/keys :req-un [:sweet-tooth.endpoint.format.segments/body]))
-
-(s/def ::formatted-response (s/multi-spec format-type get-format-type))
-
 ;; -------------------------
 ;; format
 ;; -------------------------
@@ -131,30 +112,15 @@
 (s/fdef format-body
   :ret ::segments)
 
-(defn format-segments-response
-  "Assumes that the default response from endpoints is a map or vector
-  of maps of a single ent-type. Formats that so that it conforms to
-  ::segments."
-  [{:keys [body] :as response}]
-  (let [body        (if (sequential? body)
-                      (vec (filter #(or (and % (not (coll? %)))
-                                        (not-empty %))
-                                   body))
-                      body)
-        format-opts (:sweet-tooth.endpoint/format response)
-        conformed   (s/conform ::raw-body body)]
+
+(defn format-body-data
+  [data opts]
+  (let [data      (if (sequential? data)
+                    (vec (filter #(or (and % (not (coll? %)))
+                                      (not-empty %))
+                                 data))
+                    data)
+        conformed (s/conform ::raw-body data)]
     (if (= ::s/invalid conformed)
-      response
-      (assoc response :body (format-body body conformed format-opts)))))
-
-(defn format-response
-  "Formats a response body to consist of segments unless formatter
-  is ::raw."
-  [response]
-  (if (= ::segments (or (-> response :body meta ::formatter)
-                        (get-in response [:sweet-tooth.endpoint/format ::formatter])))
-    (format-segments-response response)
-    response))
-
-(s/fdef format-response
-  :ret ::formatted-response)
+      data
+      (format-body data conformed opts))))
