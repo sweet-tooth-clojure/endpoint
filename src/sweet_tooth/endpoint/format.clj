@@ -87,7 +87,7 @@
 
 (defn format-entity
   "Index entities by ent-type and id-keys"
-  [entity {:keys [id-key]}]
+  [entity {:keys [id-key] :as _format-opts}]
   (if (empty? entity)
     {}
     {(-> entity meta :ent-type) (eu/key-by id-key (if (map? entity) [entity] entity))}))

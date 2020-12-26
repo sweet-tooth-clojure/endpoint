@@ -16,7 +16,8 @@
             [medley.core :as medley]
             [ring.util.response :as resp]
             [sweet-tooth.describe :as d]
-            [sweet-tooth.endpoint.format :as ef]))
+            [sweet-tooth.endpoint.format :as ef]
+            [clojure.string :as str]))
 
 ;; -------------------------
 ;; returning transit
@@ -26,7 +27,8 @@
   liberator.representation.Representation
   (as-response [_ context]
     {:body    data
-     :headers {"Content-Type" (get-in context [:representation :media-type])}}))
+     :headers {"Content-Type" (-> (get-in context [:representation :media-type])
+                                  (str/replace #"segment" "transit"))}}))
 
 (defmethod lr/render-map-generic "application/transit+json"
   [data _ctx]
@@ -51,6 +53,29 @@
    (merge {:status (get opts :status 200)
            :headers {"media-type" "application/transit+json"}}
           opts)))
+
+(defn segment-response
+  [data ctx]
+  #_(ef/format))
+
+(defmethod lr/render-map-generic "application/segments+json"
+  [data _ctx]
+  (prn "CTX" (keys _ctx))
+  (->TransitResponse data))
+
+(defmethod lr/render-map-generic "application/segments+msgpack"
+  [data _ctx]
+  (->TransitResponse data))
+
+(defmethod lr/render-seq-generic "application/segments+json"
+  [data _ctx]
+  (prn "CTX" (keys _ctx))
+  (->TransitResponse data))
+
+(defmethod lr/render-seq-generic "application/segments+msgpack"
+  [data _ctx]
+  (->TransitResponse data))
+
 
 ;; -------------------------
 ;; Working with liberator context
@@ -120,7 +145,9 @@
 (def decision-defaults
   "A base set of liberator resource decisions"
   (let [errors-in-ctx (fn [ctx] [:errors (:errors ctx)])
-        base          {:available-media-types ["application/transit+json"
+        base          {:available-media-types ["application/segments+json"
+                                               "application/segments+msgpack"
+                                               "application/transit+json"
                                                "application/transit+msgpack"
                                                "application/json"]
                        :allowed-methods       [:get]
