@@ -95,13 +95,13 @@
   "Add errors to context, setting media-type in case liberator doesn't
   get to that decision"
   [errors]
-  {:errors errors
-   :representation {:media-type "application/transit+json"}})
+  {:errors         errors
+   :representation {:media-type "application/st-segments+json"}})
 
 (defn error-response
   "For cases where the error happens before the request gets to liberator"
   [status errors]
-  (transit-response [:errors errors] {:status status}))
+  (transit-response [[:errors errors]] {:status status}))
 
 (defn ->ctx
   "Make it easy to thread data into liberator context"

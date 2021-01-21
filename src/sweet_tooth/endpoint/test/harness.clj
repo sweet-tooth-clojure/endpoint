@@ -106,8 +106,8 @@
 (defmethod base-request* :transit-json
   [method url params _]
   (-> (mock/request method url)
-      (mock/header :content-type "application/transit+json")
-      (mock/header :accept "application/transit+json")
+      (mock/header :content-type "application/st-segments+json")
+      (mock/header :accept "application/st-segments+json")
       (assoc :body (transit-in params))))
 
 (defmethod base-request* :json
