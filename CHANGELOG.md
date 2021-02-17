@@ -5,6 +5,8 @@
 ### Added
 
 - `sweet-tooth.endpoint.liberator/update-params`
+- `sweet-tooth.endpoint.liberator/assoc-in-params`
+- `sweet-tooth.endpoint.liberator/assoc-param`
 - `sweet-tooth.endpoint.liberator/assoc-params`
 - `sweet-tooth.endpoint.liberator/raw`
 - reitit coercion middleware to reitit routes

@@ -130,6 +130,14 @@
   [ctx f & args]
   (apply update-in ctx [:request :params] f args))
 
+(defn assoc-in-params
+  [ctx path v]
+  (assoc-in ctx (into [:request :params] path) v))
+
+(defn assoc-param
+  [ctx k v]
+  (assoc-in ctx [:request :params k] v))
+
 (defn assoc-params
   [ctx params]
   (assoc-in ctx [:request :params] params))
