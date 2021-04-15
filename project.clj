@@ -1,4 +1,4 @@
-(defproject sweet-tooth/endpoint "0.10.10-SNAPSHOT"
+(defproject sweet-tooth/endpoint "0.10.10"
   :description "Utilities for working with liberator-based endpoints"
   :url "https://github.com/sweet-tooth-clojure/endpoint"
   :scm {:url "https://github.com/sweet-tooth-clojure/endpoint"}
