@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.11] WIP
+
+### Added
+
+- `sweet-tooth.endpoint.liberator/merge-decisions`
+
+
 ## [0.10.10] 2021-04-15
 
 ### Added

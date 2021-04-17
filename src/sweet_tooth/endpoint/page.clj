@@ -50,17 +50,23 @@
 
 (defn paginate
   "Returns segments of the paginated entities and their pager"
-  [p id-key ents]
-  (let [{:keys [page per-page sort-order type]} p
+  [paginate-opts id-key ents]
+  (let [{:keys [page per-page sort-order type]} paginate-opts
+        p-sort-by (:sort-by paginate-opts)
         ent-count (count ents)
         data      (cond->> ents
-                    (:sort-by p) (sort-by (:sort-by p) (sort-fn ((:sort-by p) (first ents)) sort-order))
-                    true         (slice page per-page))]
+                    p-sort-by
+                    (sort-by p-sort-by
+                             (sort-fn ((:sort-by paginate-opts) (first ents))
+                                      sort-order))
+
+                    true
+                    (slice page per-page))]
     [[:entity {type (eu/key-by id-key data)}]
-     [:page   {(:query-id p) {:query      p
-                              :result     {p {:ent-count   ent-count
-                                              :ordered-ids (map id-key data)}}
-                              :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}]]))
+     [:page   {(:query-id paginate-opts) {:query      paginate-opts
+                                          :result     {paginate-opts {:ent-count   ent-count
+                                                                      :ordered-ids (map id-key data)}}
+                                          :page-count (Math/round (Math/ceil (/ ent-count per-page)))}}]]))
 
 (defn page-to-new
   "Updates current page if new entity exists in current page, otherwise
@@ -86,4 +92,6 @@
                        (fn [n] (if (string? n) (Integer. n) n))
 
                        [:sort-by :sort-order :query-id :type]
-                       #(keyword (str/replace % #"^:" ""))})))
+                       #(some-> %
+                                (str/replace #"^:" "")
+                                keyword)})))

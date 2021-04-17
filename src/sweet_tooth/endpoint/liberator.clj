@@ -11,6 +11,7 @@
 
   Extends liberator's representations to handle transit"
   (:require [buddy.auth :as buddy]
+            [com.rpl.specter :as specter]
             [flyingmachine.webutils.validation :refer [if-valid]]
             [liberator.representation :as lr]
             [medley.core :as medley]
@@ -183,6 +184,15 @@
                                            context-initializer
                                            (constantly context-initializer))))
    decisions))
+
+(defn merge-decisions
+  "Given a map of
+  {:collection {:get  liberator-decisions-1
+                :post liberator-decisions-2}}
+
+  performs (merge input liberator-decisions) for each liberator-decisions"
+  [input decisions]
+  (specter/transform [specter/MAP-VALS specter/MAP-VALS] #(merge input %) decisions))
 
 ;; -------------------------
 ;; validation
