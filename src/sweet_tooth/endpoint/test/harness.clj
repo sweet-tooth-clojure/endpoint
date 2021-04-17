@@ -106,6 +106,13 @@
 (defmethod base-request* :transit-json
   [method url params _]
   (-> (mock/request method url)
+      (mock/header :content-type "application/transit+json")
+      (mock/header :accept "application/transit+json")
+      (assoc :body (transit-in params))))
+
+(defmethod base-request* :st-segments
+  [method url params _]
+  (-> (mock/request method url)
       (mock/header :content-type "application/st-segments+json")
       (mock/header :accept "application/st-segments+json")
       (assoc :body (transit-in params))))
@@ -123,7 +130,7 @@
 
 (defmethod base-request* :default
   [method url params _]
-  (base-request* method url params :transit-json))
+  (base-request* method url params :st-segments))
 
 (defn urlize
   [url & [params]]
@@ -192,6 +199,13 @@
    (->> resp-data
         (filter entity-segment?)
         (specter/select [specter/ALL 1 (or ent-type specter/MAP-VALS) specter/MAP-VALS]))))
+
+(defn first-response-entity
+  "Walk response data and return all entities from entity segments"
+  ([resp-data]
+   (first-response-entity nil resp-data))
+  ([ent-type resp-data]
+   (first (response-entities ent-type resp-data))))
 
 (defn prep-comparison
   "When testing whether a response contains `test-ent-attrs`, we modify

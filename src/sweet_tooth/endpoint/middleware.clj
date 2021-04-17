@@ -2,6 +2,7 @@
   (:require [clojure.stacktrace :as cst]
             [integrant.core :as ig]
             [ring.middleware.format :as f]
+            [ring.middleware.format-params :as fp]
             [ring.middleware.gzip :as ring-gzip]
             [ring.middleware.stacktrace :as ring-stacktrace]))
 
@@ -90,19 +91,24 @@
      (handler request #(respond (or % (not-found (error-handler request)))) raise))))
 
 (defmethod ig/init-key ::not-found [_ {:keys [error-handler]}]
-#(wrap-not-found % error-handler))
+  #(wrap-not-found % error-handler))
 
 ;;---
 ;; integrantized external middleware
 ;;---
 
+(def segment-request? (fp/make-type-request-pred #"^application/st-segments\+json"))
+
 ;; serialization and deserialization, see
 ;; https://github.com/ngrunwald/ring-middleware-format#summary
+;; TODO I don't like this at all
 (defmethod ig/init-key ::restful-format [_ options]
-#(f/wrap-restful-format % options))
+  (fn [h]
+    (-> (f/wrap-restful-format h options)
+        (fp/wrap-transit-json-params {:predicate segment-request?}))))
 
 (defmethod ig/init-key ::gzip [_ _]
-#(ring-gzip/wrap-gzip %))
+  #(ring-gzip/wrap-gzip %))
 
 (defmethod ig/init-key ::stacktrace-log [_ options]
-#(ring-stacktrace/wrap-stacktrace-log % options))
+  #(ring-stacktrace/wrap-stacktrace-log % options))

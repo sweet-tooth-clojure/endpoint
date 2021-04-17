@@ -5,7 +5,11 @@
 ### Added
 
 - `sweet-tooth.endpoint.liberator/merge-decisions`
+- `eth/first-response-entity`
 
+### Changed
+
+- Update restful-format wrapper to recognize `st-segment`
 
 ## [0.10.10] 2021-04-15
 
