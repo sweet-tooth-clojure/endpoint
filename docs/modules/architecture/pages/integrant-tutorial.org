@@ -20,7 +20,7 @@ All of this is a bit abstract; let's get concrete with some code:
   (atom message))
 
 (defmethod ig/init-key ::printer [_ {:keys [store]}]
-  (prn (format "%s says: %s" ::printer store)))
+  (prn (format "%s says: %s" ::printer @store)))
 
 (ig/init {::message-store {:message "love yourself, homie"}
           ::printer       {:store   (ig/ref ::message-store)}})
